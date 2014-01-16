@@ -19,11 +19,7 @@ use warnings;
 #
 #  -------------------------------------------------------------------------
 #
-#  Module: Parser::VCF::vcf_filter::vcf_filter.pl
-#  Purpose:
-#  In:
-#  Out:
-#
+
 
 
 
@@ -67,6 +63,9 @@ while( my $line = <VCF> ) {
 		}
 	}
 }
+
+## #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	VH011
+## 1	10109	.	A	T	10	SHOREFILTER	AC=1;AF=0.333333;DP=19;MQ0=11;RE=2.10526;ED=0.0289474	GT:AD:DP	0/1:2,1:3
 
 close VCF;
 
