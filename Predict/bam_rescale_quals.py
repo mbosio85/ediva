@@ -1,4 +1,6 @@
-#!/usr/bin/python
+### #!/usr/bin/python
+
+# usage: samtools view -h 64encoded.bam | python bam_rescale_quals.py - | samtools view -bS - > 33encoded.bam
 import sys
 
 def process(fname):
