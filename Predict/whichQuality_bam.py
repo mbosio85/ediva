@@ -1,6 +1,6 @@
-####!/usr/bin/python
+### #!/usr/bin/python
 
-# samtools view sam/bam | python whichQuality_bam.py --- prints out a value of 33 or 64
+# samtools view sam/bam | python whichQuality_bam.py --- prints out a value of 33 or 64 or unknown (no newline added)
 
 import sys
 
@@ -22,10 +22,11 @@ try:
             #sys.stdout.write(line)
         counter += 1
         
+        
         if counter == 10000:
-            if 30 <= min <= 40 and 70 <= max <= 80:
+            if 30 <= min <= 71 and 30 <= max <= 71:
                 sys.stdout.write('33')
-            elif 60 <= min <= 75 and 100 <= max <= 110:
+            elif 60 <= min <= 110 and 60 <= max <= 110:
                 sys.stdout.write('64')
             else:
                 sys.stdout.write('unknown')
@@ -33,4 +34,3 @@ try:
             
 except IOError:
     sys.exit('end of file')
-
