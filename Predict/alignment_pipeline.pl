@@ -52,7 +52,7 @@ my $cpu = 4;
 my $mem = 12;
 my $help = 0;
 
-GetOptions("infolder=s" => \$infolder, "outfolder=s" => \$outfolder, "qsubname=s" => \$qsub_name, "max_coverage=i" => \$max_cov, "nameStart=s" => \$nameStart, "nameLength=s" => \$nameLength, "firstreadextension=s" => \$firstreadextension, "secondreadextension=s" => \$secondreadextension, "cpu=i" => \$cpu, "mem=i" => \$mem, "help=s" => \$help);
+GetOptions("infolder=s" => \$infolder, "outfolder=s" => \$outfolder, "qsubname=s" => \$qsub_name, "max_coverage=i" => \$max_cov, "nameStart=s" => \$nameStart, "nameLength=s" => \$nameLength, "firstreadextension=s" => \$firstreadextension, "secondreadextension=s" => \$secondreadextension, "indelcaller=s" => \$indelcaller, "cpu=i" => \$cpu, "mem=i" => \$mem, "help=s" => \$help);
 
 unless($infolder && $outfolder && $qsub_name && $nameStart ne 'NA' && $nameLength && $firstreadextension && $secondreadextension && $help == 0) {
 	usage;
@@ -66,7 +66,6 @@ my @snppipe = ("
 REF=/users/GD/resource/human/hg19/bwa7/hg19.fasta
 SHOREREF=/users/GD/resource/human/hg19/shore/hg19.fasta.shore
 
-INDELPRIOR=/users/GD/tools/clindel/resources/dbindel137_121217.pseudovcf
 DBINDEL=/users/GD/resource/human/hg19/databases/dbSNP/dbindel137_121217.vcf
 DBSNP=/users/GD/resource/human/hg19/databases/dbSNP/dbsnp137_121217.vcf
 
@@ -211,7 +210,7 @@ java -jar \$GATK -T VariantFiltration -R \$REF -o \$OUTF/SNP_Intersection/GATK.s
 
 
 # isolate PASSed variants
-grep -E \'^#|PASS\' \$OUTF/SNP_Intersection/GATK.snps.filtered.vcf > \$OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf
+grep -E \'^#|PASS\' \$OUTF/SNP_Intersection/GATK.snps.filtered.vcf | grep -v CRGg > \$OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf
 
 
 # Correct sample names in VFC files
@@ -419,7 +418,7 @@ java -Xmx5g -jar \$GATK -T VariantEval -R \$REF --dbsnp \$DBINDEL -select 'set==
 
 }
 else {
-	print 'Option provided to --indelcaller should be: "clindel", "gatk" or "both" \n';
+	print 'Option provided to --indelcaller should be: "clindel", "gatk" or "both" ', "\n";
 	exit;
 }
 
@@ -486,52 +485,6 @@ OUTF=$outfolder/$name
 
 @indelpipe
 
-### Filter and compare indel calls 
-# Filtering
-mkdir \$OUTF/Indel_Intersection
-
-
-### java -jar \$GATK -T VariantFiltration -R \$REF -o \$OUTF/Indel_Intersection/GATK.indel.filtered.vcf --variant \$OUTF/GATK.indel.raw.vcf --filterExpression \"MQ < 30.0 || QUAL < 20.0 || MQ0 > 5 \$QD \" --filterName CRG --genotypeFilterExpression \"DP < 5 || DP > $max_cov || GQ < 15\" --genotypeFilterName CRGg # deprecated
-##
-### indel Predict tool may be selected by user
-##
-##java -jar -Xmx4g \$GATK -T VariantFiltration -R \$REF -o \$OUTF/GATK/indels.filtered.vcf --variant \$OUTF/GATK/indels.vcf --filterExpression \"QD < 2.0 || FS > 200.0 || ReadPosRankSum < -20\" --filterName CRG --genotypeFilterExpression \"DP < 5 || DP > $max_cov || GQ < 15\" --genotypeFilterName LOWQ
-##
-### select PASSed variants
-##grep -v \"CRG\" \$OUTF/Indel_Intersection/GATK.indel.filtered.vcf > \$OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf
-##
-##grep -E \"^#|PASS\" \$OUTF/shore/indels/indels.vcf > \$OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf
-##
-##
-##
-### Correct sample names in VFC files --- not necessary for tool switching
-##sed -i -e \"s/FORMAT\\t\$NAME/FORMAT\\t\$NAME-GATK/\" \$OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf
-##sed -i -e \"s/FORMAT\\t\$NAME/FORMAT\\t\$NAME-CLINDEL/\" \$OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf
-##
-##if [[ ! ( -s \$OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf && -s \$OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf ) ]];
-##then
-##   echo GATK.indel.filtered.cleaned.vcf or CLINDEL.indel.filtered.cleaned.vcf not found
-##   exit
-##fi
-## 
-### Intersecting
-##java -Xmx5g -jar \$GATK -T CombineVariants -R \$REF -genotypeMergeOptions PRIORITIZE -V:CLINDEL \$OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf -V:GATK \$OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf -priority GATK,CLINDEL -o \$OUTF/Indel_Intersection/merged.vcf -U LENIENT_VCF_PROCESSING
-##
-### Evaluation
-##java -Xmx5g -jar \$GATK -T VariantEval -R \$REF --dbsnp \$DBINDEL -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"CLINDEL\"' -selectName CLINDEL -select 'set==\"GATK\"'  -selectName GATK_CLINDEL -o \$OUTF/Indel_Intersection/report.all.txt --eval \$OUTF/Indel_Intersection/merged.vcf -l INFO
-##
-### filter Indels for enriched regions
-##\$BEDTOOLS/intersectBed -a \$OUTF/Indel_Intersection/merged.vcf -b \$EXOME > \$OUTF/Indel_Intersection/merged.all.vcf
-##
-##grep '^#' \$OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf > \$OUTF/Indel_Intersection/merged.enriched.vcf
-##cat \$OUTF/Indel_Intersection/merged.all.vcf >> \$OUTF/Indel_Intersection/merged.enriched.vcf
-##
-##java -Xmx5g -jar \$GATK -T VariantEval -R \$REF --dbsnp \$DBINDEL -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"CLINDEL\"' -selectName CLINDEL -select 'set==\"GATK\"' -selectName GATK -o \$OUTF/Indel_Intersection/report.enriched.txt --eval \$OUTF/Indel_Intersection/merged.enriched.vcf -l INFO
-##
-##
-##### Clean up
-##rm \$OUTF/shore/map.list.gz
-
 
 
 \n");
@@ -541,4 +494,4 @@ mkdir \$OUTF/Indel_Intersection
 	print OUT @qsub;
 
 	close OUT;
-}
+};
