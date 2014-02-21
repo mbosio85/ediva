@@ -66,7 +66,7 @@ parser.add_argument('--familytype', choices=['trio', 'family'], dest='familytype
 args = parser.parse_args()
 
 def main (args):
-    #pp = pprint.PrettyPrinter( indent=4) # DEBUG
+    pp = pprint.PrettyPrinter( indent=4) # DEBUG
     
     # read family relationships
     family = dict()
@@ -112,7 +112,7 @@ def main (args):
     # only consider Refseq annotation for performing the first criteria
     #############
 
-    index_sample      = identifycolumns(header, 'samples(sampleid>zygosity>DPref>DPalt>AF)')
+    index_sample      = identifycolumns(header, 'samples(sampleid>zygosity>DPRef>DPAlt>AF)') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
     index_MAF1k       = identifycolumns(header, 'Total1000GenomesFrequency')
     index_MAFevs      = identifycolumns(header, 'TotalEVSFrequecy')
     index_function    = identifycolumns(header, 'Function(Refseq)')
@@ -236,7 +236,7 @@ def main (args):
             judgement = xlinked(sampledata, family)
             
             # X linked should only work on trios
-            if not familytype == 'trio':
+            if not args.familytype == 'trio':
                 line.append('Trio_only')
                 line.append('filtered')
                 out.writerow(line)
@@ -326,6 +326,10 @@ def main (args):
             
             # does not fit anything
             else:
+                
+                #pp.pprint(judgement)
+                #pp.pprint(line)
+                
                 line.append('NOT_' + args.inheritance)
                 line.append('filtered')
                 out.writerow(line)
@@ -380,31 +384,38 @@ def compound(sampledata, family):
         refcoverage = features[2] # could be numeric or .
         altcoverage = features[3] # could be numeric or .
         
+        #sub_pp.pprint([refcoverage, altcoverage])
+        
         if check_samples.has_key(name):
             check_samples[name] = 1
 
         # homo alt is not expected in compound
         if zygosity == '1/1' and family[name] == '1':
+            #sub_pp.pprint("dropped out in 1/1 1")
             judgement = 0
             break
         
         # het is good (could be an inherited variant or de novo)
         if zygosity == '0/1' and family[name] == '1':
+            #sub_pp.pprint("dropped out in 0/1 1")
             judgement = 1
             continue
         
         # het or hom ref for parents is good
         elif ( zygosity == '0/0' or zygosity == '0/1' ) and family[name] == '0':
+            #sub_pp.pprint("dropped out in 0/0 0")
             judgement = 1
             continue
         
         # parents must not be hom alt
         elif zygosity == '1/1' and family[name] == '0':
+            #sub_pp.pprint("dropped out in 1/1 0")
             judgement = 0
             break
         
         # offspring should have the variant
         elif zygosity == '0/0' and family[name] == '1':
+            #sub_pp.pprint("dropped out in 0/0 1")
             judgement = 0
             break
         
@@ -415,23 +426,39 @@ def compound(sampledata, family):
             # if coverage > 8, the chance is less than 0.5% to miss out on one alt read
             # http://stattrek.com/online-calculator/poisson.aspx
             
+            # if vcf file was not supplemented by pileup data
+            # accept variants which could not be called in the parents
+            if refcoverage == '.' or altcoverage == '.' or refcoverage == '' or altcoverage == '':
+                judgement = 1
+                continue
+            
+            try:
+                int(refcoverage)
+            except:
+                sub_pp.pprint(sampledata)
+                exit(0)
+            
             # hom ref
-            if refcoverage >= 8 and altcoverage == 0:
+            if int(refcoverage) >= 8 and int(altcoverage) == 0:
+                #sub_pp.pprint("dropped out in ./. 0 8 0")
                 judgement = 1
                 continue
             
             # hom alt
-            elif altcoverage >=8 and refcoverage == 0:
+            elif int(altcoverage) >=8 and int(refcoverage) == 0:
+                #sub_pp.pprint("dropped out in ./. 0 0 8")
                 judgement = 0
                 break
             
             # coverage too low?
             else:
+                #sub_pp.pprint("dropped out in ./. 0 else")
                 judgement = 0
                 break
         
         # do not accept missing values for affected individuals
         elif zygosity == './.' and family[name] == '1':
+            #sub_pp.pprint("dropped out in ./. 1")
             judgement = 0
             break
     
@@ -525,7 +552,7 @@ def compoundizer(variantlist, family, index_sample):
     name1_sum = sum(ticker_dict[name1])
     name2_sum = sum(ticker_dict[name2])
     
-    if (name1_sum + name2_sum) >= 2:
+    if (name1_sum + name2_sum) >= 2 and name1_sum >= 1 and name2_sum >= 1:
         judgement = 1
     else:
         judgement = 0
@@ -590,7 +617,7 @@ def denovo(sampledata, family):
             
             # if vcf file was not supplemented by pileup data
             # accept variants which could not be called in the parents
-            if refcoverage == '.' or altcoverage == '.':
+            if refcoverage == '.' or altcoverage == '.' or refcoverage == '' or altcoverage == '':
                 judgement = 1
                 continue
             
@@ -695,7 +722,7 @@ def dominant(sampledata, family):
             
             # if vcf file was not supplemented
             # accept variants which could not be called
-            if refcoverage == '.' or altcoverage == '.':
+            if refcoverage == '.' or altcoverage == '.' or refcoverage == '' or altcoverage == '':
                 judgement = 1
                 continue
             
@@ -806,7 +833,7 @@ def recessive(sampledata, family, familytype):
             
             # if vcf file was not supplemented by pileup data
             # accept variants which could not be called
-            if refcoverage == '.' or altcoverage == '.':
+            if refcoverage == '.' or altcoverage == '.' or refcoverage == '' or altcoverage == '':
                 judgement = 1
                 #sub_pp.pprint(['./. 0 . .', name])
                 continue
