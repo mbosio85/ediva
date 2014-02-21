@@ -62,11 +62,18 @@ Xlinked: used for X linked recessive variants in trios only
 compound: detect compound heterozygous recessive variants
 """)
 parser.add_argument('--familytype', choices=['trio', 'family'], dest='familytype', required=True, help="choose if the data you provide is a trio or a larger family")
+parser.add_argument('--geneexclusion',  type=argparse.FileType('r'), dest='geneexclusion', required=True, help='[Analysis of DNA sequence variants detected by high-throughput sequencing; DOI: 10.1002/humu.22035]. [required]')
 
 args = parser.parse_args()
 
 def main (args):
     pp = pprint.PrettyPrinter( indent=4) # DEBUG
+    
+    # read the gene exclusion list
+    genes2exclude = set()
+    for gene in args.geneexclusion:
+        gene = gene.rstrip()
+        genes2exclude.add(gene)
     
     # read family relationships
     family = dict()
@@ -118,6 +125,7 @@ def main (args):
     index_function    = identifycolumns(header, 'Function(Refseq)')
     index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
     index_segdup      = identifycolumns(header, 'SegMentDup')
+    index_genename    = identifycolumns(header, 'Gene(Refseq)')
     
     # init for compound
     if args.inheritance == 'compound':
@@ -128,11 +136,20 @@ def main (args):
     
     # start reading data
     for line in alldata:
-        MAF1k = line[index_MAF1k]
-        MAFevs = line[index_MAFevs]
-        MAF = max(float(MAF1k), float(MAFevs))
+        MAF1k      = line[index_MAF1k]
+        MAFevs     = line[index_MAFevs]
+        MAF        = max(float(MAF1k), float(MAFevs))
         sampledata = line[index_sample]
         
+        # filter out genes, that are on the gene exclusion list.
+        genecolumn   = line[index_genename]
+        genenames = set()
+        for name in genecolumn.split(';'):
+            realname = name.split('(')
+            genenames.add(realname[0])
+        
+        #if len(genes2exclude & genenames) > 0:
+        #    continue
         
         judgement = int()
         ###
@@ -141,7 +158,12 @@ def main (args):
         if args.inheritance == 'dominant_denovo':
             judgement = denovo(sampledata, family)
             # top SNP
-            if judgement == 1 and MAF <= 0.01:
+            if len(genes2exclude & genenames) > 0:
+                line.append('NOT_' + args.inheritance)
+                line.append('exclusionlist')
+                out.writerow(line)
+
+            elif judgement == 1 and MAF <= 0.01:
                 
                 line.append('denovo')
                 line.append('pass')
@@ -171,7 +193,12 @@ def main (args):
         elif args.inheritance == 'dominant_inherited':
             judgement = dominant(sampledata, family)
             # top SNP
-            if judgement == 1 and MAF <= 0.05:
+            if len(genes2exclude & genenames) > 0:
+                line.append('NOT_' + args.inheritance)
+                line.append('exclusionlist')
+                out.writerow(line)
+
+            elif judgement == 1 and MAF <= 0.05:
                 line.append('dominant')
                 line.append('pass')
                 out.writerow(line)
@@ -198,7 +225,12 @@ def main (args):
         elif args.inheritance == 'recessive':
             judgement = recessive(sampledata, family, args.familytype)
             
-            if judgement == 1 and MAF <= 0.03:
+            if len(genes2exclude & genenames) > 0:
+                line.append('NOT_' + args.inheritance)
+                line.append('exclusionlist')
+                out.writerow(line)
+
+            elif judgement == 1 and MAF <= 0.03:
                 line.append('recessive')
                 line.append('pass')
                 out.writerow(line)
@@ -239,6 +271,11 @@ def main (args):
             if not args.familytype == 'trio':
                 line.append('Trio_only')
                 line.append('filtered')
+                out.writerow(line)
+            
+            elif len(genes2exclude & genenames) > 0:
+                line.append('NOT_' + args.inheritance)
+                line.append('exclusionlist')
                 out.writerow(line)
             
             elif judgement == 1 and MAF <= 0.01:
@@ -311,7 +348,12 @@ def main (args):
             judgement = compound(sampledata, family)
             
             # top SNP
-            if judgement == 1 and MAF <= 0.03:
+            if len(genes2exclude & genenames) > 0:
+                line.append('NOT_' + args.inheritance)
+                line.append('exclusionlist')
+                out.writerow(line)
+
+            elif judgement == 1 and MAF <= 0.03:
                 if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
                         if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
                                 if (line[index_segdup] == '0'):
