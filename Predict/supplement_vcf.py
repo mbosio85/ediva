@@ -34,11 +34,6 @@ for pileline in args.readfile:
         
         break
 
-# # DEBUG
-# pp.pprint(sample_columns_pile)
-# exit(0)
-# # /DEBUG
-
 # iterate through vcf file
 sample_columns_vcf = dict()
 for line in args.vcffile:
@@ -73,7 +68,13 @@ for line in args.vcffile:
     format_info = splitline[8]
     
     # iterate through pile up file to find the respective position of the variant
+    rewinder = 0
+    file_position = 0
+    
     for pileline in args.readfile:
+        
+        file_position = args.readfile.tell()
+        
         pileline = pileline.rstrip('\n')
         split_pileline = pileline.split('\t')
         
@@ -103,7 +104,7 @@ for line in args.vcffile:
                 # now fill up the vcf information
                 genotype_info = collections.OrderedDict() #, because the order is important here.
                 for fo in format_info.split(':'):
-                    # now this dict either has 5 or 6 keys [GT:AD:DP:GQ:PL] [GT:AD:DP:FT:GQ:PL]
+                    # now this dict either has 5 or 6 keys [GT:AD:DP:GQ:PL] [GT:AD:DP:FT:GQ:PL] or even just one [GT]
                     genotype_info[fo] = None
                 
                 # split vcf field
@@ -118,15 +119,10 @@ for line in args.vcffile:
                     for i in range( len(genotype_info.keys()) ):
                         current_field = genotype_info.keys()[i]
                         try:
-                            genotype_info[current_field] = split_vcf_field[i]
-                        except IndexError:
-                            genotype_info[current_field] = '.'
-                    if int(position) == 117803588:
-                        
-                        pp.pprint( genotype_info.keys() )
-                        pp.pprint( genotype_info['FT'] )
-                        genotype_info['FT'] = 'FILTER'
-                        pp.pprint( genotype_info['FT'] )
+                            genotype_info[current_field] = '.' # first set to default
+                            genotype_info[current_field] = split_vcf_field[i] # then overwrite, if possible
+                        except:
+                            pass
                     
                     # check if there is a FT tag and if it was set to PASS, which is not quite logical (since genotype was ./.)
                     try:
@@ -150,15 +146,30 @@ for line in args.vcffile:
             # stop iterating through pileup file
             # if quality fits to criteria, write to file. Afterwards continue with next line in vcf
             break
+        
+        # did we miss the correct position?
+        # rewind
+        elif pile_position > position and pile_chromosome == chromosome:
+            writetofile = True
+            rewinder = 1
+            break
+    
+    if rewinder == 1:
+        args.readfile.seek(0)
+        args.readfile.readline()
     
     # check if everything has a filter tag
     # no filter tags or 'PASS' is the only thing should be printed to vcf file
     sample_count = 0
     rejected_count = 0
+    noGT_count = 0
     
     for i in range(9, len(splitline)):
         sample_count += 1
         split_vcf_field = splitline[i].split(':')
+        
+        if split_vcf_field[0] == './.':
+            noGT_count += 1
         
         # does a 3rd field exist?
         try:
@@ -180,7 +191,7 @@ for line in args.vcffile:
         rejected_count += 1
         
     # did all fields get rejected?
-    if not sample_count == rejected_count:
+    if not sample_count == rejected_count and not sample_count == noGT_count:
         # no? OK write to file
         writetofile = True
     
