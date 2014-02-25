@@ -1,0 +1,14 @@
+# TODO for version 1.1
+- include column for ClinVar
+- include column for OMIM
+- include CADD scores
+- include a Poisson distribution algorithm
+-- will calculate a probability of missed out alternative reads based on local coverage
+   to compensate for regions with high coverage and likely sequencing errors
+
+# TODO for version 1.0
+- produce a manual
+-- mention that Excel must not split at ';'
+- finish indel interogation
+- produce kind of Wizzard instead of web site guides
+  including creation of the tool to run the mpileup creation locally
