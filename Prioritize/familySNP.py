@@ -1,6 +1,7 @@
 import argparse
 import csv
 import pprint
+import re
 
 # Note header:
 #[   'Chr',
@@ -62,7 +63,7 @@ Xlinked: used for X linked recessive variants in trios only
 compound: detect compound heterozygous recessive variants
 """)
 parser.add_argument('--familytype', choices=['trio', 'family'], dest='familytype', required=True, help="choose if the data you provide is a trio or a larger family")
-parser.add_argument('--geneexclusion',  type=argparse.FileType('r'), dest='geneexclusion', required=True, help='[Analysis of DNA sequence variants detected by high-throughput sequencing; DOI: 10.1002/humu.22035]. [required]')
+parser.add_argument('--geneexclusion',  type=argparse.FileType('r'), dest='geneexclusion', required=False, help='[Analysis of DNA sequence variants detected by high-throughput sequencing; DOI: 10.1002/humu.22035]. [required]')
 
 args = parser.parse_args()
 
@@ -70,10 +71,12 @@ def main (args):
     pp = pprint.PrettyPrinter( indent=4) # DEBUG
     
     # read the gene exclusion list
+    # an empty set will not filter out anything, if gene exclusion list is not provided
     genes2exclude = set()
-    for gene in args.geneexclusion:
-        gene = gene.rstrip()
-        genes2exclude.add(gene)
+    if args.geneexclusion:
+        for gene in args.geneexclusion:
+            gene = gene.rstrip()
+            genes2exclude.add(gene)
     
     # read family relationships
     family = dict()
@@ -125,14 +128,15 @@ def main (args):
     index_function    = identifycolumns(header, 'Function(Refseq)')
     index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
     index_segdup      = identifycolumns(header, 'SegMentDup')
-    index_genename    = identifycolumns(header, 'Gene(Refseq)')
+    index_gene = identifycolumns(header, 'Gene(Refseq)')
     
     # init for compound
     if args.inheritance == 'compound':
         compound_gene_storage = []
-        index_gene = identifycolumns(header, 'Gene(Refseq)')
-        old_gene   = line[index_gene]
-        new_gene   = line[index_gene]
+        old_gene   = re.sub('\(.*?\)','',line[index_gene]) # PKHD1L1(NM_177531:exon75:c.12330+1G>A) transformed to PKHD1L1. Also works for ";" separated multiple annotations
+        old_gene_set = set(old_gene.split(';')) # try to remove double occurences of the same gene names
+        new_gene   = re.sub('\(.*?\)','',line[index_gene])
+        new_gene_set = set(new_gene.split(';'))
     
     # start reading data
     for line in alldata:
@@ -142,14 +146,10 @@ def main (args):
         sampledata = line[index_sample]
         
         # filter out genes, that are on the gene exclusion list.
-        genecolumn   = line[index_genename]
         genenames = set()
-        for name in genecolumn.split(';'):
-            realname = name.split('(')
-            genenames.add(realname[0])
-        
-        #if len(genes2exclude & genenames) > 0:
-        #    continue
+        if args.geneexclusion:
+            genecolumn   = re.sub('\(.*?\)','',line[index_gene])
+            genenames = set(genecolumn.split(';'))
         
         judgement = int()
         ###
@@ -317,9 +317,17 @@ def main (args):
             3&4 (parent 50% chance sick)
             """
             
-            new_gene = line[index_gene]
+            new_gene = re.sub('\(.*?\)','',line[index_gene])
+            new_gene_set = set(new_gene.split(';'))
             
-            if not old_gene == new_gene:
+            if new_gene == 'PKHD1L1;PKHD1L1':
+                pp.pprint(line)
+            
+            #if not old_gene == new_gene:
+            # check if the names are the same 
+            if len(old_gene_set - new_gene_set) > 0:
+                
+                pp.pprint(['old: ', old_gene, 'new: ',new_gene, 'orig: ', line[index_gene]])
                 
                 comp_judgement = compoundizer(compound_gene_storage, family, index_sample)
             
@@ -342,7 +350,8 @@ def main (args):
                 
                 # reset values
                 compound_gene_storage = []
-                old_gene = new_gene
+                old_gene     = new_gene
+                old_gene_set = new_gene_set
                 pass
             
             judgement = compound(sampledata, family)
