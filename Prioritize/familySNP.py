@@ -128,21 +128,44 @@ def main (args):
     index_function    = identifycolumns(header, 'Function(Refseq)')
     index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
     index_segdup      = identifycolumns(header, 'SegMentDup')
-    index_gene = identifycolumns(header, 'Gene(Refseq)')
+    index_gene        = identifycolumns(header, 'Gene(Refseq)')
     
     # init for compound
-    if args.inheritance == 'compound':
-        compound_gene_storage = []
-        old_gene   = re.sub('\(.*?\)','',line[index_gene]) # PKHD1L1(NM_177531:exon75:c.12330+1G>A) transformed to PKHD1L1. Also works for ";" separated multiple annotations
-        old_gene_set = set(old_gene.split(';')) # try to remove double occurences of the same gene names
-        new_gene   = re.sub('\(.*?\)','',line[index_gene])
-        new_gene_set = set(new_gene.split(';'))
+    initializer = 0
+    #if args.inheritance == 'compound':
+    #    compound_gene_storage = []
+    #    pp.pprint(line)
+    #    pp.pprint([line[index_gene], index_gene])
+    #    old_gene   = re.sub('\(.*?\)','',line[index_gene]) # PKHD1L1(NM_177531:exon75:c.12330+1G>A) transformed to PKHD1L1. Also works for ";" separated multiple annotations
+    #    pp.pprint(old_gene)
+    #    old_gene_set = set(old_gene.split(';')) # try to remove double occurences of the same gene names
+    #    pp.pprint(old_gene_set)
+    #    new_gene   = re.sub('\(.*?\)','',line[index_gene])
+    #    new_gene_set = set(new_gene.split(';'))
     
     # start reading data
     for line in alldata:
-        MAF1k      = line[index_MAF1k]
-        MAFevs     = line[index_MAFevs]
-        MAF        = max(float(MAF1k), float(MAFevs))
+        
+         # init for compound
+        if args.inheritance == 'compound' and initializer == 0:
+            compound_gene_storage = []
+            old_gene   = re.sub('\(.*?\)','',line[index_gene]) # PKHD1L1(NM_177531:exon75:c.12330+1G>A) transformed to PKHD1L1. Also works for ";" separated multiple annotations
+            old_gene_set = set(old_gene.split(';')) # try to remove double occurences of the same gene names
+            new_gene   = re.sub('\(.*?\)','',line[index_gene])
+            new_gene_set = set(new_gene.split(';'))
+            initializer = 1
+        
+        
+        try:
+            MAF1k      = line[index_MAF1k]
+            MAFevs     = line[index_MAFevs]
+        except:
+            pp.pprint(line)
+        try:
+            # avoiding problems with NAs
+            MAF    = max(float(MAF1k), float(MAFevs))
+        except:
+            MAF    = 0
         sampledata = line[index_sample]
         
         # filter out genes, that are on the gene exclusion list.
@@ -156,6 +179,7 @@ def main (args):
         # look for de novo variants
         ###
         if args.inheritance == 'dominant_denovo':
+            
             judgement = denovo(sampledata, family)
             # top SNP
             if len(genes2exclude & genenames) > 0:
@@ -320,14 +344,12 @@ def main (args):
             new_gene = re.sub('\(.*?\)','',line[index_gene])
             new_gene_set = set(new_gene.split(';'))
             
-            if new_gene == 'PKHD1L1;PKHD1L1':
-                pp.pprint(line)
-            
-            #if not old_gene == new_gene:
-            # check if the names are the same 
+            # if not old_gene == new_gene:
+            # check if the names are the same
+            # sometimes gene looks like 'PKHD1L1;PKHD1L1'
             if len(old_gene_set - new_gene_set) > 0:
                 
-                pp.pprint(['old: ', old_gene, 'new: ',new_gene, 'orig: ', line[index_gene]])
+                #pp.pprint(['old: ', old_gene, 'new: ',new_gene, 'orig: ', line[index_gene]])
                 
                 comp_judgement = compoundizer(compound_gene_storage, family, index_sample)
             
@@ -430,6 +452,10 @@ def compound(sampledata, family):
     
     for sam in samples:
         features    = sam.split('>')
+        # error catching because of wrong splitting, e.g. 40ACVi>0/1>99>0.333;0.167,40ACVm>0/1>99>0.333;0.167,40ACVp>0/2>99>0.333;0.167
+        if len(features) == 1:
+            continue
+        
         name        = features[0]
         zygosity    = features[1]
         refcoverage = features[2] # could be numeric or .
@@ -522,7 +548,8 @@ def compound(sampledata, family):
 
 def compoundizer(variantlist, family, index_sample):
     
-    #sub_pp = pprint.PrettyPrinter(indent = 5)
+    
+    sub_pp = pprint.PrettyPrinter(indent = 5)
     
     #sub_pp.pprint(variantlist)
     
@@ -628,7 +655,10 @@ def denovo(sampledata, family):
     for sam in samples:
         features    = sam.split('>')
         name        = features[0]
-        zygosity    = features[1]
+        try:
+            zygosity    = features[1]
+        except:
+            sub_pp.pprint(samples)
         refcoverage = features[2] # could be numeric or .
         altcoverage = features[3] # could be numeric or .
         
@@ -816,7 +846,7 @@ def identifycolumns (header, question):
     return( int(index) )
 
 def recessive(sampledata, family, familytype):
-    sub_pp = pprint.PrettyPrinter(indent = 8)
+    #sub_pp = pprint.PrettyPrinter(indent = 8)
     
     # get samples as data structure
     all_samples = dict()
@@ -848,7 +878,7 @@ def recessive(sampledata, family, familytype):
         # affected individuals should not be hom ref or het
         elif ( zygosity == '0/0' or zygosity == '0/1' ) and family[name] == '1':
             judgement = 0
-            sub_pp.pprint(['0/0 0/1 1 ', name])
+            #sub_pp.pprint(['0/0 0/1 1 ', name])
             break
         
         # non-affected individuals might be het
