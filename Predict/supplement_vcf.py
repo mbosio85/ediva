@@ -45,6 +45,7 @@ for line in args.vcffile:
         args.outfile.write(line)
         continue
     
+    # column header
     elif line.startswith('#'):
         args.outfile.write(line)
         
@@ -67,6 +68,10 @@ for line in args.vcffile:
     observed    = splitline[4].lower()
     format_info = splitline[8]
     
+    # for indels vcf contains, e.g. GGGAA, whereas mpileup only, e.g. G
+    if len(reference) > 1:
+        reference = reference[0]
+    
     # iterate through pile up file to find the respective position of the variant
     rewinder = 0
     file_position = 0
@@ -82,6 +87,9 @@ for line in args.vcffile:
         pile_position   = int(split_pileline[1])
         pile_reference  = split_pileline[2].lower()
 
+        #if pile_position == 880639:
+        #    pp.pprint(["vcf: ", chromosome, position, reference, observed, "pile: ", pile_chromosome, pile_position, pile_reference])
+        #    #exit(0)
         
         # position found?
         if pile_chromosome == chromosome and pile_position == position and pile_reference == reference:
@@ -93,13 +101,39 @@ for line in args.vcffile:
                 sample_pile_count_column = sample_columns_pile[sample_vcf]
                 sample_pile_obs_column   = sample_pile_count_column + 1
                 
+                #if pile_position == 880639:
+                #    pp.pprint([sample_vcf, sample_pile_count_column, sample_pile_obs_column])
+                
                 count_ref = 0
                 count_alt = 0
+                
+                # a while loop seems incredibly slow here
+                iterate = 0
                 for letter in split_pileline[sample_pile_obs_column]:
-                    if letter == ',' or letter == '.':
+                    
+                    # skip indel mpileup, if there was one found
+                    if not iterate == 0:
+                        iterate -= 1
+                        continue
+                    # reference
+                    elif letter == ',' or letter == '.':
                         count_ref += 1
+                        continue
+                    # SNP observed
                     elif letter.lower() == observed:
                         count_alt += 1
+                        continue
+                    elif letter == '+' or letter == '-':
+                        # we are here: >+1CT+1CT
+                        count_alt += 1
+                        try:
+                            # +>1CT+1CT
+                            iterate = int(split_pileline[sample_pile_obs_column][i+1])
+                            # go here: +1C>T+1CT
+                        except:
+                            iterate = 0
+                        continue
+                        
                 
                 # now fill up the vcf information
                 genotype_info = collections.OrderedDict() #, because the order is important here.
