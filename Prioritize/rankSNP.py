@@ -50,9 +50,9 @@ import re
 
 
 def main ():
-    ### for DEBUG
-    pp = pprint.PrettyPrinter(indent = 4)
-    ###
+    #### for DEBUG
+    #pp = pprint.PrettyPrinter(indent = 4)
+    ####
     
     parser = argparse.ArgumentParser(description = 'rank SNPs according to their mutation properties')
     
@@ -65,11 +65,7 @@ def main ():
     
     header = alldata.pop(0)
     
-    #pp.pprint(alldata[0])
-    #print type()
-    
     alldata_transpose = zip(*alldata)
-    #pp.pprint(alldata_transpose[0])
     
     values2investigate = ['Total1000GenomesFrequency', 'TotalEVSFrequecy', 'SegMentDup', 'Condel', 'VertebratesPhyloP', 'VertebratesPhastCons', 'SIFTScore']
     
@@ -85,14 +81,11 @@ def main ():
     binned_values = binning(alldata_transpose, header, 'PhastCons')
     ranked_phastcons = rank(binned_values)
     
-    # print type(binned_values)
-    # pp.pprint(binned_values)
     
     rank_product_list = list()
     for i in range( len(binned_values) ):
         rank_product = float( ( ranked_maf[i] * ranked_segdup[i] * ranked_condel[i] * ranked_phastcons[i]) ) / ( 100**2 ) # 4 tools deliver information, decrease the numeric value to more graspable values ### currently deleted * ranked_phylop[i]
         #print 'ranked_maf[i] %f, ranked_segdup[i] %f, ranked_condel[i] %f, ranked_phylop[i] %f' % (ranked_maf[i], ranked_segdup[i], ranked_condel[i], ranked_phylop[i])
-        #pp.pprint(rank_product)
         rank_product_list.append(rank_product)
     
     for i in range( len(alldata) ):
@@ -112,7 +105,7 @@ def main ():
 
 def binning (alldata, header, parameter):
     
-    sub_pp = pprint.PrettyPrinter(indent = 6) #DEBUG
+    #sub_pp = pprint.PrettyPrinter(indent = 6) #DEBUG
     binned_values = list()
     
     # MAF
@@ -122,11 +115,8 @@ def binning (alldata, header, parameter):
         column_1000G = list(alldata[index_1000G])
         column_EVS   = list(alldata[index_EVS])
         
-        # clean out closet:
+        # clean out closet (substitute NA by 0):
         for i in range(len(column_1000G)):
-            #sub_pp.pprint(column_1000G)
-            #sub_pp.pprint([type(column_1000G), type(column_1000G[i]), column_1000G[i]])
-            #exit(1)
             if column_1000G[i] == 'NA':
                 column_1000G[i] = str(0)
             if column_EVS[i] == 'NA':
@@ -208,13 +198,9 @@ def binning (alldata, header, parameter):
         column_phastcons = alldata[index_phastcons]
         
         mean_phastcons = getmean(column_phastcons)
-        #print mean_phastcons # DEBUG
         
-        #NAcount = 0 # DEBUG
         for i in range( len(column_phastcons) ):
             if column_phastcons[i] == 'NA':
-                #NAcount += 1 # DEBUG
-                #print 'found NA in phastcons' #DEBUG
                 phastcons = round(mean_phastcons, 2)
                 bin_value = int(phastcons * 100)
                 binned_values.append(bin_value) # [good 1 - 100 bad]
@@ -224,7 +210,6 @@ def binning (alldata, header, parameter):
                 bin_value = int(phastcons * 100)  # [good 1 - 100 bad] a value of 1 should get a small rank
                 bin_value = abs(bin_value - 101 ) # reverse order
                 binned_values.append(bin_value)
-        #print 'phastcons NA: %d, all: %d' % (NAcount, len(column_phastcons)) # DEBUG
     
     return(binned_values)
             
