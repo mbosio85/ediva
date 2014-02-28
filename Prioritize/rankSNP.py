@@ -106,6 +106,10 @@ def main ():
     
     exit(0) #DEBUG
 
+###########################
+###### subroutines ########
+###########################
+
 def binning (alldata, header, parameter):
     
     sub_pp = pprint.PrettyPrinter(indent = 6) #DEBUG
@@ -115,8 +119,19 @@ def binning (alldata, header, parameter):
     if parameter == 'MAF':
         index_1000G  = identifycolumns(header, 'Total1000GenomesFrequency')
         index_EVS    = identifycolumns(header, 'TotalEVSFrequecy')
-        column_1000G = alldata[index_1000G]
-        column_EVS   = alldata[index_EVS]
+        column_1000G = list(alldata[index_1000G])
+        column_EVS   = list(alldata[index_EVS])
+        
+        # clean out closet:
+        for i in range(len(column_1000G)):
+            #sub_pp.pprint(column_1000G)
+            #sub_pp.pprint([type(column_1000G), type(column_1000G[i]), column_1000G[i]])
+            #exit(1)
+            if column_1000G[i] == 'NA':
+                column_1000G[i] = str(0)
+            if column_EVS[i] == 'NA':
+                column_EVS[i]   = str(0)
+        
         
         array_1000G = sp.array(column_1000G, dtype=sp.float32)
         mean_1000G  = sp.mean(array_1000G)
