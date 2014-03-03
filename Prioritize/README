@@ -1,0 +1,16 @@
+##################################################################################################################
+
+USAGE:: perl post_gatkms_filter.pl 
+
+post_gatkms_filter.pl 
+ usage: 
+--infile 	 multisample VCF file 
+--outfile 	 post filtered VCF file 
+--value 	 minimum read depth supporting the variant in atleast one sample (default : 5) 
+--help 		 show help 
+
+
+
+Limitations: Currently only runnnig for bi-allelic sites; For sites other than bi-allelic is under development
+
+
