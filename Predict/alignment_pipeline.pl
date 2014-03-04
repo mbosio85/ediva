@@ -286,7 +286,7 @@ grep -E \'^#|PASS\' \$OUTF/SNP_Intersection/GATK.snps.filtered.vcf | grep -v CRG
 cp \$OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf \$OUTF/SNP_Intersection/merged.vcf
 
 # Evaluation
-java -Xmx5g -jar \$GATK -T VariantEval -R \$REF --dbsnp \$DBSNP -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"GATK\"' -selectName GATK -o \$OUTF/SNP_Intersection/report.all.txt --eval \$OUTF/SNP_Intersection/merged.vcf -l INFO
+java -Xmx5g -jar \$GATK -T VariantEval -R \$REF --dbsnp \$DBSNP  -o \$OUTF/SNP_Intersection/report.all.txt --eval \$OUTF/SNP_Intersection/merged.vcf -l INFO # -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"GATK\"' -selectName GATK
 
 # Annotate Enrichment
 \$BEDTOOLS/intersectBed -a \$OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf -b \$EXOME > \$OUTF/SNP_Intersection/merged.all.vcf
@@ -295,7 +295,7 @@ java -Xmx5g -jar \$GATK -T VariantEval -R \$REF --dbsnp \$DBSNP -select 'set==\"
 grep '^#' \$OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf > \$OUTF/SNP_Intersection/merged.enriched.vcf
 cat \$OUTF/SNP_Intersection/merged.all.vcf >> \$OUTF/SNP_Intersection/merged.enriched.vcf
 
-java -Xmx5g -jar \$GATK -T VariantEval -R \$REF --dbsnp \$DBSNP -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"GATK\"' -selectName GATK -o \$OUTF/SNP_Intersection/report.enriched.txt --eval \$OUTF/SNP_Intersection/merged.enriched.vcf -l INFO
+java -Xmx5g -jar \$GATK -T VariantEval -R \$REF --dbsnp \$DBSNP -o \$OUTF/SNP_Intersection/report.enriched.txt --eval \$OUTF/SNP_Intersection/merged.enriched.vcf -l INFO # -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"GATK\"' -selectName GATK
       
 	       ");
 
