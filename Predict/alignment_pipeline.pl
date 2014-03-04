@@ -26,6 +26,7 @@ sub usage { print "\n$0 \n usage:\n",
 	   "--infolder \t folder containing the raw sequence data in fastq format \n",
 	   "--outfolder \t folder to write the analysis to \n",
 	   "--qsubname \t name of the script you want to start lateron \n",
+	   "--config \t name of the config file to be used \n",
 	   "--max_coverage \t used in SNP filtering with samtools [default = 400] \n",
 	   "--namestart \t  start of a substring in the read file name (first letter is numbered 1) \n",
 	   "--namelength \t length of the part of the filenames which should be taken as sample (and folder) name \n",
@@ -42,6 +43,7 @@ sub usage { print "\n$0 \n usage:\n",
 my $infolder;
 my $outfolder;
 my $qsub_name;
+my $config;
 my $max_cov = 400; 
 my $nameStart = 'NA';
 my $nameLength;
@@ -52,49 +54,104 @@ my $cpu = 4;
 my $mem = 12;
 my $help = 0;
 
-GetOptions("infolder=s" => \$infolder, "outfolder=s" => \$outfolder, "qsubname=s" => \$qsub_name, "max_coverage=i" => \$max_cov, "nameStart=s" => \$nameStart, "nameLength=s" => \$nameLength, "firstreadextension=s" => \$firstreadextension, "secondreadextension=s" => \$secondreadextension, "indelcaller=s" => \$indelcaller, "cpu=i" => \$cpu, "mem=i" => \$mem, "help=s" => \$help);
+GetOptions("infolder=s" => \$infolder, "outfolder=s" => \$outfolder, "qsubname=s" => \$qsub_name, "config=s" => \$config, "max_coverage=i" => \$max_cov, "nameStart=s" => \$nameStart, "nameLength=s" => \$nameLength, "firstreadextension=s" => \$firstreadextension, "secondreadextension=s" => \$secondreadextension, "indelcaller=s" => \$indelcaller, "cpu=i" => \$cpu, "mem=i" => \$mem, "help=s" => \$help);
 
-unless($infolder && $outfolder && $qsub_name && $nameStart ne 'NA' && $nameLength && $firstreadextension && $secondreadextension && $help == 0) {
+unless($infolder && $outfolder && $qsub_name && $config && $nameStart ne 'NA' && $nameLength && $firstreadextension && $secondreadextension && $help == 0) {
 	usage;
 	exit;
 }
+
+### read the config file
+# "REFERENCE", "SHORE_REFERENCE", "DBINDEL", "DBSNP", "BWA", "GATK", "SAMTOOLS", "NOVOSORT", "PICARD", "BEDTOOLS", "EXOME", "EXOME_SHORE"]
+open(FHconf, "<$config");
+my ($ediva, $ref, $shore_ref, $dbindel, $dbsnp, $bwa, $gatk, $picard, $samtools, $novosort, $bedtools, $clindel, $exome, $exome_shore);
+while (<FHconf>) {
+	my @splitline = split('=', $_);
+	
+	if ($splitline[0] eq 'EDIVA') {
+		$ediva = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'REFERENCE') {
+		$ref = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'SHORE_REFERENCE') {
+		$shore_ref = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'DBINDEL') {
+		$dbindel = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'DBSNP') {
+		$dbsnp = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'BWA') {
+		$bwa = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'GATK') {
+		$gatk = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'SAMTOOLS') {
+		$samtools = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'NOVOSORT') {
+		$novosort = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'PICARD') {
+		$picard = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'BEDTOOLS') {
+		$bedtools = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'CLINDEL') {
+		$clindel = $splitline[1];
+	}
+	elsif ($splitline[0] eq 'EXOME') {
+		$exome = $splitline[1];
+	}
+	#elsif ($splitline[0] eq 'EXOME_SHORE') {
+	#	$exome_shore = $splitline[1];
+	#}
+	
+}
+close(FHconf);
+
 
 ### prepare alignment and SNP calling pipeline
 
 my @snppipe = ("
 
-REF=/users/GD/resource/human/hg19/bwa7/hg19.fasta
-SHOREREF=/users/GD/resource/human/hg19/shore/hg19.fasta.shore
 
-DBINDEL=/users/GD/resource/human/hg19/databases/dbSNP/dbindel137_121217.vcf
-DBSNP=/users/GD/resource/human/hg19/databases/dbSNP/dbsnp137_121217.vcf
+REF=$ref
+SHOREREF=$shore_ref
 
-BWA=/users/GD/tools/bwa/bwa-0.7.5a/bwa
+DBINDEL=$dbindel
+DBSNP=$dbsnp
 
-GATK=/users/GD/tools/GATK/GenomeAnalysisTK-2.8-1-g932cd3a/GenomeAnalysisTK.jar
-PICARD=/users/GD/tools/picard/picard-tools-1.100
-SAMTOOLS=\$(which samtools)
-BCFTOOLS=\$(which bcftools)
-VCFUTILS=\$(which vcfutils.pl)
-BEDTOOLS=/users/GD/tools/bedtools/bedtools-2.17.0/bin
+BWA=$bwa
+EDIVA=$ediva
+GATK=$gatk
+PICARD=$picard
+SAMTOOLS=$samtools
+NOVOSORT=$novosort
+# BCFTOOLS=\$(which bcftools) # CHECK
+# VCFUTILS=\$(which vcfutils.pl) # CHECK
+BEDTOOLS=$bedtools
 
-SHORE=/users/GD/tools/shore/shore
-CLINDEL=/users/GD/tools/clindel/bin/shore
-NGSBOX=/users/GD/tools/ngsbox
-RSCRIPT=\$(which Rscript)
+CLINDEL=$clindel
+# NGSBOX=/users/GD/tools/ngsbox  # CHECK
+# RSCRIPT=\$(which Rscript)  # CHECK
 
-EXOME=/users/so/odrechsel/tmp/pipeline_results/Exome_Array_plus150.bed
+EXOME=$exome
 
 ### Align reads with bwa
 \$BWA mem -M -t $cpu -R \"\@RG\\tID:\$NAME\\tSM:\$NAME\" \$REF \$READ1 \$READ2 | time \$SAMTOOLS view -h -b -S -F 0x900 -  > \$TMPDIR/\$NAME.noChimeric.bam
 
 
 ### check for Quality encoding and transform to 33 if 64 encoding is encountered
-OFFSET=\$(\$SAMTOOLS view \$TMPDIR/\$NAME.noChimeric.bam | python /users/GD/tools/exomeCRG/whichQuality_bam.py) # TODO
+OFFSET=\$(\$SAMTOOLS view \$TMPDIR/\$NAME.noChimeric.bam | python \$EDIVA/Predict/whichQuality_bam.py)
 if [[ \$OFFSET == 64 ]];
 then
 	echo \"fixing 64 quality encoding\"
-	\$SAMTOOLS view -h \$TMPDIR/\$NAME.noChimeric.bam | python /users/so/odrechsel/scripts/bam_rescale_quals.py - | \$SAMTOOLS view -bS - > \$TMPDIR/\$NAME.transformed.bam
+	\$SAMTOOLS view -h \$TMPDIR/\$NAME.noChimeric.bam | python \$EDIVA/Predict/bam_rescale_quals.py - | \$SAMTOOLS view -bS - > \$TMPDIR/\$NAME.transformed.bam
 	rm \$TMPDIR/\$NAME.noChimeric.bam
 	mv \$TMPDIR/\$NAME.transformed.bam \$TMPDIR/\$NAME.noChimeric.bam
 fi
@@ -104,7 +161,7 @@ fi
 if [ -s \$TMPDIR/\$NAME.noChimeric.bam ];
 then
    echo Sort BAM
-   /users/GD/tools/novocraft/novosort/novosort --threads $cpu --tmpdir \$TMPDIR --forcesort --output \$TMPDIR/\$NAME.sort.bam -i -m ${mem}G \$TMPDIR/\$NAME.noChimeric.bam
+   \$NOVOSORT --threads $cpu --tmpdir \$TMPDIR --forcesort --output \$TMPDIR/\$NAME.sort.bam -i -m ${mem}G \$TMPDIR/\$NAME.noChimeric.bam
    cp \$TMPDIR/\$NAME.sort.bam* \$OUTF/
    
    # clean up
@@ -224,7 +281,7 @@ grep -E \'^#|PASS\' \$OUTF/SNP_Intersection/GATK.snps.filtered.vcf | grep -v CRG
 #fi
 
 ## Intersecting
-#java -jar \$GATK -T CombineVariants -R \$REF -genotypeMergeOptions PRIORITIZE -V:SHORE \$OUTF/SNP_Intersection/SHORE.snps.filtered.cleaned.vcf -V:GATK \$OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf -priority GATK,SHORE -o \$OUTF/SNP_Intersection/merged.vcf -U LENIENT_VCF_PROCESSING
+#  java -jar \$GATK -T CombineVariants -R \$REF -genotypeMergeOptions PRIORITIZE -V:SHORE \$OUTF/SNP_Intersection/SHORE.snps.filtered.cleaned.vcf -V:GATK \$OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf -priority GATK,SHORE -o \$OUTF/SNP_Intersection/merged.vcf -U LENIENT_VCF_PROCESSING
 
 cp \$OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf \$OUTF/SNP_Intersection/merged.vcf
 
@@ -234,6 +291,7 @@ java -Xmx5g -jar \$GATK -T VariantEval -R \$REF --dbsnp \$DBSNP -select 'set==\"
 # Annotate Enrichment
 \$BEDTOOLS/intersectBed -a \$OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf -b \$EXOME > \$OUTF/SNP_Intersection/merged.all.vcf
 
+# borrow header from GATK vcf file
 grep '^#' \$OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf > \$OUTF/SNP_Intersection/merged.enriched.vcf
 cat \$OUTF/SNP_Intersection/merged.all.vcf >> \$OUTF/SNP_Intersection/merged.enriched.vcf
 
@@ -273,7 +331,7 @@ fi
 set +e
 
 rm -r \$OUTF/shore/Variants/ConsensusAnalysis/supplementary_data
-rm \$OUTF/shore/Variants/ConsensusAnalysis/reference.shore### Clean up
+rm \$OUTF/shore/Variants/ConsensusAnalysis/reference.shore
 rm \$OUTF/shore/map.list.gz
 
 set -e
