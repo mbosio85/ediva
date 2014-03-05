@@ -8,9 +8,14 @@ use threads::shared;
 use Getopt::Long;
 
 
-##############################################################################################
-## Documentation (Need to write before commiting in production)
-##############################################################################################
+######################################
+#
+#	Task => Annotate variants 
+#	infile => VCF file with complete sample wise genotype information
+#	outfile => text file (csv) with complete annotation with sample wise genotype information
+#	Extra outfile => text file (csv) without genic annotation with sample wise information for variants that are not bi-allelic (e.g tri-allelic) 
+#
+#######################################
 
 
 ## subroutine for usage of the tool
@@ -990,7 +995,9 @@ system($srtCmm);
 
 ## writing completed
 print "MESSAGE :: Writing annotation completed \n";
-print "MESSAGE :: Your main annotated files are $outFile \& $SortedoutFile \n";
+print "MESSAGE :: Your annotated file is $outFile \n";
+print "MESSAGE :: Your sorted annotated file is $SortedoutFile \n";
+print "MESSAGE :: Reported sites which are not bi-allelic are in $outFileIns \n";
 
 ## Finalize everything
 print "MESSAGE :: Finalizing annotation process \n";
