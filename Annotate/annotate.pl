@@ -13,15 +13,14 @@ use Getopt::Long;
 ##############################################################################################
 
 
-
 ## subroutine for usage of the tool
 sub usage { print "\n$0 \n usage:\n",
 	   "--input \t\t VCF file containing the variants to annoate \n",
-	   "--tempDir \t\t Temporary scratch location for temp files (all temp files with the current session will be removed at the end of execution) \n",
+	   "--tempDir \t\t Temporary scratch location for temp files (all temp files with the current session will be removed at the end of execution) [default: input VCF location] \n",
 	   "--geneDef \t\t Gene deifnition you want to select for genic annotation (ensGene,refGene,knownGene,all) [default: refGene] \n",
 	   "--variantType \t\t Type of variants to annotate from input VCF file (SNP,INDEL,all) [default: all] \n",
+	   "--sampleGenotypeMode \t complete: reports all possible genotypes from the input VCF file\n\t\t\t compact: reports only valid genotypes from the input VCF file [default: compact] \n",
 	   "--forceNewFileCreate \t If set, then it will over-write existing output annotation file with the same name \n",
-	   "--annotationMode \t complete: reports all possible genotypes from the input VCF file\n\t\t\tcompact: reports only valid genotypes from the input VCF file [default: compact] \n",
 	   "--help \t show help \n\n"
 }
 
@@ -37,8 +36,9 @@ my $input; ## main input vcf file
 my $geneDef = "refGene"; ## gene Definition
 my $sep = ","; ## separator for annotation outfile; currently comma (,) is default;
 my $type = "all"; ## type of variants to annotate from input vcf file
+my $gtMode = "compact"; ## type of variants to annotate from input vcf file
 my $forceDel; ## varibale for force deleting the output annotation file (if exists)
-our $templocation; ## scratch place for creating the temp files while annotating
+our $templocation = "INPATH"; ## scratch place for creating the temp files while annotating
 
 my %variants = (); ## hash to hold input variants from VCF
 my %not_biallelic_variants = (); ## hash to hold input variants from VCF where the site is not bi-allelic and annovar annotation is absent
@@ -62,10 +62,10 @@ our $ANNOVAR = "/users/GD/tools/eDiVaCommandLine/lib/Annovar";
 
 
 ## grab command line options
-GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "forceNewFileCreate" => \$forceDel, "help=s" => \$help);
+GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "forceNewFileCreate" => \$forceDel,"sampleGenotypeMode=s" => \$gtMode, "help=s" => \$help);
 
 ## check mandatory command line parameters and take necessary actions
-unless(($input and $templocation) && $help == 0)
+unless(($input) && $help == 0)
 {
 	usage;
 	exit 0;
@@ -88,6 +88,23 @@ if ($type ne "SNP" && $type ne "INDEL" && $type ne "CNV" && $type ne "all")
 	exit 0;
 }
 
+## final check of sample genotype mode type
+if ($gtMode ne "complete" && $gtMode ne "compact")
+{
+	print "\nWARNING :: Not a valid sample genptype mode value. Please select a correct value and if you are not sure then use the default settings !\n";
+	usage;
+	exit 0;
+}
+
+
+## final check of temp location
+if ($templocation ne "INPATH" and !(-d $templocation))
+{
+	print "\nWARNING :: Not a valid temporary location or the program does not have access to this location. If you are not sure then use the default settings !\n";
+	usage;
+	exit 0;
+}
+
 
 ##############################################################################################
 ## OUTPUT FILE(s)
@@ -106,7 +123,13 @@ if ($input =~ m/\//) ## input file with full path
 	my $tempfile = join(".",@files[0..($len-2)]);
 	$outFile = $mainOutpath."/".$tempfile.".annotated";
 	$SortedoutFile = $mainOutpath."/".$tempfile.".sorted.annotated";
-	$outFileIns = $mainOutpath."/".$tempfile.".ins.annotated";
+	$outFileIns = $mainOutpath."/".$tempfile.".inconsistent.annotated";
+	
+	## set temp location
+	if ($templocation eq "INPATH")
+	{
+		$templocation = $mainOutpath;
+	}
 
 }else{ ## just filename
 
@@ -115,7 +138,14 @@ if ($input =~ m/\//) ## input file with full path
 	my $tempfile = join(".",@files[0..($len-2)]);
 	$outFile = $tempfile.".annotated";
 	$SortedoutFile = $tempfile.".sorted.annotated";
-	$outFileIns = $tempfile.".ins.annotated";
+	$outFileIns = $tempfile.".inconsistent.annotated";
+
+	## set temp location
+	if ($templocation eq "INPATH")
+	{
+		$templocation = ".";
+	}
+
 }
 
 
@@ -192,6 +222,35 @@ sub eDiVaAnnotation
 			$eDiVa{ $k } = $res[0];
 		}
     }
+
+	# extract db result
+	while( my ($k, $v) = each %not_biallelic_variants ) 
+	{
+		my ($chr,$pos,$ref,$alt) = split(/\;/,$k);
+
+		## decide for variant type
+		my $lenref = length $ref;
+		my $lenalt = length $alt;
+			
+		if (($lenref + $lenalt) > 2)## INDEL
+		{
+			$sql = "select annotateINDEL('$k','$chr',$pos);";
+		}else{ ##SNP
+			$sql = "select annotateSNPGermline('$chr',$pos,'$ref','$alt');";		
+		}
+		
+		## prepare statement and query
+		$stmt = $dbh->prepare($sql);
+		$stmt->execute or die "SQL Error!!\n";
+	
+		#process query result
+		while (@res = $stmt->fetchrow_array) 
+		{
+			# load eDiVa hash from database
+			$eDiVa{ $k } = $res[0];
+		}
+    }
+
     
 	## close DB connection
 	$dbh->disconnect();
@@ -205,7 +264,7 @@ sub AnnovarAnnotation
 	
 	## prepare Annovar input
 	my $annInCmm = "perl $ANNOVAR/convert2annovar.pl --includeinfo -format vcf4 $input > $templocation/annInfile".$fileSuffix."   2> ".$input.".annovar.log";
-	print "MESSAGE :: Running Annovar command \> $annInCmm\n";
+	##print "MESSAGE :: Running Annovar command \> $annInCmm\n";
 	system ($annInCmm);
 
 	my $annFile = "$templocation/annInfile".$fileSuffix."";
@@ -215,32 +274,32 @@ sub AnnovarAnnotation
 	if ($geneDef eq 'ensGene')
 	{
 		$annCmm = "$ANNOVAR/ediva_summarize_annovar.pl --buildver hg19  --genetype ensgene --step 1 --outfile $templocation/Ensembl$fileSuffix $templocation/annInfile".$fileSuffix." $ANNOVAR/hg19/ 2> ".$input.".annovar.log";
-		print "MESSAGE :: Running Annovar command \> $annCmm\n";
+		##print "MESSAGE :: Running Annovar command \> $annCmm\n";
 		system ($annCmm);		
 	}elsif($geneDef eq 'refGene')
 	{
 		$annCmm = "$ANNOVAR/ediva_summarize_annovar.pl --buildver hg19  --step 1 --outfile $templocation/Refseq$fileSuffix $templocation/annInfile".$fileSuffix." $ANNOVAR/hg19/ 2> ".$input.".annovar.log";
-		print "MESSAGE :: Running Annovar command \> $annCmm\n";
+		##print "MESSAGE :: Running Annovar command \> $annCmm\n";
 		system ($annCmm);
 	}elsif($geneDef eq 'knownGene')
 	{
 		$annCmm = "$ANNOVAR/ediva_summarize_annovar.pl --buildver hg19  --genetype knowngene --step 1 --outfile $templocation/Known$fileSuffix $templocation/annInfile".$fileSuffix." $ANNOVAR/hg19/ 2> ".$input.".annovar.log";
-		print "MESSAGE :: Running Annovar command \> $annCmm\n";
+		##print "MESSAGE :: Running Annovar command \> $annCmm\n";
 		system ($annCmm);
 	}elsif($geneDef eq 'all')
 	{
-		print "MESSAGE :: No sepicific gene definition selected, hence Annovar is going to run on all definitions !\n";
+		##print "MESSAGE :: No sepicific gene definition selected, hence Annovar is going to run on all definitions !\n";
 		## refgene
 		$annCmm = "$ANNOVAR/ediva_summarize_annovar.pl --buildver hg19  --step 1 --outfile $templocation/Refseq$fileSuffix $templocation/annInfile".$fileSuffix." $ANNOVAR/hg19/ 2> ".$input.".annovar.log";
-		print "MESSAGE :: Running Annovar command \> $annCmm\n";
+		##print "MESSAGE :: Running Annovar command \> $annCmm\n";
 		system ($annCmm);
 		## ensgene
 		$annCmm = "$ANNOVAR/ediva_summarize_annovar.pl --buildver hg19  --genetype ensgene --step 1 --outfile $templocation/Ensembl$fileSuffix $templocation/annInfile".$fileSuffix." $ANNOVAR/hg19/ 2> ".$input.".annovar.log";
-		print "MESSAGE :: Running Annovar command \> $annCmm\n";
+		##print "MESSAGE :: Running Annovar command \> $annCmm\n";
 		system ($annCmm);
 		## knowngene
 		$annCmm = "$ANNOVAR/ediva_summarize_annovar.pl --buildver hg19  --genetype knowngene --step 1 --outfile $templocation/Known$fileSuffix $templocation/annInfile".$fileSuffix." $ANNOVAR/hg19/ 2> ".$input.".annovar.log";
-		print "MESSAGE :: Running Annovar command \> $annCmm\n";
+		##print "MESSAGE :: Running Annovar command \> $annCmm\n";
 		system ($annCmm);
 	}else
 	{
@@ -489,7 +548,7 @@ while(<INPUT>)
 	{
 		@headers = split(/\t/,$_);
 	}
-	else ##($_ !~ m/^#/) ## data lines
+	else ## data lines
 	{
 		my @line = split(/\t/,$_);
 		my $chr = $line[0];
@@ -499,6 +558,18 @@ while(<INPUT>)
 		my @infos = split(/\;/,$line[7]);
 		my $AF;
 		
+		## always test for complete genotype format field consistency in the VCF; if abnormal report for that variant
+		if ($line[8] =~ m/\:/)
+		{
+			my @gtcheck = split(/\:/,$line[8]);
+			if (@gtcheck < 5 or @gtcheck >= 7)
+			{
+				print "WARNING:: weird genotype format found in $input at => $chr and $position \n";
+			}
+		}else{
+			print "WARNING:: weird genotype format found in $input at => $chr and $position \n";
+		}
+			
 		## take care of chr1 or Chr1 and convert to chr1 /Chr1-> 1
 		if ($chr =~ m/^chr/ or $chr =~ m/^Chr/)
 		{
@@ -511,10 +582,9 @@ while(<INPUT>)
 			if ($info =~ m/^AF=/)
 			{
 				$AF = substr($info,3);
+				last;
 			}
-			last;
 		}
-		
 
 		## process based on alteration
 		if ($alt =~ m/\,/) ## section for all sites other than bi-allelic
@@ -538,61 +608,157 @@ while(<INPUT>)
 					my $token_ref = unpack('L', md5($ref));
 					my $token_obs = unpack('L', md5($al));
                 	
-                	## we are only going to report the first alternate allele in the cases where the site is more than bi-allelic
-                	## e.g A,C in the alternate column in VCF will report only A in the main annotation file
-                	## we are doing this because we want to keep the annotation main file consistent
-                	if ($j == 0)
+                	if ($type eq 'INDEL' or $type eq 'all')
                 	{
-						$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$al";
-					}else{
-						$not_biallelic_variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$al";
-					}
+        	        	## we are only going to report the first alternate allele in the cases where the site is more than bi-allelic
+    	            	## e.g A,C in the alternate column in VCF will report only A in the main annotation file
+	                	## we are doing this because we want to keep the annotation main file consistent
 
-					for(my $i = 9; $i < @line; $i++)
-					{
-						my @gts = split(/\:/,$line[$i]);
-			    		my ($dpref,$dpalt,$samAf);
-            			($dpref,$dpalt) = split(/\,/,$gts[1]);
-                		$samAf = $alfr;
-		
-               		 	if (exists $samples{ "$chr;$position;$token_ref;$token_obs" })
-                		{
-	                		$samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
-    					}else
-        	        	{    
-           	    	   		$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
-   		         		}	
-					}	
+	                	if ($j == 0)
+    	            	{
+							$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$al";
+						}else{
+							$not_biallelic_variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$al";
+						}
+
+						for(my $i = 9; $i < @line; $i++)
+						{
+			    			my ($dpref,$dpalt,$samAf);
+							my @gts = ();
+							
+							if ($line[$i] =~ m/\:/)
+							{
+								@gts = split(/\:/,$line[$i]);
+	                		    my @ads = split(/\,/,$gts[1]);
+    	            	 		$dpref = $ads[0];
+        	       		 		@ads = @ads[1..(scalar @ads -1 )];
+            	    		    $dpalt = $ads[$j];
+            				
+            					## for missing genotype or homozygous reference genotype set the AF to 0
+            					if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+            					{
+            						$samAf = "0";
+        	    				}else{
+    	            				$samAf = $alfr;
+								}
+
+    						}else{
+				    			$gts[0] = $line[$i];
+								$dpref = ".";
+								$dpalt = "."; 
+
+            					## for missing genotype or homozygous reference genotype set the AF to 0
+            					if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+            					{
+            						$samAf = "0";
+        	    				}else{
+    	            				$samAf = $alfr;
+								}
+    						
+    						}        				
+						
+							## check for sample genotype mode
+							if ($gtMode eq "complete")
+							{					
+               			 		if (exists $samples{ "$chr;$position;$token_ref;$token_obs" })
+                				{
+	            	    			$samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+    							}else
+        		        		{    
+        	   	    	   			$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+   			         			}
+   			         		}else ## compact
+   			         		{
+   			         			## kick out genotypes of '0/0','./.','0|0' and '.|.'
+    		            		if ($gts[0] ne '0/0' and $gts[0] ne './.' and $gts[0] ne '.|.' and $gts[0] ne '0|0')
+	    	            		{
+	    	            			if (exists $samples{ "$chr;$position;$token_ref;$token_obs" })
+                					{
+	            	    				$samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+    								}else
+        		        			{    
+        	   	    	   				$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+   			         				}
+								}
+   			         		}	
+						}	
+
+					}
 
 				}else{ ## SNP
 					
                 	## we are only going to report the first alternate allele in the cases where the site is more than bi-allelic
                 	## e.g A,C in the alternate column in VCF will report only A in the main annotation file
                 	## we are doing this because we want to keep the annotation main file consistent
-                	if ($j == 0)
+                	if ($type eq 'SNP' or $type eq 'all')
                 	{
-						$variants{ "$chr;$position;$ref;$al" } = "$chr;$position;$ref;$al";
-					}else{
-						$not_biallelic_variants{ "$chr;$position;$ref;$al" } = "$chr;$position;$ref;$al";
-					}
-				
-					for(my $i = 9; $i < @line; $i++)
-					{
-						my @gts = split(/\:/,$line[$i]);
-                	   	my ($dpref,$dpalt,$samAf);
-                	    my @ads = split(/\,/,$gts[1]);
-                 		$dpref = $gts[0];
-               	 		@ads = @ads[1..(scalar @ads -1 )];
-                	    $dpalt = $ads[$j];
-                	    $samAf = $alfr;
-
-						if (exists $samples { "$chr;$position;$ref;$al" })
-						{
-							$samples { "$chr;$position;$ref;$al" } = $samples { "$chr;$position;$ref;$al" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf; 
+	                	if ($j == 0)
+    	            	{
+							$variants{ "$chr;$position;$ref;$al" } = "$chr;$position;$ref;$al";
 						}else{
-							$samples { "$chr;$position;$ref;$al" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+							$not_biallelic_variants{ "$chr;$position;$ref;$al" } = "$chr;$position;$ref;$al";
 						}
-					}						
+					
+						for(my $i = 9; $i < @line; $i++)
+						{
+							my ($dpref,$dpalt,$samAf);
+							my @gts = ();
+							
+							if ($line[$i] =~ m/\:/)
+							{
+								@gts = split(/\:/,$line[$i]);
+    	            		    my @ads = split(/\,/,$gts[1]);
+        	        	 		$dpref = $ads[0];
+            	   		 		@ads = @ads[1..(scalar @ads -1 )];
+                			    $dpalt = $ads[$j];
+							    
+							    ## for missing genotype or homozygous reference genotype set the AF to 0
+            					if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+            					{
+            						$samAf = "0";
+        	    				}else{
+			        	        	$samAf = $alfr;
+								}
+							}else{
+				    			$gts[0] = $line[$i];
+								$dpref = ".";
+								$dpalt = "."; 
+							    
+							    ## for missing genotype or homozygous reference genotype set the AF to 0
+            					if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+            					{
+            						$samAf = "0";
+        		    			}else{
+				        	        $samAf = $alfr;
+								}
+							}							
+                	    
+							
+							## check for sample genotype mode
+							if ($gtMode eq "complete")
+							{								
+								if (exists $samples { "$chr;$position;$ref;$al" })
+								{
+									$samples { "$chr;$position;$ref;$al" } = $samples { "$chr;$position;$ref;$al" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf; 
+								}else{
+									$samples { "$chr;$position;$ref;$al" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+								}
+							}else ## compact
+							{
+		   	            		## kick out genotypes of '0/0','./.','0|0' and '.|.'
+    		            		if ($gts[0] ne '0/0' and $gts[0] ne './.' and $gts[0] ne '.|.' and $gts[0] ne '0|0')
+	    	            		{
+	    	            			if (exists $samples { "$chr;$position;$ref;$al" })
+									{
+										$samples { "$chr;$position;$ref;$al" } = $samples { "$chr;$position;$ref;$al" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf; 
+									}else{
+										$samples { "$chr;$position;$ref;$al" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+									}
+								}
+							}
+						}
+
+					}
 				}
 			}
 		}else ## section for bi-allelic sites
@@ -606,43 +772,136 @@ while(<INPUT>)
 				## make indelID
 				my $token_ref = unpack('L', md5($ref));
 				my $token_obs = unpack('L', md5($alt));
-				$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$alt";
+				
+				if ($type eq 'INDEL' or $type eq 'all')
+                {
+					$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$alt";
+				
+					for(my $i = 9; $i < @line; $i++)
+					{
+			    		my ($dpref,$dpalt,$samAf);
+			    		my @gts = ();
+			    		
+			    		if ($line[$i] =~ m/\:/)
+			    		{
+							@gts = split(/\:/,$line[$i]);
+ 		           			($dpref,$dpalt) = split(/\,/,$gts[1]);
+			    		
+			    		    ## for missing genotype or homozygous reference genotype set the AF to 0
+	            			if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+    	        			{
+        	    				$samAf = "0";
+            				}else{
+                				$samAf = $AF;
+							}
 
-				for(my $i = 9; $i < @line; $i++)
-				{
-					my @gts = split(/\:/,$line[$i]);
-			    	my ($dpref,$dpalt,$samAf);
-            		($dpref,$dpalt) = split(/\,/,$gts[1]);
-                	$samAf = $AF;
-		
-                	if (exists $samples{ "$chr;$position;$token_ref;$token_obs" })
-                	{
-                	    $samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
-                	}else
-                	{        
-                	   	$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
-   	         		}	
-				}	
+			    		}else{
+			    			$gts[0] = $line[$i];
+							$dpref = ".";
+							$dpalt = "."; 
 
+			    		    ## for missing genotype or homozygous reference genotype set the AF to 0
+	            			if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+    	        			{
+        	    				$samAf = "0";
+            				}else{
+                				$samAf = $AF;
+							}
+
+			    		}                		
+						
+						## check for sample genotype mode
+						if ($gtMode eq "complete")
+						{
+	                		if (exists $samples{ "$chr;$position;$token_ref;$token_obs" })
+    	            		{
+        	        		    $samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+            		    	}else
+        	    	    	{        
+    	            		   	$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+   		         			}
+   		         		}else ## compact
+   		         		{
+    	            		## kick out genotypes of '0/0','./.','0|0' and '.|.'
+    	            		if ($gts[0] ne '0/0' and $gts[0] ne './.' and $gts[0] ne '.|.' and $gts[0] ne '0|0')
+    	            		{
+	                			if (exists $samples{ "$chr;$position;$token_ref;$token_obs" })
+    	            			{
+        	        			    $samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+            		    		}else
+        	    	    		{        
+    	            			   	$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+   		         				}
+							}
+   		         		}		
+					}	
+				
+				}
 
 			}else{ ## SNP
+                if ($type eq 'SNP' or $type eq 'all')
+                {
+					$variants{ "$chr;$position;$ref;$alt" } = "$chr;$position;$ref;$alt";
+					
+					for(my $i = 9; $i < @line; $i++)
+					{
+						my ($dpref,$dpalt,$samAf);
+						my @gts = ();
+						
+						if ($line[$i] =~ m/\:/)
+						{
+							@gts = split(/\:/,$line[$i]);
+        	    			($dpref,$dpalt) = split(/\,/,$gts[1]);
+						    
+						    ## for missing genotype or homozygous reference genotype set the AF to 0
+            				if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+            				{
+            					$samAf = "0";
+        	    			}else{
+    	            			$samAf = $AF;
+							}
 
-				$variants{ "$chr;$position;$ref;$alt" } = "$chr;$position;$ref;$alt";
+						}else{
+							$gts[0] = $line[$i];
+							$dpref = ".";
+							$dpalt = "."; 
 
-				for(my $i = 9; $i < @line; $i++)
-				{
-					my @gts = split(/\:/,$line[$i]);
-			    	my ($dpref,$dpalt,$samAf);
-            		($dpref,$dpalt) = split(/\,/,$gts[1]);
-                	$samAf = $AF;
-		
-                	if (exists $samples { "$chr;$position;$ref;$alt" })
-                	{
-                	    $samples { "$chr;$position;$ref;$alt" } = $samples { "$chr;$position;$ref;$alt" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
-               		}else
-            	    {        
-        	           	$samples { "$chr;$position;$ref;$alt" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
-    	            }
+						    ## for missing genotype or homozygous reference genotype set the AF to 0
+            				if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+            				{
+            					$samAf = "0";
+        	    			}else{
+    	            			$samAf = $AF;
+							}
+
+						}						
+						
+						## check for sample genotype mode
+						if ($gtMode eq "complete")
+						{
+	                		if (exists $samples { "$chr;$position;$ref;$alt" })
+    	            		{
+        	        		    $samples { "$chr;$position;$ref;$alt" } = $samples { "$chr;$position;$ref;$alt" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+            	   			}else
+            		    	{        
+        	        		   	$samples { "$chr;$position;$ref;$alt" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+    	            		}
+    	            	}else ## compact
+    	            	{
+    	            		## kick out genotypes of '0/0','./.','0|0' and '.|.'
+    	            		if ($gts[0] ne '0/0' and $gts[0] ne './.' and $gts[0] ne '.|.' and $gts[0] ne '0|0')
+    	            		{
+	                			if (exists $samples { "$chr;$position;$ref;$alt" })
+    	            			{
+        	    	    		    $samples { "$chr;$position;$ref;$alt" } = $samples { "$chr;$position;$ref;$alt" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+            		   			}else
+        	    		    	{        
+    	    	        		   	$samples { "$chr;$position;$ref;$alt" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+	    	            		}	
+    	            		}
+    	            	}	
+					}
+				
 				}	
 			}
 			
