@@ -124,7 +124,7 @@ def main (args):
 
     index_sample      = identifycolumns(header, 'samples(sampleid>zygosity>DPRef>DPAlt>AF)') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
     index_MAF1k       = identifycolumns(header, 'Total1000GenomesFrequency')
-    index_MAFevs      = identifycolumns(header, 'TotalEVSFrequecy')
+    index_MAFevs      = identifycolumns(header, 'TotalEVSFrequency')
     index_function    = identifycolumns(header, 'Function(Refseq)')
     index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
     index_segdup      = identifycolumns(header, 'SegMentDup')

@@ -76,8 +76,8 @@ if args.oldconfig:
         elif splitline[0] == 'EXOME':
             exome        = splitline[1].rstrip()
             
-        elif splitline[0] == 'EXOME_SHORE':
-            exome_shore  = splitline[1].rstrip()
+        #elif splitline[0] == 'EXOME_SHORE':
+        #    exome_shore  = splitline[1].rstrip()
 
 
 ### create a novel config file ###
@@ -231,3 +231,37 @@ args.newconfig.write("EXOME='%s'\n" % exome)
 #args.newconfig.write("EXOME_SHORE='%s'\n" % exome_shore)
 
 args.newconfig.close()
+
+### check for compatibility between reference genome and target bed file
+try:
+    REF = open(ref_genome, 'r')
+except Exception,e:
+    print("Could not check for conconrdance between Reference genome and Exome bed file, because:")
+    print(e)
+
+try:
+    EXO = open(exome, 'r')
+except Exception,e:
+    print("Could not check for conconrdance between Reference genome and Exome bed file, because:")
+    print(e)
+
+# get the chromosome designator of the reference
+ref_chrom = str()
+for line in REF:
+    if line.startswith('>'):
+        line = line.lstrip('>')
+        splitline = line.split(' ')
+        ref_chrom = str(splitline[0])
+        break
+
+# get the chromosome designator of the Exome 
+counter = 0
+exo_chrom = str()
+for line in EXO:
+    if counter == 2:
+        splitline = re.split('\W+', line)
+        exo_chrom = str(splitline[0])
+    counter += 1
+
+if not len(ref_chrom) == len(exo_chrom):
+    print("WARNING: Your Reference file and Exome file seem to have different naming patterns. This will make eDiVa fail later on.")

@@ -142,6 +142,9 @@ CLINDEL=$clindel
 
 EXOME=$exome
 
+### TODO
+# Check the given bed file, if it corresponds to the REF file regarding chromosome naming chr5 vs. 5
+
 ### Align reads with bwa
 \$BWA mem -M -t $cpu -R \"\@RG\\tID:\$NAME\\tSM:\$NAME\" \$REF \$READ1 \$READ2 | time \$SAMTOOLS view -h -b -S -F 0x900 -  > \$TMPDIR/\$NAME.noChimeric.bam
 
