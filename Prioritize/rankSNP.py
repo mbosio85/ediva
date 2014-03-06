@@ -24,9 +24,9 @@ import re
 #    'AminoAcidChange(Known)',
 #    'dbsnpIdentifier',
 #    'dbSNPfrequency',
-#    'EurEVSFrequecy',
-#    'AfrEVSFrequecy',
-#    'TotalEVSFrequecy',
+#    'EurEVSFrequency',
+#    'AfrEVSFrequency',
+#    'TotalEVSFrequency',
 #    'Eur1000GenomesFrequency',
 #    'Afr1000GenomesFrequency',
 #    'Amr1000GenomesFrequency',
@@ -67,7 +67,7 @@ def main ():
     
     alldata_transpose = zip(*alldata)
     
-    values2investigate = ['Total1000GenomesFrequency', 'TotalEVSFrequecy', 'SegMentDup', 'Condel', 'VertebratesPhyloP', 'VertebratesPhastCons', 'SIFTScore']
+    values2investigate = ['Total1000GenomesFrequency', 'TotalEVSFrequency', 'SegMentDup', 'Condel', 'VertebratesPhyloP', 'VertebratesPhastCons', 'SIFTScore']
     
     # binning, because otherwise subtle differences get too much weight
     binned_values = binning(alldata_transpose, header, 'MAF')
@@ -111,7 +111,7 @@ def binning (alldata, header, parameter):
     # MAF
     if parameter == 'MAF':
         index_1000G  = identifycolumns(header, 'Total1000GenomesFrequency')
-        index_EVS    = identifycolumns(header, 'TotalEVSFrequecy')
+        index_EVS    = identifycolumns(header, 'TotalEVSFrequency')
         column_1000G = list(alldata[index_1000G])
         column_EVS   = list(alldata[index_EVS])
         
