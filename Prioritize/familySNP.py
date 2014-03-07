@@ -2,6 +2,7 @@ import argparse
 import csv
 import pprint
 import re
+from scipy.stats import poisson
 
 # Note header:
 #[   'Chr',
@@ -502,6 +503,8 @@ def compound(sampledata, family):
             # e.g. 10ref, 0alt
             # if coverage > 8, the chance is less than 0.5% to miss out on one alt read
             # http://stattrek.com/online-calculator/poisson.aspx
+            # use poisson distribution
+            # poisson_miss = poisson.cdf(0.0, float(ND_coverage)/2)
             
             # if vcf file was not supplemented by pileup data
             # accept variants which could not be called in the parents
@@ -516,14 +519,33 @@ def compound(sampledata, family):
                 exit(0)
             
             # hom ref
-            if int(refcoverage) >= 8 and int(altcoverage) == 0:
-                #sub_pp.pprint("dropped out in ./. 0 8 0")
+            #if int(refcoverage) >= 8 and int(altcoverage) == 0:
+            #    #sub_pp.pprint("dropped out in ./. 0 8 0")
+            #    judgement = 1
+            #    continue
+            refcoverage = float(refcoverage)
+            altcoverage = float(altcoverage)
+            
+            coverage = refcoverage + altcoverage
+            
+            if coverage == 0:
+                judgement = 0
+                break
+            
+            # hom ref
+            # poisson for low coverage and percentage for high coverage
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.0001 and altcoverage / coverage <= 0.05:
                 judgement = 1
                 continue
             
             # hom alt
-            elif int(altcoverage) >=8 and int(refcoverage) == 0:
-                #sub_pp.pprint("dropped out in ./. 0 0 8")
+            #elif int(altcoverage) >=8 and int(refcoverage) == 0:
+            #    #sub_pp.pprint("dropped out in ./. 0 0 8")
+            #    judgement = 0
+            #    break
+            
+            # hom alt
+            elif poisson.cdf( float(refcoverage), float(coverage/2) ) <= 0.0001  and refcoverage / coverage <= 0.05:
                 judgement = 0
                 break
             
@@ -637,7 +659,6 @@ def compoundizer(variantlist, family, index_sample):
     
     return(judgement)
 
-
 def denovo(sampledata, family):
     sub_pp = pprint.PrettyPrinter(indent = 8)
     # get samples as data structure
@@ -706,15 +727,28 @@ def denovo(sampledata, family):
             # e.g. 10ref, 0alt
             # if coverage > 8, the chance is less than 0.5% to miss out on one alt read
             # http://stattrek.com/online-calculator/poisson.aspx
+            refcoverage = float(refcoverage)
+            altcoverage = float(altcoverage)
             
-            # hom ref, non called genotype
-            if int(refcoverage) >= 8 and int(altcoverage) == 0:
-                judgement = 1
-                continue
-            # het, non called genotype
-            elif int(altcoverage) >=1:
+            coverage = refcoverage + altcoverage
+            
+            if coverage == 0:
                 judgement = 0
                 break
+            
+            # hom ref, non called genotype
+            # poisson for low coverage and percentage for high coverage
+            elif (poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.0001) and (altcoverage / coverage <= 0.05):
+            #if int(refcoverage) >= 8 and int(altcoverage) == 0:
+                judgement = 1
+                continue
+            
+            ## het, non called genotype
+            #elif int(altcoverage) >=1:
+            #    judgement = 0
+            #    break
+            
+            # not necessary to check for hom alt
             
             # coverage too low?
             else:
@@ -919,20 +953,32 @@ def recessive(sampledata, family, familytype):
                 #sub_pp.pprint(['./. 0 . .', name])
                 continue
             
+            refcoverage = float(refcoverage)
+            altcoverage = float(altcoverage)
+            
+            coverage = refcoverage + altcoverage
+            
+            if coverage == 0:
+                judgement = 0
+                break
+            
             # hom ref
-            if int(refcoverage) >= 8 and int(altcoverage) == 0:
+            #if int(refcoverage) >= 8 and int(altcoverage) == 0:
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.0001 and altcoverage / coverage <= 0.05:
                 judgement = 1
                 #sub_pp.pprint(['./. 0 8 0', name])
                 continue
             
             # hom alt
-            elif int(altcoverage) >=8 and int(refcoverage) == 0:
+            #elif int(altcoverage) >=8 and int(refcoverage) == 0:
+            elif poisson.cdf( float(refcoverage), float(coverage/2) ) <= 0.0001  and refcoverage / coverage <= 0.05:
                 judgement = 0
                 #sub_pp.pprint(['./. 0 0 8', name])
                 break
             
             # het, which is OK
-            elif int(refcoverage) >= 8 and not int(altcoverage) == 0:
+            #elif int(refcoverage) >= 8 and not int(altcoverage) == 0:
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) >= 0.0001 or altcoverage / coverage >= 0.05:
                 judgement = 1
                 #sub_pp.pprint(['./. 0 8 not 0', name])
                 continue
@@ -1038,20 +1084,32 @@ def xlinked(sampledata, family):
                 judgement = 1
                 continue
             
+            refcoverage = float(refcoverage)
+            altcoverage = float(altcoverage)
+            
+            coverage = refcoverage + altcoverage
+            
+            if coverage == 0:
+                judgement = 0
+                break
+            
             # hom ref
-            if int(refcoverage) >= 8 and int(altcoverage) == 0:
+            #if int(refcoverage) >= 8 and int(altcoverage) == 0:
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.0001 and altcoverage / coverage <= 0.05:
                 inheritance_logic[name] = '0/0'
                 judgement = 1
                 continue
             
             # hom alt
-            elif int(altcoverage) >=8 and int(refcoverage) == 0:
+            #elif int(altcoverage) >=8 and int(refcoverage) == 0:
+            if poisson.cdf( float(refcoverage), float(coverage)/2 ) <= 0.0001 and refcoverage / coverage <= 0.05:
                 inheritance_logic[name] = '1/1'
                 judgement = 0
                 break
             
             # het, which is OK
-            elif int(refcoverage) >= 8 and not int(altcoverage) == 0:
+            #elif int(refcoverage) >= 8 and not int(altcoverage) == 0:
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) >= 0.0001 or altcoverage / coverage >= 0.05:
                 inheritance_logic[name] = '0/1'
                 judgement = 1
                 continue
