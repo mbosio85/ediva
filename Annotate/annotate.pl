@@ -24,7 +24,7 @@ sub usage { print "\n$0 \n usage:\n",
 	   "--tempDir \t\t Temporary scratch location for temp files (all temp files with the current session will be removed at the end of execution) [default: input VCF location] \n",
 	   "--geneDef \t\t Gene deifnition you want to select for genic annotation (ensGene,refGene,knownGene,all) [default: refGene] \n",
 	   "--variantType \t\t Type of variants to annotate from input VCF file (SNP,INDEL,all) [default: all] \n",
-	   "--sampleGenotypeMode \t complete: reports all possible genotypes from the input VCF file\n\t\t\t compact: reports only valid genotypes from the input VCF file [default: compact] \n",
+	   "--sampleGenotypeMode \t complete: reports all genotypes from the input VCF file\n\t\t\t compact: reports only heterozygous and homozygous alteration genotypes from the input VCF file [default: compact] \n",
 	   "--forceNewFileCreate \t If set, then it will over-write existing output annotation file with the same name \n",
 	   "--help \t show help \n\n"
 }
@@ -109,6 +109,38 @@ if ($templocation ne "INPATH" and !(-d $templocation))
 	usage;
 	exit 0;
 }
+
+
+
+##############################################################################################
+## CONFIGURATION VARIFY
+##############################################################################################
+
+## check of annovar settings
+my $vcftoAnn = "$ANNOVAR/convert2annovar.pl";
+my $genicAnn = "$ANNOVAR/ediva_summarize_annovar.pl";
+
+
+if (!(-d $ANNOVAR))
+{
+	print "\nERROR :: Annovar library location is not found. Please set the Annovar library path correctly inside the program \n";
+	exit 0;
+}
+
+if (!(-e $vcftoAnn))
+{
+	print "\nERROR :: Program for converting VCF to Annovar format is not found in the Annovar library location \n";
+	exit 0;
+}
+
+if (!(-e $genicAnn))
+{
+	print "\nERROR :: Program for genic annotation is not found in the Annovar library location \n";
+	exit 0;
+}
+
+## check DB connection
+my $dbConn = DBI->connect('dbi:mysql:'.'eDiVa_innoDB'.';host=www.ediva.crg.eu','hana','hanamysql2013') or die "\nERROR :: Could not connect to eDiVa Database Server \n";
 
 
 ##############################################################################################
@@ -493,13 +525,13 @@ sub getHeader
     }elsif($geneDef eq 'refGene')
     {
         $stringTOreturn = "Chr,Position,Reference,Alteration,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),
-        dbsnpIdentifier,dbSNPfrequency,EurEVSFrequecy,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,
+        dbsnpIdentifier,dbSNPfrequency,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
         PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,samples(sampleid>zygosity>DPRef>DPAlt>AF)";
     }elsif($geneDef eq 'knownGene')
     {
-        $stringTOreturn = "Chr,Position,Reference,Alteration,Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,dbSNPfrequency,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,
-	Eur1000GenomesFrequency,Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
+        $stringTOreturn = "Chr,Position,Reference,Alteration,Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,dbSNPfrequency,EurEVSFrequency,AfrEVSFrequency,
+        TotalEVSFrequency,Eur1000GenomesFrequency,Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
         PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,samples(sampleid>zygosity>DPRef>DPAlt>AF)";
     }else{
         $stringTOreturn = "Chr,Position,Reference,Alteration,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
@@ -519,7 +551,7 @@ sub getHeaderIns
 {
     my $stringTOreturn; ## header to return
 
-    $stringTOreturn = "Chr,Position,Reference,Alteration,GenicAnnotation,dbsnpIdentifier,dbSNPfrequency,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
+    $stringTOreturn = "Chr,Position,Reference,Alteration,GenicAnnotation,dbsnpIdentifier,dbSNPfrequency,EurEVSFrequecy,AfrEVSFrequecy,TotalEVSFrequecy,Eur1000GenomesFrequency,
     Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
     PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,samples(sampleid>zygosity>DPRef>DPAlt>AF)";
 
@@ -790,8 +822,13 @@ while(<INPUT>)
 			    		if ($line[$i] =~ m/\:/)
 			    		{
 							@gts = split(/\:/,$line[$i]);
- 		           			($dpref,$dpalt) = split(/\,/,$gts[1]);
-			    		
+							if ($gts[1] =~ m/\,/)
+							{
+	 		           			($dpref,$dpalt) = split(/\,/,$gts[1]);
+							}else{
+								$dpref = $gts[1];
+								$dpalt = ".";
+							}		    		
 			    		    ## for missing genotype or homozygous reference genotype set the AF to 0
 	            			if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
     	        			{
@@ -856,10 +893,17 @@ while(<INPUT>)
 						if ($line[$i] =~ m/\:/)
 						{
 							@gts = split(/\:/,$line[$i]);
-        	    			($dpref,$dpalt) = split(/\,/,$gts[1]);
-						    
-						    ## for missing genotype or homozygous reference genotype set the AF to 0
-            				if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+        	    			
+        	    			if ($gts[1] =~ m/\,/)
+        	    			{
+	        	    			($dpref,$dpalt) = split(/\,/,$gts[1]);
+						    }else{
+								$dpref = $gts[1];
+								$dpalt = "."; 
+						    }
+							
+							## for missing genotype or homozygous reference genotype set the AF to 0
+        	    			if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
             				{
             					$samAf = "0";
         	    			}else{

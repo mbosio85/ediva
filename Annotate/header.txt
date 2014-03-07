@@ -8,7 +8,6 @@ ExonicFunction(Refseq)
 AminoAcidChange(Refseq)
 dbsnpIdentifier
 dbSNPfrequency
-EurEVSFrequecy
 EurEVSFrequency
 AfrEVSFrequency
 TotalEVSFrequency
