@@ -20,12 +20,12 @@ use Getopt::Long;
 
 ## subroutine for usage of the tool
 sub usage { print "\n$0 \n usage:\n",
-	   "--input \t\t VCF file containing the variants to annoate \n",
-	   "--tempDir \t\t Temporary scratch location for temp files (all temp files with the current session will be removed at the end of execution) [default: input VCF location] \n",
-	   "--geneDef \t\t Gene deifnition you want to select for genic annotation (ensGene,refGene,knownGene,all) [default: refGene] \n",
-	   "--variantType \t\t Type of variants to annotate from input VCF file (SNP,INDEL,all) [default: all] \n",
-	   "--sampleGenotypeMode \t complete: reports all genotypes from the input VCF file\n\t\t\t compact: reports only heterozygous and homozygous alteration genotypes from the input VCF file [default: compact] \n",
-	   "--forceNewFileCreate \t If set, then it will over-write existing output annotation file with the same name \n",
+	   "--input,-i \t\t VCF file containing the variants to annoate \n",
+	   "--tempDir,-t \t\t Temporary scratch location for temp files (all temp files with the current session will be removed at the end of execution) [default: input VCF location] \n",
+	   "--geneDef,-g \t\t Gene deifnition you want to select for genic annotation (ensGene,refGene,knownGene,all) [default: refGene] \n",
+	   "--variantType,-v \t Type of variants to annotate from input VCF file (SNP,INDEL,all) [default: all] \n",
+	   "--sampleGenotypeMode,-s  complete: reports all genotypes from the input VCF file\n\t\t\t compact: reports only heterozygous and homozygous alteration genotypes from the input VCF file [default: compact] \n",
+	   "--forceNewFileCreate,-f  If set, then it will over-write existing output annotation file with the same name \n",
 	   "--help \t show help \n\n"
 }
 
@@ -42,7 +42,7 @@ my $geneDef = "refGene"; ## gene Definition
 my $sep = ","; ## separator for annotation outfile; currently comma (,) is default;
 my $type = "all"; ## type of variants to annotate from input vcf file
 my $gtMode = "compact"; ## type of variants to annotate from input vcf file
-my $forceDel; ## varibale for force deleting the output annotation file (if exists)
+my $forceDel = 0; ## varibale for force deleting the output annotation file (if exists)
 our $templocation = "INPATH"; ## scratch place for creating the temp files while annotating
 
 my %variants = (); ## hash to hold input variants from VCF
@@ -67,7 +67,9 @@ our $ANNOVAR = "/users/GD/tools/eDiVaCommandLine/lib/Annovar";
 
 
 ## grab command line options
-GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "forceNewFileCreate" => \$forceDel,"sampleGenotypeMode=s" => \$gtMode, "help=s" => \$help);
+#GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "forceNewFileCreate" => \$forceDel,"sampleGenotypeMode=s" => \$gtMode, "help=s" => \$help, '<>' => \&catcher);
+unknownArguments() if (!GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "forceNewFileCreate" => \$forceDel,"sampleGenotypeMode=s" => \$gtMode, "help=s" => \$help));
+
 
 ## check mandatory command line parameters and take necessary actions
 unless(($input) && $help == 0)
@@ -208,7 +210,14 @@ if (-e $outFile or -e $SortedoutFile)
 ## SUBROUTINES
 ##############################################################################################
 
+## subroutine for unknown command line arguments
+sub unknownArguments
+{
+	print "\nERROR :: Unknown command line arguments were found \nPlease see the following usage \n";
+	usage;
+	exit 0;
 
+}
 
 ## subroutine for finalizing annotation process
 sub finalize
@@ -666,19 +675,33 @@ while(<INPUT>)
 							if ($line[$i] =~ m/\:/)
 							{
 								@gts = split(/\:/,$line[$i]);
-	                		    my @ads = split(/\,/,$gts[1]);
-    	            	 		$dpref = $ads[0];
-        	       		 		@ads = @ads[1..(scalar @ads -1 )];
-            	    		    $dpalt = $ads[$j];
+								
+								if ($gts[1] =~ m/\,/)
+								{
+	                		    	my @ads = split(/\,/,$gts[1]);
+    	            	 			$dpref = $ads[0];
+        	       		 			@ads = @ads[1..(scalar @ads -1 )];
+            	    		    	$dpalt = $ads[$j];
             				
-            					## for missing genotype or homozygous reference genotype set the AF to 0
-            					if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
-            					{
-            						$samAf = "0";
-        	    				}else{
-    	            				$samAf = $alfr;
+	            					## for missing genotype or homozygous reference genotype set the AF to 0
+    	        					if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+        	    					{
+            							$samAf = "0";
+        	    					}else{
+    	            					$samAf = $alfr;
+									}
+								}else{
+									$dpref = $gts[1];
+									$dpalt = ".";
+	            					
+	            					## for missing genotype or homozygous reference genotype set the AF to 0
+    	        					if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+        	    					{
+            							$samAf = "0";
+        	    					}else{
+    	            					$samAf = $alfr;
+									}
 								}
-
     						}else{
 				    			$gts[0] = $line[$i];
 								$dpref = ".";
@@ -744,18 +767,35 @@ while(<INPUT>)
 							if ($line[$i] =~ m/\:/)
 							{
 								@gts = split(/\:/,$line[$i]);
-    	            		    my @ads = split(/\,/,$gts[1]);
-        	        	 		$dpref = $ads[0];
-            	   		 		@ads = @ads[1..(scalar @ads -1 )];
-                			    $dpalt = $ads[$j];
-							    
-							    ## for missing genotype or homozygous reference genotype set the AF to 0
-            					if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
-            					{
-            						$samAf = "0";
-        	    				}else{
-			        	        	$samAf = $alfr;
-								}
+								
+								if ($gts[1] =~ m/\,/)
+								{
+	    	            		    my @ads = split(/\,/,$gts[1]);
+    	    	        	 		$dpref = $ads[0];
+        	    	   		 		@ads = @ads[1..(scalar @ads -1 )];
+            	    			    $dpalt = $ads[$j];
+            	    			    
+            	    			    ## for missing genotype or homozygous reference genotype set the AF to 0
+	            					if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+    	        					{
+        	    						$samAf = "0";
+        		    				}else{
+			    	    	        	$samAf = $alfr;
+									}
+
+								}else{
+									$dpref = $gts[1];
+									$dpalt = ".";
+
+            	    			    ## for missing genotype or homozygous reference genotype set the AF to 0
+	            					if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+    	        					{
+        	    						$samAf = "0";
+        		    				}else{
+			    	    	        	$samAf = $alfr;
+									}
+
+								}		    									    
 							}else{
 				    			$gts[0] = $line[$i];
 								$dpref = ".";
