@@ -21,12 +21,12 @@ use Getopt::Long;
 ## subroutine for usage of the tool
 sub usage { print "\n$0 \n usage:\n",
 	   "--input,-i \t\t VCF file containing the variants to annoate \n",
-	   "--tempDir,-t \t\t Temporary scratch location for temp files (all temp files with the current session will be removed at the end of execution) [default: input VCF location] \n",
-	   "--geneDef,-g \t\t Gene deifnition you want to select for genic annotation (ensGene,refGene,knownGene,all) [default: refGene] \n",
-	   "--variantType,-v \t Type of variants to annotate from input VCF file (SNP,INDEL,all) [default: all] \n",
-	   "--sampleGenotypeMode,-s  complete: reports all genotypes from the input VCF file\n\t\t\t compact: reports only heterozygous and homozygous alteration genotypes from the input VCF file [default: compact] \n",
+	   "--tempDir,-t \t\t Temporary scratch location for temp files (all temp files with the current session will be removed at the end of execution) \n\t\t\t default: input VCF location \n",
+	   "--geneDef,-g \t\t Gene deifnition you want to select for genic annotation (ensGene,refGene,knownGene,all) \n\t\t\t default: refGene \n",
+	   "--variantType,-v \t Type of variants to annotate from input VCF file (SNP,INDEL,all) \n\t\t\t default: all \n",
+	   "--sampleGenotypeMode,-s  complete: reports all genotypes from the input VCF file\n\t\t\t compact: reports only heterozygous and homozygous alteration genotypes from the input VCF file \n\t\t\t none: exclude sample wise genotype information in annotation \n\t\t\t default: compact \n",
 	   "--forceNewFileCreate,-f  If set, then it will over-write existing output annotation file with the same name \n",
-	   "--help \t show help \n\n"
+	   "--help,-h \t\t show help \n\n"
 }
 
 
@@ -72,8 +72,7 @@ our $ANNOVAR = "/users/GD/tools/eDiVaCommandLine/lib/Annovar";
 
 
 ## grab command line options
-#GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "forceNewFileCreate" => \$forceDel,"sampleGenotypeMode=s" => \$gtMode, "help=s" => \$help, '<>' => \&catcher);
-unknownArguments() if (!GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "forceNewFileCreate" => \$forceDel,"sampleGenotypeMode=s" => \$gtMode, "help=s" => \$help));
+unknownArguments() if (!GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "forceNewFileCreate" => \$forceDel,"sampleGenotypeMode=s" => \$gtMode, "help" => \$help));
 
 
 ## check mandatory command line parameters and take necessary actions
@@ -101,7 +100,7 @@ if ($type ne "SNP" && $type ne "INDEL" && $type ne "CNV" && $type ne "all")
 }
 
 ## final check of sample genotype mode type
-if ($gtMode ne "complete" && $gtMode ne "compact")
+if ($gtMode ne "complete" && $gtMode ne "compact" && $gtMode ne "none")
 {
 	print "\nWARNING :: Not a valid sample genptype mode value. Please select a correct value and if you are not sure then use the default settings !\n";
 	usage;
@@ -237,18 +236,18 @@ sub finalize
 sub preparemissdb
 {
 	## for snps
-	for(my $i = 0; $i<10; $i++)
+	for(my $i = 0; $i<9; $i++)
 	{
 		$missanndb = $missanndb.$sep."0";
 	}
 
-	for(my $i = 0; $i<15; $i++)
+	for(my $i = 0; $i<14; $i++)
 	{
 		$missanndb = $missanndb.$sep."NA";
 	}
 	
 	## for genomic co-ordinates for indels
-	for(my $i = 0; $i<9; $i++)
+	for(my $i = 0; $i<8; $i++)
 	{
 		$missanndb_coordinate = $missanndb_coordinate.$sep."NA";
 	}
@@ -290,11 +289,6 @@ sub eDiVaAnnotation
 			my $stmt2 ;
 			my @res = ();
 			my @res2 = ();
-
-			## make indelid to map indel ids in the database
-			#my $token_ref = unpack('L', md5($ref));
-			#my $token_obs = unpack('L', md5($alt));
-			#my $indelid = $chr.';'.$pos.';'.$token_ref.';'.$token_obs;
 
 			## prepare query 
 			#$sql = "select annotateINDEL('$k','$chr',$pos);";
@@ -495,11 +489,6 @@ sub eDiVaAnnotation
 			my $stmt2 ;
 			my @res = ();
 			my @res2 = ();
-
-			## make indelid to map indel ids in the database
-			# my $token_ref = unpack('L', md5($ref));
-			# my $token_obs = unpack('L', md5($alt));
-			# my $indelid = $chr.';'.$pos.';'.$token_ref.';'.$token_obs;
 
 			## prepare query 
 			#$sql = "select annotateINDEL('$k','$chr',$pos);";
@@ -978,37 +967,71 @@ while(<INPUT>)
 	elsif ($_ =~ m/^#CHROM/) ## grab sample names with other columns from the header line
 	{
 		@headers = split(/\t/,$_);
+		
+		## check for malformed VCF file and take action
+		if (scalar @headers < 8)
+		{
+			print "ERROR:: Not a valid VCF format \n";
+			exit 0;			
+		}
+		
+		## check for genotype format and sample information in the VCF and genotype mode parameter value and take action
+		if (scalar @headers < 9 and $gtMode ne "none")
+		{
+			print "ERROR:: No Genptype format column and no sample genotype information column present in the VCF. Please run the tool with the --sampleGenotypeMode parameter set to \"none\" \n";
+			exit 0;						
+		}
 	}
 	else ## data lines
 	{
 		my @line = split(/\t/,$_);
+
+		## check for malformed VCF file and take action
+		if (scalar @line < 8)
+		{
+			print "ERROR:: Not a valid VCF format \n";
+			exit 0;			
+		}
+
 		my $chr = $line[0];
 		my $position = $line[1];
 		my $ref = $line[3];
 		my $alt = $line[4];
 		my @infos = split(/\;/,$line[7]);
-		my $AF;
+		my $AF = "NA";			
 
-		## test for sample information in the VCF
-		##if (scalar @line <= 8)
-			
 		## always test for complete genotype format field consistency in the VCF; if abnormal report for that variant
-		if ($line[8] =~ m/\:/)
-		{
-			my @gtcheck = split(/\:/,$line[8]);
-			if (@gtcheck < 5 or @gtcheck >= 7)
+		if ($gtMode ne "none")
+		{	
+			if (scalar @line > 8 and $line[8] =~ m/\:/)
 			{
-				print "WARNING:: weird genotype format found in $input at => $chr and $position \n";
-			}
-		}else{
-			print "WARNING:: weird genotype format found in $input at => $chr and $position \n";
+				my @gtcheck = split(/\:/,$line[8]);
+				if (@gtcheck < 5 or @gtcheck >= 7)
+				{
+					print "WARNING:: weird genotype format $line[8] found in $input at chromosome $chr and position $position; Ideal format => GT:AD:DP:GQ:PL \n";
+				}
+			}else{
+				print "WARNING:: weird genotype format $line[8] found in $input at chromosome $chr and position $position; Ideal format => GT:AD:DP:GQ:PL \n";
+			}	
 		}
 			
-		## take care of chr1 or Chr1 and convert to chr1 /Chr1-> 1
+		## take care of chr1 or Chr1 and convert to chr1/Chr1-> 1
 		if ($chr =~ m/^chr/ or $chr =~ m/^Chr/)
 		{
 			$chr = substr($chr,3);
 		}
+
+		## take care of chr 23 or 24 and convert to X or Y
+		if ($chr eq "23")
+		{
+			$chr = "X";
+		}
+
+		if ($chr eq "24")
+		{
+			$chr = "Y";
+		}
+
 
 		## grab the AF from the INFO field in the VCF
 		foreach my $info (@infos)
@@ -1019,6 +1042,13 @@ while(<INPUT>)
 				last;
 			}
 		}
+
+		## confirm AF extraction from the info tags
+		if ($AF eq "NA")
+		{
+			print "WARNING:: AF tag not found in the INFO column at chromosome $chr and position $position. AF will be set to NA for this variant \n";
+		}
+
 
 		## process based on alteration
 		if ($alt =~ m/\,/) ## section for all sites other than bi-allelic
@@ -1056,7 +1086,8 @@ while(<INPUT>)
 						}
 
 						## if sample wise information is present in the VCF then process ; otherwise skip
-						if (scalar @line > 8)
+						## also check for none value in genotype mode parameter
+						if (scalar @line > 8 and $gtMode ne "none")
 						{
 							for(my $i = 9; $i < @line; $i++)
 							{
@@ -1152,7 +1183,8 @@ while(<INPUT>)
 						}
 					
 						## if sample wise information is present in the VCF then process ; otherwise skip
-						if (scalar @line > 8)
+						## also check for none value in genotype mode parameter
+						if (scalar @line > 8 and $gtMode ne "none")
 						{					
 							for(my $i = 9; $i < @line; $i++)
 							{
@@ -1250,7 +1282,8 @@ while(<INPUT>)
 					$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$alt";
 				
 					## if sample wise information is present in the VCF then process ; otherwise skip
-					if (scalar @line > 8)
+					## also check for none value in genotype mode parameter
+					if (scalar @line > 8 and $gtMode ne "none")
 					{						
 						for(my $i = 9; $i < @line; $i++)
 						{
@@ -1325,7 +1358,8 @@ while(<INPUT>)
 					$variants{ "$chr;$position;$ref;$alt" } = "$chr;$position;$ref;$alt";
 					
 					## if sample wise information is present in the VCF then process ; otherwise skip
-					if (scalar @line > 8)
+					## also check for none value in genotype mode parameter
+					if (scalar @line > 8 and $gtMode ne "none")
 					{										
 						for(my $i = 9; $i < @line; $i++)
 						{
@@ -1440,7 +1474,7 @@ while (my($key, $value) = each(%variants))
 	my ($chr,$position,$ref,$alt) = split(/\;/, $value);
 	$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
 	$annovarannotationtoprint = $Annovar{$value} if $Annovar{$value};
-	$samplewiseinfortoprint = $samples { $key };
+	$samplewiseinfortoprint = $samples { $key } if $samples { $key };
 	
 	## write annotation to file 
 	print ANN $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$samplewiseinfortoprint."\n";
@@ -1466,7 +1500,7 @@ while (my($key, $value) = each(%not_biallelic_variants))
 	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
 	my ($chr,$position,$ref,$alt) = split(/\;/, $value);
 	$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
-	$samplewiseinfortoprint = $samples { $key };
+	$samplewiseinfortoprint = $samples { $key } if $samples { $key };
 
 	## write annotation to file 
 	print ANNINS $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$samplewiseinfortoprint."\n";	
@@ -1477,14 +1511,14 @@ close(ANNINS);
 
 
 ## sort the file
-my $srtCmm = "sort -n -k1,1 -n -k2,2 --field-separator=, $outFile > $SortedoutFile ";
+my $srtCmm = "sort -k1,1 -n -k2,2 --field-separator=, $outFile > $SortedoutFile ";
 system($srtCmm);
 
 ## writing completed
 print "MESSAGE :: Writing annotation completed \n";
 print "MESSAGE :: Your annotated file is $outFile \n";
 print "MESSAGE :: Your sorted annotated file is $SortedoutFile \n";
-print "MESSAGE :: Reported not bi-allelic sites are in $outFileIns \n";
+print "MESSAGE :: Reported non bi-allelic sites are in $outFileIns \n";
 
 ## Finalize everything
 print "MESSAGE :: Finalizing annotation process \n";
