@@ -998,22 +998,9 @@ while(<INPUT>)
 		my $ref = $line[3];
 		my $alt = $line[4];
 		my @infos = split(/\;/,$line[7]);
-		my $AF = "NA";			
-
-		## always test for complete genotype format field consistency in the VCF; if abnormal report for that variant
-		if ($gtMode ne "none")
-		{	
-			if (scalar @line > 8 and $line[8] =~ m/\:/)
-			{
-				my @gtcheck = split(/\:/,$line[8]);
-				if (@gtcheck < 5 or @gtcheck >= 7)
-				{
-					print "WARNING:: weird genotype format $line[8] found in $input at chromosome $chr and position $position; Ideal format => GT:AD:DP:GQ:PL \n";
-				}
-			}else{
-				print "WARNING:: weird genotype format $line[8] found in $input at chromosome $chr and position $position; Ideal format => GT:AD:DP:GQ:PL \n";
-			}	
-		}
+		my $AF = ".";			
+		my $gtindex = "NF";
+		my $adindex = "NF";
 			
 		## take care of chr1 or Chr1 and convert to chr1/Chr1-> 1
 		if ($chr =~ m/^chr/ or $chr =~ m/^Chr/)
@@ -1044,9 +1031,43 @@ while(<INPUT>)
 		}
 
 		## confirm AF extraction from the info tags
-		if ($AF eq "NA")
+		if ($AF eq ".")
 		{
 			print "WARNING:: AF tag not found in the INFO column at chromosome $chr and position $position. AF will be set to NA for this variant \n";
+		}
+
+		## always test for complete genotype format field consistency in the VCF; if abnormal report for that variant
+		if ($gtMode ne "none")
+		{	
+			if (scalar @line > 8 and $line[8] =~ m/\:/)
+			{
+				my @gtcheck = split(/\:/,$line[8]);
+				
+				for(my $gti = 0; $gti < @gtcheck; $gti++)
+				{
+					if ($gtcheck[$gti] eq "GT")
+					{
+						$gtindex = $gti;
+					}
+					if ($gtcheck[$gti] eq "AD")
+					{
+						$adindex = $gti;
+					}
+				}
+				
+				## check for the GT and AD fields
+				if ($gtindex eq "NF")
+				{
+					print "WARNING:: Weird genotype format $line[8] found in $input at chromosome $chr and position $position. No GT field present in $line[8] \n";
+				}
+				if ($adindex eq "NF")
+				{
+					print "WARNING:: Weird genotype format $line[8] found in $input at chromosome $chr and position $position. No AD field present in $line[8] \n";
+				}
+				
+			}else{
+				print "WARNING:: Weird genotype format $line[8] found in $input at chromosome $chr and position $position. Expected genotype format field separator \":\" \n";
+			}	
 		}
 
 
@@ -1091,75 +1112,67 @@ while(<INPUT>)
 						{
 							for(my $i = 9; $i < @line; $i++)
 							{
-				    			my ($dpref,$dpalt,$samAf);
+								my ($genotype,$dpref,$dpalt,$samAf);
 								my @gts = ();
 							
 								if ($line[$i] =~ m/\:/)
 								{
 									@gts = split(/\:/,$line[$i]);
-									
-									if ($gts[1] =~ m/\,/)
+								
+									if ($adindex ne "NF" and $gts[$adindex] =~ m/\,/)
 									{
-	                		    		my @ads = split(/\,/,$gts[1]);
-    	            	 				$dpref = $ads[0];
-        	       		 				@ads = @ads[1..(scalar @ads -1 )];
-            	    		    		$dpalt = $ads[$j];
-            				
-	            						## for missing genotype or homozygous reference genotype set the AF to 0
-    	        						if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
-        	    						{
-            								$samAf = "0";
-        	    						}else{
-    	            						$samAf = $alfr;
+	    	            			    my @ads = split(/\,/,$gts[$adindex]);
+    	    	        	 			$dpref = $ads[0];
+        	    	   		 			@ads = @ads[1..(scalar @ads -1 )];
+            	    				   	$dpalt = $ads[$j];
+            	    			    }else{
+										$dpref = ".";
+										$dpalt = "."; 
+									}
+            	    				
+            	    				if ($gtindex ne "NF")
+            	    				{
+            	    					$genotype = $gts[$gtindex];
+            	    						
+            	    					## for missing genotype or homozygous reference genotype set the AF to 0
+	            						if ($genotype eq './.' or $genotype eq '0/0' or $genotype eq '.|.' or $genotype eq '0|0')
+    	        						{
+        	    							$samAf = "0";
+        			    				}else{
+				    	    	        	$samAf = $alfr;
 										}
 									}else{
-										$dpref = $gts[1];
-										$dpalt = ".";
-	            						
-	            						## for missing genotype or homozygous reference genotype set the AF to 0
-    	        						if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
-        	    						{
-            								$samAf = "0";
-        	    						}else{
-    	            						$samAf = $alfr;
-										}
-									}
-    							}else{
-				    				$gts[0] = $line[$i];
+									    $genotype = ".";
+										$samAf = $alfr;
+									}			    									    
+								}else{
+				    				$genotype = $line[$i];
 									$dpref = ".";
 									$dpalt = "."; 
-
-            						## for missing genotype or homozygous reference genotype set the AF to 0
-            						if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
-            						{
-            							$samAf = "0";
-        	    					}else{
-    	            					$samAf = $alfr;
-									}
-    							
-    							}        				
+							    	$samAf = ".";   
+								}							
 						
 								## check for sample genotype mode
 								if ($gtMode eq "complete")
 								{					
                				 		if (exists $samples{ "$chr;$position;$token_ref;$token_obs" })
                 					{
-	            	    					$samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+	            	    					$samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
     								}else
         		        			{    
-        	   	    	  	 			$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+        	   	    	  	 			$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
    			         				}
    			         			}else ## compact
    			         			{
    			         				## kick out genotypes of '0/0','./.','0|0' and '.|.'
-    		           		 		if ($gts[0] ne '0/0' and $gts[0] ne './.' and $gts[0] ne '.|.' and $gts[0] ne '0|0')
-	    	           		 		{
+    		            			if ($genotype ne '0/0' and $genotype ne './.' and $genotype ne '.|.' and $genotype ne '0|0')
+	    	            			{
 	    	            				if (exists $samples{ "$chr;$position;$token_ref;$token_obs" })
                 						{
-	            	    					$samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+	            	    					$samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
     									}else
         		        				{    
-        	   	    	   					$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+        	   	    	   					$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
    			         					}
 									}
    			         			}	
@@ -1188,53 +1201,47 @@ while(<INPUT>)
 						{					
 							for(my $i = 9; $i < @line; $i++)
 							{
-								my ($dpref,$dpalt,$samAf);
+								my ($genotype,$dpref,$dpalt,$samAf);
 								my @gts = ();
-							
+								
+								#my $gtindex = "NF";
+								#my $adindex = "NF";
+
 								if ($line[$i] =~ m/\:/)
 								{
 									@gts = split(/\:/,$line[$i]);
 								
-									if ($gts[1] =~ m/\,/)
+									if ($adindex ne "NF" and $gts[$adindex] =~ m/\,/)
 									{
-	    	            			    my @ads = split(/\,/,$gts[1]);
+	    	            			    my @ads = split(/\,/,$gts[$adindex]);
     	    	        	 			$dpref = $ads[0];
         	    	   		 			@ads = @ads[1..(scalar @ads -1 )];
-            	    				    $dpalt = $ads[$j];
-            	    			    
-            	    				    ## for missing genotype or homozygous reference genotype set the AF to 0
-	            						if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
+            	    				   	$dpalt = $ads[$j];
+            	    			    }else{
+										$dpref = ".";
+										$dpalt = "."; 
+									}
+            	    				
+            	    				if ($gtindex ne "NF")
+            	    				{
+            	    					$genotype = $gts[$gtindex];
+            	    					
+            	    					## for missing genotype or homozygous reference genotype set the AF to 0
+	            						if ($genotype eq './.' or $genotype eq '0/0' or $genotype eq '.|.' or $genotype eq '0|0')
     	        						{
         	    							$samAf = "0";
         			    				}else{
 				    	    	        	$samAf = $alfr;
 										}
-		
 									}else{
-										$dpref = $gts[1];
-										$dpalt = ".";
-
-            	    				    ## for missing genotype or homozygous reference genotype set the AF to 0
-	            						if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
-    	        						{
-        	    							$samAf = "0";
-        			    				}else{
-				    	    	        	$samAf = $alfr;
-										}
-	
-									}		    									    
+									    $genotype = ".";
+										$samAf = $alfr;
+									}			    									    
 								}else{
-				    				$gts[0] = $line[$i];
+				    				$genotype = $line[$i];
 									$dpref = ".";
 									$dpalt = "."; 
-							    
-								    ## for missing genotype or homozygous reference genotype set the AF to 0
-            						if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
-            						{
-            							$samAf = "0";
-        		    				}else{
-				        		        $samAf = $alfr;
-									}
+							    	$samAf = ".";   
 								}							
                 	    
 							
@@ -1243,20 +1250,20 @@ while(<INPUT>)
 								{								
 									if (exists $samples { "$chr;$position;$ref;$al" })
 									{
-										$samples { "$chr;$position;$ref;$al" } = $samples { "$chr;$position;$ref;$al" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf; 
+										$samples { "$chr;$position;$ref;$al" } = $samples { "$chr;$position;$ref;$al" }.";".$headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf; 
 									}else{
-										$samples { "$chr;$position;$ref;$al" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+										$samples { "$chr;$position;$ref;$al" } = $headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
 									}
 								}else ## compact
 								{
 		   	            			## kick out genotypes of '0/0','./.','0|0' and '.|.'
-    		            			if ($gts[0] ne '0/0' and $gts[0] ne './.' and $gts[0] ne '.|.' and $gts[0] ne '0|0')
+    		            			if ($genotype ne '0/0' and $genotype ne './.' and $genotype ne '.|.' and $genotype ne '0|0')
 	    	            			{
 	    	            				if (exists $samples { "$chr;$position;$ref;$al" })
 										{
-											$samples { "$chr;$position;$ref;$al" } = $samples { "$chr;$position;$ref;$al" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf; 
+											$samples { "$chr;$position;$ref;$al" } = $samples { "$chr;$position;$ref;$al" }.";".$headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf; 
 										}else{
-											$samples { "$chr;$position;$ref;$al" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+											$samples { "$chr;$position;$ref;$al" } = $headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
 										}
 									}
 								}
@@ -1287,63 +1294,63 @@ while(<INPUT>)
 					{						
 						for(my $i = 9; $i < @line; $i++)
 						{
-			    			my ($dpref,$dpalt,$samAf);
+							my ($genotype,$dpref,$dpalt,$samAf);
 			    			my @gts = ();
 			    		
-			    			if ($line[$i] =~ m/\:/)
-			    			{
+							if ($line[$i] =~ m/\:/)
+							{
 								@gts = split(/\:/,$line[$i]);
-								if ($gts[1] =~ m/\,/)
+        	    			
+        	    				if ($adindex ne "NF" and $gts[$adindex] =~ m/\,/)
+        	    				{
+	        	    				($dpref,$dpalt) = split(/\,/,$gts[$adindex]);
+							    }else{
+									$dpref = "."; #$gts[1];
+									$dpalt = "."; 
+							    }
+							
+								## for missing genotype or homozygous reference genotype set the AF to 0
+								if ($gtindex ne "NF")
 								{
-	 		           				($dpref,$dpalt) = split(/\,/,$gts[1]);
+									$genotype = $gts[$gtindex];
+	        	    				if ($genotype eq "./." or $genotype eq "0/0" or $genotype eq ".|." or $genotype eq "0|0")
+    	        					{
+        	    						$samAf = "0";
+        		    				}else{
+    	        	    				$samAf = $AF;
+									}
 								}else{
-									$dpref = $gts[1];
-									$dpalt = ".";
-								}		    		
-			    			    ## for missing genotype or homozygous reference genotype set the AF to 0
-	            				if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
-    	        				{
-        	    					$samAf = "0";
-            					}else{
-        	        				$samAf = $AF;
+									$genotype = ".";
+								   	$samAf = $AF;
 								}
-	
-			    			}else{
-			    				$gts[0] = $line[$i];
+							}else{
+								$genotype = $line[$i];
 								$dpref = ".";
 								$dpalt = "."; 
-
-			    			    ## for missing genotype or homozygous reference genotype set the AF to 0
-	            				if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
-    	        				{
-        	    					$samAf = "0";
-            					}else{
-            	    				$samAf = $AF;
-								}
-	
-			    			}                		
+								$samAf = ".";								
+							}						
 						
 							## check for sample genotype mode
 							if ($gtMode eq "complete")
 							{
 	                			if (exists $samples{ "$chr;$position;$token_ref;$token_obs" })
     	            			{
-        	        			    $samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+        	        			    $samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
             			    	}else
         	    		    	{        
-    	            			   	$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+    	            			   	$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
    		         				}
    		         			}else ## compact
    		         			{
     	            			## kick out genotypes of '0/0','./.','0|0' and '.|.'
-    	            			if ($gts[0] ne '0/0' and $gts[0] ne './.' and $gts[0] ne '.|.' and $gts[0] ne '0|0')
-    	            			{
+    	        	    		if ($genotype ne '0/0' and $genotype ne './.' and $genotype ne '.|.' and $genotype ne '0|0')
+    	        	    		{
 	                				if (exists $samples{ "$chr;$position;$token_ref;$token_obs" })
     	            				{
-        	        				    $samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+        	        				    $samples{ "$chr;$position;$token_ref;$token_obs" } = $samples{ "$chr;$position;$token_ref;$token_obs" }.";".$headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
             			    		}else
         	    		    		{        
-    	            				   	$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+    	            				   	$samples{ "$chr;$position;$token_ref;$token_obs" } = $headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
    		         					}
 								}
    		         			}		
@@ -1363,42 +1370,40 @@ while(<INPUT>)
 					{										
 						for(my $i = 9; $i < @line; $i++)
 						{
-							my ($dpref,$dpalt,$samAf);
+							my ($genotype,$dpref,$dpalt,$samAf);
 							my @gts = ();
-						
+							
 							if ($line[$i] =~ m/\:/)
 							{
 								@gts = split(/\:/,$line[$i]);
         	    			
-        	    				if ($gts[1] =~ m/\,/)
+        	    				if ($adindex ne "NF" and $gts[$adindex] =~ m/\,/)
         	    				{
-	        	    				($dpref,$dpalt) = split(/\,/,$gts[1]);
+	        	    				($dpref,$dpalt) = split(/\,/,$gts[$adindex]);
 							    }else{
-									$dpref = $gts[1];
+									$dpref = "."; #$gts[1];
 									$dpalt = "."; 
 							    }
 							
 								## for missing genotype or homozygous reference genotype set the AF to 0
-        	    				if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
-            					{
-            						$samAf = "0";
-        	    				}else{
-    	            				$samAf = $AF;
+								if ($gtindex ne "NF")
+								{
+									$genotype = $gts[$gtindex];
+	        	    				if ($genotype eq "./." or $genotype eq "0/0" or $genotype eq ".|." or $genotype eq "0|0")
+    	        					{
+        	    						$samAf = "0";
+        		    				}else{
+    	        	    				$samAf = $AF;
+									}
+								}else{
+									$genotype = ".";
+								   	$samAf = $AF;
 								}
-
 							}else{
-								$gts[0] = $line[$i];
+								$genotype = $line[$i];
 								$dpref = ".";
 								$dpalt = "."; 
-
-							    ## for missing genotype or homozygous reference genotype set the AF to 0
-            					if ($gts[0] eq './.' or $gts[0] eq '0/0' or $gts[0] eq '.|.' or $gts[0] eq '0|0')
-            					{
-            						$samAf = "0";
-        		    			}else{
-    		            			$samAf = $AF;
-								}
-	
+								$samAf = ".";								
 							}						
 						
 							## check for sample genotype mode
@@ -1406,22 +1411,22 @@ while(<INPUT>)
 							{
 	                			if (exists $samples { "$chr;$position;$ref;$alt" })
     	            			{
-        	        			    $samples { "$chr;$position;$ref;$alt" } = $samples { "$chr;$position;$ref;$alt" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+        	        			    $samples { "$chr;$position;$ref;$alt" } = $samples { "$chr;$position;$ref;$alt" }.";".$headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
             	   				}else
             			    	{        
-        	        			   	$samples { "$chr;$position;$ref;$alt" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+        	        			   	$samples { "$chr;$position;$ref;$alt" } = $headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
     	            			}
     	            		}else ## compact
     	            		{
     	        	    		## kick out genotypes of '0/0','./.','0|0' and '.|.'
-    	        	    		if ($gts[0] ne '0/0' and $gts[0] ne './.' and $gts[0] ne '.|.' and $gts[0] ne '0|0')
+    	        	    		if ($genotype ne '0/0' and $genotype ne './.' and $genotype ne '.|.' and $genotype ne '0|0')
     	        	    		{
 	            	    			if (exists $samples { "$chr;$position;$ref;$alt" })
     	        	    			{
-        	    		    		    $samples { "$chr;$position;$ref;$alt" } = $samples { "$chr;$position;$ref;$alt" }.";".$headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+        	    		    		    $samples { "$chr;$position;$ref;$alt" } = $samples { "$chr;$position;$ref;$alt" }.";".$headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
             			   			}else
         	    			    	{        
-    	    	    	    		   	$samples { "$chr;$position;$ref;$alt" } = $headers[$i].">".$gts[0].">".$dpref.">".$dpalt.">".$samAf;
+    	    	    	    		   	$samples { "$chr;$position;$ref;$alt" } = $headers[$i].">".$genotype.">".$dpref.">".$dpalt.">".$samAf;
 	    	        	    		}	
     	            			}
     	            		}	
