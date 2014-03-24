@@ -1033,7 +1033,7 @@ while(<INPUT>)
 		## confirm AF extraction from the info tags
 		if ($AF eq ".")
 		{
-			print "WARNING:: AF tag not found in the INFO column at chromosome $chr and position $position. AF will be set to NA for this variant \n";
+			print "WARNING:: AF tag not found in the INFO column at chromosome $chr and position $position. AF will be set to \".\" for this variant \n";
 		}
 
 		## always test for complete genotype format field consistency in the VCF; if abnormal report for that variant
