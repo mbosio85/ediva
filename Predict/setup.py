@@ -94,7 +94,7 @@ if args.oldconfig:
         #elif splitline[0] == 'EXOME_SHORE':
         #    exome_shore  = splitline[1].rstrip()
 
-elif args.ediva != '' and args.reference != '' and args.dbindel != '' and args.dbsnp != '' and args.bwa != '' and args.gatk != '' and args.samtools != '' and args.novosort != '' and args.picard != '' and args.bedtools != '' and args.exome != '':
+elif args.ediva != None and args.reference != None and args.dbindel != None and args.dbsnp != None and args.bwa != None and args.gatk != None and args.samtools != None and args.novosort != None and args.picard != None and args.bedtools != None and args.exome != None:
     installdir  = os.path.expanduser(args.ediva)
     ref_genome  = os.path.expanduser(args.reference)
     shore_ref   = os.path.expanduser(args.shore_reference)
