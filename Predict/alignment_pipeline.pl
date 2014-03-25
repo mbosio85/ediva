@@ -242,7 +242,8 @@ set -e
 if [ -s \$OUTF/\$NAME.realigned.dm.recalibrated.bam ];
 then
    echo -e \"\\n #### GATK: Call SNPs and Indels with the GATK Unified Genotyper \\n\"
-   java  -jar \$GATK -T UnifiedGenotyper -nt $cpu -R \$REF -I \$OUTF/\$NAME.realigned.dm.recalibrated.bam -o \$OUTF/GATK.both.raw.vcf -glm BOTH --downsampling_type NONE
+   #java  -jar \$GATK -T UnifiedGenotyper -nt $cpu -R \$REF -I \$OUTF/\$NAME.realigned.dm.recalibrated.bam -o \$OUTF/GATK.both.raw.vcf -glm BOTH --downsampling_type NONE
+   java -jar \$GATK -T HaplotypeCaller -nct $cpu -R \$REF --dbsnp \$DBSNP -I \$OUTF/\$NAME.realigned.dm.recalibrated.bam -o \$OUTF/GATK.both.raw.vcf 
 
    echo -e \"\\n #### GATK: Split SNPs and Indels \\n\"
    java  -jar \$GATK -T SelectVariants -R \$REF --variant \$OUTF/GATK.both.raw.vcf -o \$OUTF/GATK.snps.raw.vcf -selectType SNP

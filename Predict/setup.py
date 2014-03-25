@@ -266,14 +266,16 @@ args.newconfig.close()
 try:
     REF = open(ref_genome, 'r')
 except Exception,e:
-    print("Could not check for conconrdance between Reference genome and Exome bed file, because:")
+    print("Could not check for concordance between Reference genome and Exome bed file, because:")
     print(e)
+    exit(0)
 
 try:
     EXO = open(exome, 'r')
 except Exception,e:
-    print("Could not check for conconrdance between Reference genome and Exome bed file, because:")
+    print("Could not check for concordance between Reference genome and Exome bed file, because:")
     print(e)
+    exit(0)
 
 # get the chromosome designator of the reference
 ref_chrom = str()

@@ -252,11 +252,9 @@ python $EDIVA/Predict/supplement_vcf.py --vcffile $OUTF/combined.variants.vcf --
 
 script_content = script_content + """
 
-#DEBUG
-exit
 
 # annotation
-perl $EDIVA/Annotate/annotate.pl --input $OUTF/combined.variants.supplement.vcf --sampleGenotypeMode complete 2> /dev/null
+perl $EDIVA/Annotate/annotate.pl --input $OUTF/combined.variants.supplement.vcf --sampleGenotypeMode complete -f 2> /dev/null
 
 """
 ######
