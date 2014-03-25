@@ -7,10 +7,10 @@ Gene(Refseq)
 ExonicFunction(Refseq)
 AminoAcidChange(Refseq)
 dbsnpIdentifier
-dbSNPfrequency
 EurEVSFrequency
 AfrEVSFrequency
 TotalEVSFrequency
+Eur1000GenomesFrequency
 Afr1000GenomesFrequency
 Amr1000GenomesFrequency
 Asia1000GenomesFrequency
@@ -28,4 +28,6 @@ SIFTScore
 polyphen2
 MutAss
 Condel
+Cadd1
+Cadd2
 samples(sampleid>zygosity>DPRef>DPAlt>AF)
