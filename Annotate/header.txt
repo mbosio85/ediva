@@ -2,6 +2,7 @@ Chr
 Position
 Reference
 Alteration
+AlleleFrequency
 Function(Refseq)
 Gene(Refseq)
 ExonicFunction(Refseq)
@@ -30,4 +31,4 @@ MutAss
 Condel
 Cadd1
 Cadd2
-samples(sampleid>zygosity>DPRef>DPAlt>AF)
+samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)
