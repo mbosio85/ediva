@@ -901,26 +901,26 @@ sub getHeader
     ## check for gene definiton and construct header according to that
     if($geneDef eq 'ensGene')
     {
-        $stringTOreturn = "Chr,Position,Reference,Alteration,Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
+        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
         AminoAcidChange(Ensembl),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AF)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }elsif($geneDef eq 'refGene')
     {
-        $stringTOreturn = "Chr,Position,Reference,Alteration,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),
+        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),
         dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AF)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }elsif($geneDef eq 'knownGene')
     {
-        $stringTOreturn = "Chr,Position,Reference,Alteration,Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,
+        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,
         TotalEVSFrequency,Eur1000GenomesFrequency,Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AF)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }else{
-        $stringTOreturn = "Chr,Position,Reference,Alteration,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
+        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
         AminoAcidChange(Ensembl),Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AF)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }
     ## replace newlines with nothing at header line
     $stringTOreturn =~ s/\n|\s+//g;
@@ -934,9 +934,9 @@ sub getHeaderIns
 {
     my $stringTOreturn; ## header to return
 
-    $stringTOreturn = "Chr,Position,Reference,Alteration,GenicAnnotation,dbsnpIdentifier,EurEVSFrequecy,AfrEVSFrequecy,TotalEVSFrequecy,Eur1000GenomesFrequency,
+    $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,GenicAnnotation,dbsnpIdentifier,EurEVSFrequecy,AfrEVSFrequecy,TotalEVSFrequecy,Eur1000GenomesFrequency,
     Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-    PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AF)";
+    PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
 
     ## replace newlines with nothing at header line
     $stringTOreturn =~ s/\n|\s+//g;
@@ -1075,7 +1075,7 @@ while(<INPUT>)
 		if ($alt =~ m/\,/) ## section for all sites other than bi-allelic
 		{
 			my @alts = split(/\,/,$alt);
-			my @afs = split(/\,/,$AF);
+			my @afs = split(/\,/,$AF);			
 			
 			## process each alteration allele
 			for (my $j = 0; $j < @alts; $j++)
@@ -1101,9 +1101,9 @@ while(<INPUT>)
 
 	                	if ($j == 0)
     	            	{
-							$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$al";
+							$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$al;$alfr";
 						}else{
-							$not_biallelic_variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$al";
+							$not_biallelic_variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$al;$alfr";
 						}
 
 						## if sample wise information is present in the VCF then process ; otherwise skip
@@ -1125,25 +1125,26 @@ while(<INPUT>)
     	    	        	 			$dpref = $ads[0];
         	    	   		 			@ads = @ads[1..(scalar @ads -1 )];
             	    				   	$dpalt = $ads[$j];
+
+		        	    				if ($dpref+$dpalt > 0)
+		        	    				{
+			        	    				$samAf = $dpalt/($dpref+$dpalt);
+		    	    	    				$samAf = substr($samAf,0,5);
+										}else{
+											$samAf = "0.000";
+										}
+
             	    			    }else{
 										$dpref = ".";
-										$dpalt = "."; 
+										$dpalt = ".";
+										$samAf = "."; 
 									}
             	    				
             	    				if ($gtindex ne "NF")
             	    				{
             	    					$genotype = $gts[$gtindex];
-            	    						
-            	    					## for missing genotype or homozygous reference genotype set the AF to 0
-	            						if ($genotype eq './.' or $genotype eq '0/0' or $genotype eq '.|.' or $genotype eq '0|0')
-    	        						{
-        	    							$samAf = "0";
-        			    				}else{
-				    	    	        	$samAf = $alfr;
-										}
 									}else{
 									    $genotype = ".";
-										$samAf = $alfr;
 									}			    									    
 								}else{
 				    				$genotype = $line[$i];
@@ -1190,9 +1191,9 @@ while(<INPUT>)
                 	{
 	                	if ($j == 0)
     	            	{
-							$variants{ "$chr;$position;$ref;$al" } = "$chr;$position;$ref;$al";
+							$variants{ "$chr;$position;$ref;$al" } = "$chr;$position;$ref;$al;$alfr";
 						}else{
-							$not_biallelic_variants{ "$chr;$position;$ref;$al" } = "$chr;$position;$ref;$al";
+							$not_biallelic_variants{ "$chr;$position;$ref;$al" } = "$chr;$position;$ref;$al;$alfr";
 						}
 					
 						## if sample wise information is present in the VCF then process ; otherwise skip
@@ -1203,9 +1204,6 @@ while(<INPUT>)
 							{
 								my ($genotype,$dpref,$dpalt,$samAf);
 								my @gts = ();
-								
-								#my $gtindex = "NF";
-								#my $adindex = "NF";
 
 								if ($line[$i] =~ m/\:/)
 								{
@@ -1217,25 +1215,26 @@ while(<INPUT>)
     	    	        	 			$dpref = $ads[0];
         	    	   		 			@ads = @ads[1..(scalar @ads -1 )];
             	    				   	$dpalt = $ads[$j];
+
+		        	    				if ($dpref+$dpalt > 0)
+		        	    				{
+			        	    				$samAf = $dpalt/($dpref+$dpalt);
+		    	    	    				$samAf = substr($samAf,0,5);
+										}else{
+											$samAf = "0.000";
+										}
+										            	    				   	
             	    			    }else{
 										$dpref = ".";
 										$dpalt = "."; 
+										$samAf = ".";								
 									}
             	    				
             	    				if ($gtindex ne "NF")
             	    				{
             	    					$genotype = $gts[$gtindex];
-            	    					
-            	    					## for missing genotype or homozygous reference genotype set the AF to 0
-	            						if ($genotype eq './.' or $genotype eq '0/0' or $genotype eq '.|.' or $genotype eq '0|0')
-    	        						{
-        	    							$samAf = "0";
-        			    				}else{
-				    	    	        	$samAf = $alfr;
-										}
 									}else{
 									    $genotype = ".";
-										$samAf = $alfr;
 									}			    									    
 								}else{
 				    				$genotype = $line[$i];
@@ -1286,7 +1285,7 @@ while(<INPUT>)
 				
 				if ($type eq 'INDEL' or $type eq 'all')
                 {
-					$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$alt";
+					$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$alt;$AF";
 				
 					## if sample wise information is present in the VCF then process ; otherwise skip
 					## also check for none value in genotype mode parameter
@@ -1304,24 +1303,26 @@ while(<INPUT>)
         	    				if ($adindex ne "NF" and $gts[$adindex] =~ m/\,/)
         	    				{
 	        	    				($dpref,$dpalt) = split(/\,/,$gts[$adindex]);
+
+	        	    				if ($dpref+$dpalt > 0)
+	        	    				{
+		        	    				$samAf = $dpalt/($dpref+$dpalt);
+		        	    				$samAf = substr($samAf,0,5);
+									}else{
+										$samAf = "0.000";
+									}
 							    }else{
 									$dpref = "."; #$gts[1];
 									$dpalt = "."; 
+									$samAf = ".";								
 							    }
 							
 								## for missing genotype or homozygous reference genotype set the AF to 0
 								if ($gtindex ne "NF")
 								{
 									$genotype = $gts[$gtindex];
-	        	    				if ($genotype eq "./." or $genotype eq "0/0" or $genotype eq ".|." or $genotype eq "0|0")
-    	        					{
-        	    						$samAf = "0";
-        		    				}else{
-    	        	    				$samAf = $AF;
-									}
 								}else{
 									$genotype = ".";
-								   	$samAf = $AF;
 								}
 							}else{
 								$genotype = $line[$i];
@@ -1362,7 +1363,7 @@ while(<INPUT>)
 			}else{ ## SNP
                 if ($type eq 'SNP' or $type eq 'all')
                 {
-					$variants{ "$chr;$position;$ref;$alt" } = "$chr;$position;$ref;$alt";
+					$variants{ "$chr;$position;$ref;$alt" } = "$chr;$position;$ref;$alt;$AF";
 					
 					## if sample wise information is present in the VCF then process ; otherwise skip
 					## also check for none value in genotype mode parameter
@@ -1380,24 +1381,26 @@ while(<INPUT>)
         	    				if ($adindex ne "NF" and $gts[$adindex] =~ m/\,/)
         	    				{
 	        	    				($dpref,$dpalt) = split(/\,/,$gts[$adindex]);
+	        	    				
+	        	    				if ($dpref+$dpalt > 0)
+	        	    				{
+		        	    				$samAf = $dpalt/($dpref+$dpalt);
+		        	    				$samAf = substr($samAf,0,5);
+									}else{
+										$samAf = "0.000";
+									}
 							    }else{
 									$dpref = "."; #$gts[1];
 									$dpalt = "."; 
+									$samAf = ".";								
 							    }
 							
 								## for missing genotype or homozygous reference genotype set the AF to 0
 								if ($gtindex ne "NF")
 								{
 									$genotype = $gts[$gtindex];
-	        	    				if ($genotype eq "./." or $genotype eq "0/0" or $genotype eq ".|." or $genotype eq "0|0")
-    	        					{
-        	    						$samAf = "0";
-        		    				}else{
-    	        	    				$samAf = $AF;
-									}
 								}else{
 									$genotype = ".";
-								   	$samAf = $AF;
 								}
 							}else{
 								$genotype = $line[$i];
@@ -1476,13 +1479,13 @@ print ANN  $headerOutputFile."\n";
 while (my($key, $value) = each(%variants)) 
 {
 	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
-	my ($chr,$position,$ref,$alt) = split(/\;/, $value);
+	my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
 	$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
 	$annovarannotationtoprint = $Annovar{$value} if $Annovar{$value};
 	$samplewiseinfortoprint = $samples { $key } if $samples { $key };
 	
 	## write annotation to file 
-	print ANN $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$samplewiseinfortoprint."\n";
+	print ANN $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$aftoprint.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$samplewiseinfortoprint."\n";
 }
 
 ## close the handler
@@ -1503,12 +1506,12 @@ print ANNINS  $headerOutputFile."\n";
 while (my($key, $value) = each(%not_biallelic_variants)) 
 {
 	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
-	my ($chr,$position,$ref,$alt) = split(/\;/, $value);
+	my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
 	$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
 	$samplewiseinfortoprint = $samples { $key } if $samples { $key };
 
 	## write annotation to file 
-	print ANNINS $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$samplewiseinfortoprint."\n";	
+	print ANNINS $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$aftoprint.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$samplewiseinfortoprint."\n";	
 }
 
 ## close the handler
