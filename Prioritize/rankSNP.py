@@ -1,5 +1,5 @@
 import scipy as sp
-#import scipy.stats
+import scipy.stats
 import pprint
 import argparse
 import csv
@@ -50,9 +50,6 @@ import re
 
 
 def main ():
-    #### for DEBUG
-    #pp = pprint.PrettyPrinter(indent = 4)
-    ####
     
     parser = argparse.ArgumentParser(description = 'rank SNPs according to their mutation properties')
     
@@ -75,6 +72,9 @@ def main ():
     binned_values = binning(alldata_transpose, header, 'segdup')
     ranked_segdup = rank(binned_values)
     binned_values = binning(alldata_transpose, header, 'condel')
+    
+    debug_saver = binned_values
+    
     ranked_condel = rank(binned_values)
     binned_values = binning(alldata_transpose, header, 'PhyloP')
     ranked_phylop = rank(binned_values)
@@ -82,22 +82,27 @@ def main ():
     ranked_phastcons = rank(binned_values)
     
     
+    # calculate rank product
     rank_product_list = list()
     for i in range( len(binned_values) ):
         rank_product = float( ( ranked_maf[i] * ranked_segdup[i] * ranked_condel[i] * ranked_phastcons[i]) ) / ( 100**2 ) # 4 tools deliver information, decrease the numeric value to more graspable values ### currently deleted * ranked_phylop[i]
         #print 'ranked_maf[i] %f, ranked_segdup[i] %f, ranked_condel[i] %f, ranked_phylop[i] %f' % (ranked_maf[i], ranked_segdup[i], ranked_condel[i], ranked_phylop[i])
         rank_product_list.append(rank_product)
     
+    # all rank products get a rank for more facile overview
+    rankrank = scipy.stats.rankdata(rank_product_list)
+    
     for i in range( len(alldata) ):
-        alldata[i].append(rank_product_list[i])
+        #alldata[i].append(rank_product_list[i])
+        alldata[i].append(int(rankrank[i])) #, ranked_maf[i], ranked_segdup[i], ranked_condel[i], debug_saver[i], ranked_phastcons[i], rank_product_list[i]])
     
     outcsv = csv.writer(args.outfile)
-    header.append('rank')
+    header.append('rank') #,'maf','segdup','condel','condelbin','phastcons','product'])
     outcsv.writerow(header)
     for line in alldata:
         outcsv.writerow(line)
     
-    exit(0) #DEBUG
+    exit(0)
 
 ###########################
 ###### subroutines ########
@@ -132,7 +137,7 @@ def binning (alldata, header, parameter):
         
         for i in range( len(column_1000G) ):
             MAF = max( round(float(column_1000G[i]), 2), round(float(column_EVS[i]), 2) )
-            bin_value = int(MAF * 100) # (good 1-100 bad)
+            bin_value = int(MAF * 100) # (good 1-100 bad) small values should get small ranks
             binned_values.append(bin_value)
     
     # Segmental duplications
@@ -145,11 +150,11 @@ def binning (alldata, header, parameter):
         for i in range( len(column_segdup) ):
             if column_segdup[i] == 'NA':
                 segdup = round(mean_segdup, 2)
-                bin_value = int(segdup * 100)
+                bin_value = int(segdup * 100)  
                 binned_values.append(bin_value) # (good 1-100 bad)
             else:
                 segdup = round(float(column_segdup[i]), 2)
-                bin_value = int(segdup * 100)
+                bin_value = int(segdup * 100) # small values get small ranks
                 binned_values.append(bin_value) # (good 1-100 bad)
     
     # Condel
@@ -163,13 +168,16 @@ def binning (alldata, header, parameter):
             if column_condel[i] == 'NA':
                 condel = round(mean_condel, 2)
                 bin_value = int(condel * 100) # binning of condel values (bad 1-100 good)
-                bin_value = abs(bin_value - 101 ) # reverse order
-                binned_values.append(bin_value) 
+                bin_value_rev = abs(bin_value - 100 ) # reverse order
+                binned_values.append(bin_value_rev)
+                #binned_values.append(bin_value)
             else:
                 condel = round(float(column_condel[i]), 2)
                 bin_value = int(condel * 100) # binning of condel values (bad 1-100 good)
-                bin_value = abs(bin_value - 101 ) # reverse order
-                binned_values.append(bin_value)
+                bin_value_rev = abs(bin_value - 100 ) # reverse order --- small values after reversion get small ranks
+                binned_values.append(bin_value_rev)
+                #binned_values.append(bin_value)
+                #binned_values.append(1)
     
     # PhyloP --- this value is not used in the rank product!!!
     elif parameter == 'PhyloP':
@@ -184,15 +192,17 @@ def binning (alldata, header, parameter):
                 #print 'found NA in phylop' #DEBUG
                 phylop = round(mean_phylop, 2)
                 bin_value = int(phylop * 100) # [bad 1 - 100 good]
-                bin_value = abs(bin_value - 101 ) # reverse order
-                binned_values.append(bin_value)
+                bin_value_rev = abs(bin_value - 100 ) # reverse order
+                binned_values.append(bin_value_rev)
             else:
                 phylop = round(float(column_phylop[i]), 2)
                 bin_value = int(phylop * 100)  # [bad 1 - 100 good]
-                bin_value = abs(bin_value - 101 ) # reverse order
-                binned_values.append(bin_value)
+                bin_value_rev = abs(bin_value - 100 ) # reverse order
+                binned_values.append(bin_value_rev)
     
     # PhastCons
+    # The phastCons scores, by contrast, represent probabilities of negative selection and range between 0 and 1.
+    # --- PhastCons = 1, could be a disease variant.
     elif parameter == 'PhastCons':
         index_phastcons  = identifycolumns(header, 'VertebratesPhastCons')
         column_phastcons = alldata[index_phastcons]
@@ -203,13 +213,14 @@ def binning (alldata, header, parameter):
             if column_phastcons[i] == 'NA':
                 phastcons = round(mean_phastcons, 2)
                 bin_value = int(phastcons * 100)
-                binned_values.append(bin_value) # [good 1 - 100 bad]
+                bin_value_rev = abs(bin_value - 100 )
+                binned_values.append(bin_value_rev) # [good 1 - 100 bad]
             else:
                 phastcons = round(float(column_phastcons[i]), 2)
                 if phastcons == 0: phastcons = 0.001
                 bin_value = int(phastcons * 100)  # [good 1 - 100 bad] a value of 1 should get a small rank
-                bin_value = abs(bin_value - 101 ) # reverse order
-                binned_values.append(bin_value)
+                bin_value_rev = abs(bin_value - 100 )
+                binned_values.append(bin_value_rev)
     
     return(binned_values)
             
@@ -237,8 +248,10 @@ def rank (binned_list):
     # rank returns values from 1 to 100
     rank_list = list()
     for i in range( len(binned_list) ):
-        rankvalue = binned_list[i] % 100 + 1 
+        rankvalue = binned_list[i] % 101 + 1 # 101, because otherwise 0 and 100 % 100 calculates to 0
         rank_list.append(rankvalue)
+    
+    #rank_list = scipy.stats.rankdata(binned_list) # this does produce the wrong order
     
     return(rank_list)
 
