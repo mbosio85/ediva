@@ -29,7 +29,6 @@ sub usage { print "\n$0 \n usage:\n",
 	   "--help,-h \t\t show help \n\n"
 }
 
-
 ##############################################################################################
 ## SETTINGS
 ##############################################################################################
@@ -1480,8 +1479,10 @@ while (my($key, $value) = each(%variants))
 {
 	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
 	my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
+	my $annovarValueToMatch = $chr.";".$position.";".$ref.";".$alt;
+
 	$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
-	$annovarannotationtoprint = $Annovar{$value} if $Annovar{$value};
+	$annovarannotationtoprint = $Annovar{$annovarValueToMatch} if $Annovar{$annovarValueToMatch};
 	$samplewiseinfortoprint = $samples { $key } if $samples { $key };
 	
 	## write annotation to file 
@@ -1507,6 +1508,10 @@ while (my($key, $value) = each(%not_biallelic_variants))
 {
 	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
 	my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
+
+	#my $annovarValueToMatch = $chr.";".$position.";".$ref.";".$alt;
+	#$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
+
 	$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
 	$samplewiseinfortoprint = $samples { $key } if $samples { $key };
 
