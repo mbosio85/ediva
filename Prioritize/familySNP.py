@@ -123,7 +123,7 @@ def main (args):
     # only consider Refseq annotation for performing the first criteria
     #############
 
-    index_sample      = identifycolumns(header, 'samples(sampleid>zygosity>DPRef>DPAlt>AF)') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
+    index_sample      = identifycolumns(header, 'samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
     index_MAF1k       = identifycolumns(header, 'Total1000GenomesFrequency')
     index_MAFevs      = identifycolumns(header, 'TotalEVSFrequency')
     index_function    = identifycolumns(header, 'Function(Refseq)')

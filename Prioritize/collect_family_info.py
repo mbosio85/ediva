@@ -14,6 +14,7 @@ vcf is the full vcf file path
 bam is the full bam file path [optional]
 
 This option can be called multiple times.
+If GATK multi-sample calls are supplied, just enter the same vcf file name for each sample and toggle the --multisample option creating the pipeline.
 
 """)
 
@@ -51,6 +52,7 @@ if args.sampleinfo:
 else:
     
     while True:
+        print("If you supply GATK multi-sample calls, then just mention the same file name, if you're asked for a vcf file.")
         print("Remember. If you want to stop entering data, just leave a field empty and hit enter.")
         name   = raw_input("Please enter the sample ID. The format should be same as the vcf file, you will provide later. : ")
         if name == '':

@@ -238,7 +238,7 @@ set -e
 
 
 
-### GATK: Call SNPs and Indels with the GATK Unified Genotyper
+### GATK: Call SNPs and Indels with the GATK Haplotype Caller
 if [ -s \$OUTF/\$NAME.realigned.dm.recalibrated.bam ];
 then
    echo -e \"\\n #### GATK: Call SNPs and Indels with the GATK Unified Genotyper \\n\"
