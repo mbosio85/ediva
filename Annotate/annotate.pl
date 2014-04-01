@@ -1018,7 +1018,16 @@ while(<INPUT>)
 			$chr = "Y";
 		}
 
+		if ($chr eq "25")
+		{
+			$chr = "MT";
+		}
 
+		if ($chr =~ m/[MTmt]/ or $chr =~ m/\_/)
+		{
+			print "WARNING:: $0 does not support chromosome $chr currently. This variant line will be skipped in the final annotation output \n";			
+		}else
+		{
 		## grab the AF from the INFO field in the VCF
 		foreach my $info (@infos)
 		{
@@ -1439,7 +1448,8 @@ while(<INPUT>)
 			
 		} ## end of if-else on process based on alteration
 
-	} ## end if
+	} ## end if-else on chrMt and others
+	} ## end if on data lines
 } ## end while
 close(INPUT);
 
