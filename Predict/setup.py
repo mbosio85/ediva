@@ -297,3 +297,28 @@ for line in EXO:
 
 if not len(ref_chrom) == len(exo_chrom):
     print("WARNING: Your Reference file and Exome file seem to have different naming patterns. This will make eDiVa fail later on.")
+
+# check if the given files and folders might be correct and contain expected files.
+
+if not os.path.exists(installdir):
+    print("WARNING: Your given ediva folder might not be correct.")
+if not os.path.exists(ref_genome):
+    print("WARNING: Your given reference genome file might not exist.")
+if not os.path.exists(dbindel):
+    print("WARNING: Your given dbSNP Indel file might not exist.")
+if not os.path.exists(dbsnp):
+    print("WARNING: Your given dbSNP SNP file might not exist.")
+if not os.path.exists(bwa):
+    print("WARNING: Your given bwa file might not exist.")
+if not os.path.exists(gatk):
+    print("WARNING: Your given GATK file might not exist.")
+if not os.path.exists(samtools):
+    print("WARNING: Your given SAMTOOLS file might not exist.")
+if not os.path.exists(novosort):
+    print("WARNING: Your given NovoSort file might not exist.")
+if not os.path.exists(exome):
+    print("WARNING: Your given Exome file might not exist.")
+if not os.path.exists( "%s/MarkDuplicates.jar" % (picard) ):
+    print("WARNING: Your given Picard folder might not be correct.")
+if not os.path.exists( "%s/intersectBed" % (bedtools) ):
+    print("WARNING: Your given BedTools folder might not be correct.")
