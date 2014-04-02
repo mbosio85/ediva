@@ -33,6 +33,7 @@ sub usage { print "\n$0 \n usage:\n",
 	   "--firstreadextension \t describes the name of the first read file (e.g. 1.fastq.gz or 1_sequence.txt.gz)\n",
 	   "--secondreadextension \t describes the name of the first read file (e.g. 2.fastq.gz or 2_sequence.txt.gz)\n",
 	   "--indelcaller \t sets the indel caller to be used. Choose between gatk or clindel [default = clindel]\n",
+	   "--fusevariants \t call this parameter to write all variants (SNPs and InDels) into one file [sample_name.vcf]\n",
 	   "--cpu \t number of cpu cores to be used (applicable only for a few steps) [default = 4]\n",
 	   "--mem \t amount of Memory dedicated to your job in Gb. The amount of memory must not be bigger than available in the machine. [default = 12]\n",
 	   "--help \t\t show help \n";
@@ -50,11 +51,12 @@ my $nameLength;
 my $firstreadextension;
 my $secondreadextension;
 my $indelcaller = 'clindel';
+my $fusevariants = 0;
 my $cpu = 4;
 my $mem = 12;
 my $help = 0;
 
-GetOptions("infolder=s" => \$infolder, "outfolder=s" => \$outfolder, "qsubname=s" => \$qsub_name, "config=s" => \$config, "max_coverage=i" => \$max_cov, "nameStart=s" => \$nameStart, "nameLength=s" => \$nameLength, "firstreadextension=s" => \$firstreadextension, "secondreadextension=s" => \$secondreadextension, "indelcaller=s" => \$indelcaller, "cpu=i" => \$cpu, "mem=i" => \$mem, "help=s" => \$help);
+GetOptions("infolder=s" => \$infolder, "outfolder=s" => \$outfolder, "qsubname=s" => \$qsub_name, "config=s" => \$config, "max_coverage=i" => \$max_cov, "nameStart=s" => \$nameStart, "nameLength=s" => \$nameLength, "firstreadextension=s" => \$firstreadextension, "secondreadextension=s" => \$secondreadextension, "indelcaller=s" => \$indelcaller, "fusevariants" => \$fusevariants, "cpu=i" => \$cpu, "mem=i" => \$mem, "help=s" => \$help);
 
 unless($infolder && $outfolder && $qsub_name && $config && $nameStart ne 'NA' && $nameLength && $firstreadextension && $secondreadextension && $help == 0) {
 	usage;
@@ -132,18 +134,11 @@ GATK=$gatk
 PICARD=$picard
 SAMTOOLS=$samtools
 NOVOSORT=$novosort
-# BCFTOOLS=\$(which bcftools) # CHECK
-# VCFUTILS=\$(which vcfutils.pl) # CHECK
 BEDTOOLS=$bedtools
 
 CLINDEL=$clindel
-# NGSBOX=/users/GD/tools/ngsbox  # CHECK
-# RSCRIPT=\$(which Rscript)  # CHECK
 
 EXOME=$exome
-
-### TODO
-# Check the given bed file, if it corresponds to the REF file regarding chromosome naming chr5 vs. 5
 
 ### Align reads with bwa
 \$BWA mem -M -t $cpu -R \"\@RG\\tID:\$NAME\\tSM:\$NAME\" \$REF \$READ1 \$READ2 | time \$SAMTOOLS view -h -b -S -F 0x900 -  > \$TMPDIR/\$NAME.noChimeric.bam
@@ -243,7 +238,7 @@ if [ -s \$OUTF/\$NAME.realigned.dm.recalibrated.bam ];
 then
    echo -e \"\\n #### GATK: Call SNPs and Indels with the GATK Unified Genotyper \\n\"
    #java  -jar \$GATK -T UnifiedGenotyper -nt $cpu -R \$REF -I \$OUTF/\$NAME.realigned.dm.recalibrated.bam -o \$OUTF/GATK.both.raw.vcf -glm BOTH --downsampling_type NONE
-   java -jar \$GATK -T HaplotypeCaller -nct $cpu -R \$REF --dbsnp \$DBSNP -I \$OUTF/\$NAME.realigned.dm.recalibrated.bam -o \$OUTF/GATK.both.raw.vcf 
+   java -jar \$GATK -T HaplotypeCaller -nct $cpu -R \$REF --dbsnp \$DBSNP -I \$OUTF/\$NAME.realigned.dm.recalibrated.bam -o \$OUTF/GATK.both.raw.vcf -l \$EXOME
 
    echo -e \"\\n #### GATK: Split SNPs and Indels \\n\"
    java  -jar \$GATK -T SelectVariants -R \$REF --variant \$OUTF/GATK.both.raw.vcf -o \$OUTF/GATK.snps.raw.vcf -selectType SNP
@@ -485,6 +480,14 @@ else {
 }
 
 
+my @fusepipe = ("
+
+# fuse indel and snp calls into one file
+java -Xmx5g -jar \$GATK -T CombineVariants -R \$REF --variant \$OUTF/SNP_Intersection/merged.enriched.vcf --variant \$OUTF/Indel_Intersection/merged.enriched.vcf -o \$OUTF/all_variants.vcf"
+
+
+);
+
 
 
 ### loop through each sample and create a respective shell script
@@ -547,11 +550,11 @@ OUTF=$outfolder/$name
 
 @indelpipe
 
-
-
 \n");
 
-
+if ($fusevariants == 1) {
+	push(@qsub, @fusepipe);
+};
 
 	print OUT @qsub;
 
