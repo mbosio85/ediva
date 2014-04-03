@@ -259,6 +259,30 @@ sub preparemissdb
 	
 }
 
+## sub for replacing commas inside double qoutes for annovar genic annotation lines
+sub replaceCommainQoute
+{
+	my $newstr;
+	my $str = shift;
+	my @stra = split(//,$str);
+	my $cnt = 0;
+
+	foreach my $char (@stra)
+	{
+	        if ($char eq "\"")
+	        {
+	                $cnt = $cnt + 1;
+	        }
+	        if (($cnt%2) != 0)
+	        {
+	                $char =~ s/\,/\;/g;
+	        }
+	        $newstr = $newstr.$char;
+	}
+	
+	return $newstr;
+} 
+
 ## subroutine for eDiVa annotation
 sub eDiVaAnnotation
 {
@@ -741,18 +765,19 @@ sub AnnovarAnnotation
 			if ($_ !~ m/^Func/)
 			{
 				chomp $_;
-				my @dt = split(/\,/,$_);
-				my $valueTOmatch = $dt[26].";".$dt[27].";".$dt[29].";".$dt[30];
-				
+				my $newAnnovarLine = &replaceCommainQoute($_);
+				my @dt = split(/\,/,$newAnnovarLine);
+								
 				$dt[30] =~ s/\"//g;
-				if ($dt[30] =~ m/\,/)
+				if ($dt[30] =~ m/\;/)
 				{
-					my @annalts = split(/\,/,$dt[30]);
+					my @annalts = split(/\;/,$dt[30]);
 					$dt[30] = $annalts[0];
 				}
+
+				my $valueTOmatch = $dt[26].";".$dt[27].";".$dt[29].";".$dt[30];
 				$valueTOmatch =~ s/\"//g;
-				#print $valueTOmatch."\n";
-				
+
 				## fix missing values
 				if ($dt[0] eq '')
 				{
@@ -790,14 +815,15 @@ sub AnnovarAnnotation
 			if ($_ !~ m/^Func/)
 			{
 				chomp $_;
-				my @dt = split(/\,/,$_);
+				my $newAnnovarLine = &replaceCommainQoute($_);
+				my @dt = split(/\,/,$newAnnovarLine);
 				
 				my $valueTOmatch = $dt[26].";".$dt[27].";".$dt[29].";".$dt[30];
 				
 				$dt[30] =~ s/\"//g;
-				if ($dt[30] =~ m/\,/)
+				if ($dt[30] =~ m/\;/)
 				{
-					my @annalts = split(/\,/,$dt[30]);
+					my @annalts = split(/\;/,$dt[30]);
 					$dt[30] = $annalts[0];
 				}
 				$valueTOmatch =~ s/\"//g;
@@ -845,14 +871,15 @@ sub AnnovarAnnotation
 			if ($_ !~ m/^Func/)
 			{
 				chomp $_;
-				my @dt = split(/\,/,$_);
+				my $newAnnovarLine = &replaceCommainQoute($_);
+				my @dt = split(/\,/,$newAnnovarLine);
 
 				my $valueTOmatch = $dt[26].";".$dt[27].";".$dt[29].";".$dt[30];
 				
 				$dt[30] =~ s/\"//g;
-				if ($dt[30] =~ m/\,/)
+				if ($dt[30] =~ m/\;/)
 				{
-					my @annalts = split(/\,/,$dt[30]);
+					my @annalts = split(/\;/,$dt[30]);
 					$dt[30] = $annalts[0];
 				}
 				$valueTOmatch =~ s/\"//g;
@@ -1097,17 +1124,24 @@ while(<INPUT>)
 				
 				if (($lenref + $lenalt) > 2)## INDEL
 				{
+					my $token_ref = "NA";
+					my $token_obs = "NA";
+					
 					## make indelID
-					my $token_ref = unpack('L', md5($ref));
-					my $token_obs = unpack('L', md5($al));
-                	
+					## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
+					if ($ref !~ m/[Nn]/ and $al !~ m/[Nn]/)
+					{
+						$token_ref = unpack('L', md5($ref));
+						$token_obs = unpack('L', md5($al));
+					}
+					
                 	if ($type eq 'INDEL' or $type eq 'all')
                 	{
         	        	## we are only going to report the first alternate allele in the cases where the site is more than bi-allelic
     	            	## e.g A,C in the alternate column in VCF will report only A in the main annotation file
 	                	## we are doing this because we want to keep the annotation main file consistent
 
-	                	if ($j == 0)
+	                	if ($j == 0 and $token_ref ne "NA" and $token_obs ne "NA")
     	            	{
 							$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$al;$alfr";
 						}else{
@@ -1197,7 +1231,8 @@ while(<INPUT>)
                 	## we are doing this because we want to keep the annotation main file consistent
                 	if ($type eq 'SNP' or $type eq 'all')
                 	{
-	                	if ($j == 0)
+						## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
+	                	if ($j == 0 and $ref !~ m/[Nn]/ and $al !~ m/[Nn]/)
     	            	{
 							$variants{ "$chr;$position;$ref;$al" } = "$chr;$position;$ref;$al;$alfr";
 						}else{
@@ -1287,13 +1322,27 @@ while(<INPUT>)
 			
 			if (($lenref + $lenalt) > 2)## INDEL
 			{
+				my $token_ref = "NA";
+				my $token_obs = "NA";
+				
 				## make indelID
-				my $token_ref = unpack('L', md5($ref));
-				my $token_obs = unpack('L', md5($alt));
+				## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section				
+				if ($ref !~ m/[Nn]/ and $alt !~ m/[Nn]/)
+				{
+					$token_ref = unpack('L', md5($ref));
+					$token_obs = unpack('L', md5($alt));
+				}
 				
 				if ($type eq 'INDEL' or $type eq 'all')
                 {
-					$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$alt;$AF";
+					
+					## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
+                	if ($token_ref ne "NA" and $token_obs ne "NA")
+	            	{
+						$variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$alt;$AF";
+					}else{
+						$not_biallelic_variants{ "$chr;$position;$token_ref;$token_obs" } = "$chr;$position;$ref;$alt;$AF";
+					}
 				
 					## if sample wise information is present in the VCF then process ; otherwise skip
 					## also check for none value in genotype mode parameter
@@ -1370,8 +1419,14 @@ while(<INPUT>)
 
 			}else{ ## SNP
                 if ($type eq 'SNP' or $type eq 'all')
-                {
-					$variants{ "$chr;$position;$ref;$alt" } = "$chr;$position;$ref;$alt;$AF";
+                {					
+					## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
+                	if ($ref !~ m/[Nn]/ and $alt !~ m/[Nn]/)
+	            	{
+						$variants{ "$chr;$position;$ref;$alt" } = "$chr;$position;$ref;$alt;$AF";
+					}else{
+						$not_biallelic_variants{ "$chr;$position;$ref;$alt" } = "$chr;$position;$ref;$alt;$AF";
+					}
 					
 					## if sample wise information is present in the VCF then process ; otherwise skip
 					## also check for none value in genotype mode parameter
