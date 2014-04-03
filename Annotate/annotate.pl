@@ -818,14 +818,14 @@ sub AnnovarAnnotation
 				my $newAnnovarLine = &replaceCommainQoute($_);
 				my @dt = split(/\,/,$newAnnovarLine);
 				
-				my $valueTOmatch = $dt[26].";".$dt[27].";".$dt[29].";".$dt[30];
-				
 				$dt[30] =~ s/\"//g;
 				if ($dt[30] =~ m/\;/)
 				{
 					my @annalts = split(/\;/,$dt[30]);
 					$dt[30] = $annalts[0];
 				}
+
+				my $valueTOmatch = $dt[26].";".$dt[27].";".$dt[29].";".$dt[30];
 				$valueTOmatch =~ s/\"//g;
 
 				## fix missing values
@@ -854,7 +854,7 @@ sub AnnovarAnnotation
 				{
 		        	$Annovar { $valueTOmatch } = $annToPass;
 				}else{
-		        	$Annovar { $valueTOmatch } = $Annovar { $valueTOmatch }.",".$annToPass;
+					$Annovar { $valueTOmatch } = $Annovar { $valueTOmatch }.",".$annToPass;					
 				}
 
 			}
@@ -873,8 +873,6 @@ sub AnnovarAnnotation
 				chomp $_;
 				my $newAnnovarLine = &replaceCommainQoute($_);
 				my @dt = split(/\,/,$newAnnovarLine);
-
-				my $valueTOmatch = $dt[26].";".$dt[27].";".$dt[29].";".$dt[30];
 				
 				$dt[30] =~ s/\"//g;
 				if ($dt[30] =~ m/\;/)
@@ -882,6 +880,8 @@ sub AnnovarAnnotation
 					my @annalts = split(/\;/,$dt[30]);
 					$dt[30] = $annalts[0];
 				}
+
+				my $valueTOmatch = $dt[26].";".$dt[27].";".$dt[29].";".$dt[30];
 				$valueTOmatch =~ s/\"//g;
 				
 				## fix missing values
@@ -910,7 +910,7 @@ sub AnnovarAnnotation
 				{
 		        	$Annovar { $valueTOmatch } = $annToPass;
 				}else{
-		        	$Annovar { $valueTOmatch } = $Annovar { $valueTOmatch }.",".$annToPass;
+					$Annovar { $valueTOmatch } = $Annovar { $valueTOmatch }.",".$annToPass;
 				}
 			}
 		}
