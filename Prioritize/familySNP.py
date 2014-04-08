@@ -180,8 +180,9 @@ def main (args):
         # look for de novo variants
         ###
         if args.inheritance == 'dominant_denovo':
-            
+            pp.pprint(line) # DEBUG
             judgement = denovo(sampledata, family)
+            pp.pprint(judgement)
             # top SNP
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
@@ -534,7 +535,7 @@ def compound(sampledata, family):
             
             # hom ref
             # poisson for low coverage and percentage for high coverage
-            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.0001 and altcoverage / coverage <= 0.05:
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.007 and altcoverage / coverage <= 0.05:
                 judgement = 1
                 continue
             
@@ -545,7 +546,7 @@ def compound(sampledata, family):
             #    break
             
             # hom alt
-            elif poisson.cdf( float(refcoverage), float(coverage/2) ) <= 0.0001  and refcoverage / coverage <= 0.05:
+            elif poisson.cdf( float(refcoverage), float(coverage/2) ) <= 0.007  and refcoverage / coverage <= 0.05:
                 judgement = 0
                 break
             
@@ -701,16 +702,19 @@ def denovo(sampledata, family):
         
         # heterozygous in non-affected - bad
         elif zygosity == '0/1' and family[name] == '0':
+            #sub_pp.pprint("heterozygous in non-affected")# DEBUG
             judgement = 0
             break
         
         # hom ref in affected - bad
         elif zygosity == '0/0' and family[name] == '1':
+            #sub_pp.pprint("hom ref in affected")# DEBUG
             judgement = 0
             break
         
         # homozygous can't be denovo
         elif zygosity == '1/1':
+            #sub_pp.pprint("homozygous can't be denovo")# DEBUG
             judgement = 0
             break
         
@@ -733,12 +737,14 @@ def denovo(sampledata, family):
             coverage = refcoverage + altcoverage
             
             if coverage == 0:
+                #sub_pp.pprint("coverage")# DEBUG
                 judgement = 0
                 break
             
             # hom ref, non called genotype
             # poisson for low coverage and percentage for high coverage
-            elif (poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.0001) and (altcoverage / coverage <= 0.05):
+            # poisson 10 reads (poisson average rate of success = 5) and alt reads = 0 - should get still accepted
+            elif (poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.007) and (altcoverage / coverage <= 0.05):
             #if int(refcoverage) >= 8 and int(altcoverage) == 0:
                 judgement = 1
                 continue
@@ -752,6 +758,9 @@ def denovo(sampledata, family):
             
             # coverage too low?
             else:
+                #sub_pp.pprint("else")# DEBUG
+                #sub_pp.pprint(poisson.cdf( float(altcoverage), float(coverage)/2 ))# DEBUG
+                #sub_pp.pprint(altcoverage / coverage)# DEBUG
                 judgement = 0
                 break
         
@@ -964,21 +973,21 @@ def recessive(sampledata, family, familytype):
             
             # hom ref
             #if int(refcoverage) >= 8 and int(altcoverage) == 0:
-            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.0001 and altcoverage / coverage <= 0.05:
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.007 and altcoverage / coverage <= 0.05:
                 judgement = 1
                 #sub_pp.pprint(['./. 0 8 0', name])
                 continue
             
             # hom alt
             #elif int(altcoverage) >=8 and int(refcoverage) == 0:
-            elif poisson.cdf( float(refcoverage), float(coverage/2) ) <= 0.0001  and refcoverage / coverage <= 0.05:
+            elif poisson.cdf( float(refcoverage), float(coverage/2) ) <= 0.007  and refcoverage / coverage <= 0.05:
                 judgement = 0
                 #sub_pp.pprint(['./. 0 0 8', name])
                 break
             
             # het, which is OK
             #elif int(refcoverage) >= 8 and not int(altcoverage) == 0:
-            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) >= 0.0001 or altcoverage / coverage >= 0.05:
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) >= 0.007 or altcoverage / coverage >= 0.05:
                 judgement = 1
                 #sub_pp.pprint(['./. 0 8 not 0', name])
                 continue
@@ -1095,21 +1104,21 @@ def xlinked(sampledata, family):
             
             # hom ref
             #if int(refcoverage) >= 8 and int(altcoverage) == 0:
-            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.0001 and altcoverage / coverage <= 0.05:
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.007 and altcoverage / coverage <= 0.05:
                 inheritance_logic[name] = '0/0'
                 judgement = 1
                 continue
             
             # hom alt
             #elif int(altcoverage) >=8 and int(refcoverage) == 0:
-            if poisson.cdf( float(refcoverage), float(coverage)/2 ) <= 0.0001 and refcoverage / coverage <= 0.05:
+            if poisson.cdf( float(refcoverage), float(coverage)/2 ) <= 0.007 and refcoverage / coverage <= 0.05:
                 inheritance_logic[name] = '1/1'
                 judgement = 0
                 break
             
             # het, which is OK
             #elif int(refcoverage) >= 8 and not int(altcoverage) == 0:
-            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) >= 0.0001 or altcoverage / coverage >= 0.05:
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) >= 0.007 or altcoverage / coverage >= 0.05:
                 inheritance_logic[name] = '0/1'
                 judgement = 1
                 continue
