@@ -180,9 +180,9 @@ def main (args):
         # look for de novo variants
         ###
         if args.inheritance == 'dominant_denovo':
-            pp.pprint(line) # DEBUG
+            #pp.pprint(line) # DEBUG
             judgement = denovo(sampledata, family)
-            pp.pprint(judgement)
+            #pp.pprint(judgement)
             # top SNP
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
@@ -516,7 +516,7 @@ def compound(sampledata, family):
             try:
                 int(refcoverage)
             except:
-                sub_pp.pprint(sampledata)
+                #sub_pp.pprint(sampledata)
                 exit(0)
             
             # hom ref
