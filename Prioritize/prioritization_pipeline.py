@@ -338,7 +338,7 @@ try:
     if os.path.isdir( os.path.dirname(args.qsub_name) ):
         script_location = os.path.expanduser(args.qsub_name)
     else:
-        script_location = args.outfolder + args.qsub_name
+        script_location = args.outfolder + '/' + args.qsub_name
     SCRIPT = open( script_location, 'w')
 except Exception,e:
     print "Could not open script file for writing."
