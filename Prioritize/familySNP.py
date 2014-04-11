@@ -459,6 +459,14 @@ def compound(sampledata, family):
             continue
         
         name        = features[0]
+        
+        # check if sample is found in pedigree
+        try:
+            family[name]
+        except:
+            # if not found, go on to next sample
+            continue
+        
         zygosity    = features[1]
         refcoverage = features[2] # could be numeric or .
         altcoverage = features[3] # could be numeric or .
@@ -677,6 +685,14 @@ def denovo(sampledata, family):
     for sam in samples:
         features    = sam.split('>')
         name        = features[0]
+        
+        # check if sample is found in pedigree
+        try:
+            family[name]
+        except:
+            # if not found, go on to next sample
+            continue
+        
         try:
             zygosity    = features[1]
         except:
@@ -803,6 +819,14 @@ def dominant(sampledata, family):
     for sam in samples:
         features    = sam.split('>')
         name        = features[0]
+        
+        # check if sample is found in pedigree
+        try:
+            family[name]
+        except:
+            # if not found, go on to next sample
+            continue
+        
         zygosity    = features[1]
         refcoverage = features[2] # could be numeric or .
         altcoverage = features[3] # could be numeric or .
@@ -905,6 +929,14 @@ def recessive(sampledata, family, familytype):
     for sam in samples:
         features    = sam.split('>')
         name        = features[0]
+        
+        # check if sample is found in pedigree
+        try:
+            family[name]
+        except:
+            # if not found, go on to next sample
+            continue
+        
         zygosity    = features[1]
         refcoverage = features[2] # could be numeric or .
         altcoverage = features[3] # could be numeric or .
@@ -1045,6 +1077,14 @@ def xlinked(sampledata, family):
     for sam in samples:
         features    = sam.split('>')
         name        = features[0]
+        
+        # check if sample is found in pedigree
+        try:
+            family[name]
+        except:
+            # if not found, go on to next sample
+            continue
+        
         zygosity    = features[1]
         refcoverage = features[2] # could be numeric or .
         altcoverage = features[3] # could be numeric or .
