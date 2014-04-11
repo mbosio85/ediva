@@ -51,6 +51,7 @@ my @thrds = (); ## list to hold threads
 our %eDiVa :shared = (); ## hash to hold input INDELs with eDiVa annotation
 our %Annovar :shared = (); ## hash to hold input INDELs with ANNOVAR annotation
 our %samples :shared = (); ## hash to hold sample information
+our %edivaStr :shared = (); ## hash to hold simple tandem repeat data from ediva public omics database
 our @headers = ();
 
 ## for missing db annotation for snps and indels
@@ -282,6 +283,36 @@ sub replaceCommainQoute
 	
 	return $newstr;
 } 
+
+
+## subroutine for eDiVa public omics data fetch
+sub eDiVaPublicOmics
+{
+	## DB parameters
+	my $username = 'edivacrg';
+	my $database = 'eDiVa_public_omics';
+	my $dbhost = 'mysqlsrv-ediva.linux.crg.es';
+	my $pass = 'FD5KrT3q';
+		
+	## open DB connection
+	my $dbh = DBI->connect('dbi:mysql:'.$database.';host='.$dbhost.'',$username,$pass) or die "Connection Error!!\n";
+
+	my $sql = "select chr,pos,lengthofrepeat,copyNum from eDiVa_public_omics.Table_simpleRepeat\;";
+	
+	## prepare statement and query
+	my $stmt = $dbh->prepare($sql);
+	$stmt->execute or die "SQL Error!!\n";
+	
+	#process query result
+	while (my @res = $stmt->fetchrow_array) 
+	{
+		$edivaStr{ $res[0].";".$res[1] } = $res[2].";".$res[3]; 
+	}
+
+   	## close DB connection
+	$dbh->disconnect();
+}
+
 
 ## subroutine for eDiVa annotation
 sub eDiVaAnnotation
@@ -930,23 +961,23 @@ sub getHeader
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
         AminoAcidChange(Ensembl),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,STR(RepeatLenght;RepeatCopy),samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }elsif($geneDef eq 'refGene')
     {
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),
         dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,STR(RepeatLenght;RepeatCopy),samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }elsif($geneDef eq 'knownGene')
     {
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,
         TotalEVSFrequency,Eur1000GenomesFrequency,Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,STR(RepeatLenght;RepeatCopy),samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }else{
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
         AminoAcidChange(Ensembl),Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,STR(RepeatLenght;RepeatCopy),samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }
     ## replace newlines with nothing at header line
     $stringTOreturn =~ s/\n|\s+//g;
@@ -962,7 +993,7 @@ sub getHeaderIns
 
     $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,GenicAnnotation,dbsnpIdentifier,EurEVSFrequecy,AfrEVSFrequecy,TotalEVSFrequecy,Eur1000GenomesFrequency,
     Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-    PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+    PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,STR(RepeatLenght;RepeatCopy),samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
 
     ## replace newlines with nothing at header line
     $stringTOreturn =~ s/\n|\s+//g;
@@ -1521,6 +1552,7 @@ print "MESSAGE :: Annotation starting \n";
 ## spawn threds and push to list
 push @thrds, threads -> new(\&eDiVaAnnotation); ## spawn a thread for eDiVa annotation
 push @thrds, threads -> new(\&AnnovarAnnotation); ## spawn a thread for Annovar annotation
+push @thrds, threads -> new(\&eDiVaPublicOmics); ## spawn a thread for eDiVa public omics
 
 ## join spawned threads
 foreach my $thr (@thrds)
@@ -1542,16 +1574,17 @@ print ANN  $headerOutputFile."\n";
 ## write data lines to main output file
 while (my($key, $value) = each(%variants)) 
 {
-	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
+	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint,$edivapublicanntoprint) = ("NA","NA","NA","NA");
 	my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
 	my $annovarValueToMatch = $chr.";".$position.";".$ref.";".$alt;
 
 	$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
 	$annovarannotationtoprint = $Annovar{$annovarValueToMatch} if $Annovar{$annovarValueToMatch};
 	$samplewiseinfortoprint = $samples { $key } if $samples { $key };
+	$edivapublicanntoprint = $edivaStr { $chr.";".$position} if $edivaStr { $chr.";".$position}; 
 	
 	## write annotation to file 
-	print ANN $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$aftoprint.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$samplewiseinfortoprint."\n";
+	print ANN $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$aftoprint.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$edivapublicanntoprint.$sep.$samplewiseinfortoprint."\n";
 }
 
 ## close the handler
@@ -1571,17 +1604,15 @@ print ANNINS  $headerOutputFile."\n";
 ## write data lines to main output file
 while (my($key, $value) = each(%not_biallelic_variants)) 
 {
-	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
+	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint,$edivapublicanntoprint) = ("NA","NA","NA","NA");
 	my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
-
-	#my $annovarValueToMatch = $chr.";".$position.";".$ref.";".$alt;
-	#$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
 
 	$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
 	$samplewiseinfortoprint = $samples { $key } if $samples { $key };
+	$edivapublicanntoprint = $edivaStr { $chr.";".$position} if $edivaStr { $chr.";".$position}; 
 
 	## write annotation to file 
-	print ANNINS $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$aftoprint.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$samplewiseinfortoprint."\n";	
+	print ANNINS $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$aftoprint.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$edivapublicanntoprint.$sep.$samplewiseinfortoprint."\n";	
 }
 
 ## close the handler
