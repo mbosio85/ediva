@@ -31,5 +31,6 @@ MutAss
 Condel
 Cadd1
 Cadd2
-STR(RepeatLenght;RepeatCopy)
+SimpleTandemRepeatRegion
+SimpleTandemRepeatLenght
 samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)

@@ -297,7 +297,7 @@ sub eDiVaPublicOmics
 	## open DB connection
 	my $dbh = DBI->connect('dbi:mysql:'.$database.';host='.$dbhost.'',$username,$pass) or die "Connection Error!!\n";
 
-	my $sql = "select chr,pos,lengthofrepeat,copyNum from eDiVa_public_omics.Table_simpleRepeat\;";
+	my $sql = "select chr,pos,lengthofrepeat,copyNum,region from eDiVa_public_omics.Table_simpleRepeat\;";
 	
 	## prepare statement and query
 	my $stmt = $dbh->prepare($sql);
@@ -306,7 +306,7 @@ sub eDiVaPublicOmics
 	#process query result
 	while (my @res = $stmt->fetchrow_array) 
 	{
-		$edivaStr{ $res[0].";".$res[1] } = $res[2].";".$res[3]; 
+		$edivaStr{ $res[0].";".$res[1] } = $res[4].",".$res[2]; 
 	}
 
    	## close DB connection
@@ -961,23 +961,23 @@ sub getHeader
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
         AminoAcidChange(Ensembl),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,STR(RepeatLenght;RepeatCopy),samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLenght,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }elsif($geneDef eq 'refGene')
     {
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),
         dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,STR(RepeatLenght;RepeatCopy),samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLenght,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }elsif($geneDef eq 'knownGene')
     {
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,
         TotalEVSFrequency,Eur1000GenomesFrequency,Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,STR(RepeatLenght;RepeatCopy),samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLenght,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }else{
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
         AminoAcidChange(Ensembl),Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,STR(RepeatLenght;RepeatCopy),samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLenght,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }
     ## replace newlines with nothing at header line
     $stringTOreturn =~ s/\n|\s+//g;
@@ -993,7 +993,7 @@ sub getHeaderIns
 
     $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,GenicAnnotation,dbsnpIdentifier,EurEVSFrequecy,AfrEVSFrequecy,TotalEVSFrequecy,Eur1000GenomesFrequency,
     Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-    PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,STR(RepeatLenght;RepeatCopy),samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+    PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLenght,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
 
     ## replace newlines with nothing at header line
     $stringTOreturn =~ s/\n|\s+//g;
@@ -1574,7 +1574,8 @@ print ANN  $headerOutputFile."\n";
 ## write data lines to main output file
 while (my($key, $value) = each(%variants)) 
 {
-	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint,$edivapublicanntoprint) = ("NA","NA","NA","NA");
+	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
+	my $edivapublicanntoprint = "NA,NA";
 	my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
 	my $annovarValueToMatch = $chr.";".$position.";".$ref.";".$alt;
 
@@ -1604,7 +1605,8 @@ print ANNINS  $headerOutputFile."\n";
 ## write data lines to main output file
 while (my($key, $value) = each(%not_biallelic_variants)) 
 {
-	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint,$edivapublicanntoprint) = ("NA","NA","NA","NA");
+	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
+	my $edivapublicanntoprint = "NA,NA";
 	my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
 
 	$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
