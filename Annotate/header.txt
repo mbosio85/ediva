@@ -32,5 +32,5 @@ Condel
 Cadd1
 Cadd2
 SimpleTandemRepeatRegion
-SimpleTandemRepeatLenght
+SimpleTandemRepeatLength
 samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)
