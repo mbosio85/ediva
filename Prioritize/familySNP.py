@@ -414,7 +414,6 @@ def main (args):
                     compound_gene_storage[0].append('NOT_compound')
                     compound_gene_storage[0].append('filtered')
                     out.writerow(compound_gene_storage[0]) # there is only one line
-                    continue
                 
                 elif comp_judgement == 1:
                     for row in compound_gene_storage:
@@ -447,7 +446,6 @@ def main (args):
                 line.append('compound')
                 line.append('tandem')
                 out.writerow(line)
-                continue
             
             elif judgement == 1 and MAF <= 0.03:
                 if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
@@ -455,21 +453,18 @@ def main (args):
                                 if (line[index_segdup] == '0'):
                                     compound_gene_storage.append(line)
                 
-                continue
             
             # fits inheritance, but is too frequent in the population
             elif judgement == 1 and MAF > 0.03:
                 line.append('compound')
                 line.append('filtered')
                 out.writerow(line)
-                continue
             
             # does not fit anything
             else:
                 line.append('NOT_' + args.inheritance)
                 line.append('filtered')
                 out.writerow(line)
-                continue
     
     else:
         # clean up for last gene
