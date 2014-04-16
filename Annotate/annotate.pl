@@ -961,23 +961,23 @@ sub getHeader
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
         AminoAcidChange(Ensembl),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLenght,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }elsif($geneDef eq 'refGene')
     {
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),
         dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLenght,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }elsif($geneDef eq 'knownGene')
     {
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,
         TotalEVSFrequency,Eur1000GenomesFrequency,Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLenght,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }else{
         $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
         AminoAcidChange(Ensembl),Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
         Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLenght,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
     }
     ## replace newlines with nothing at header line
     $stringTOreturn =~ s/\n|\s+//g;
@@ -993,7 +993,7 @@ sub getHeaderIns
 
     $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,GenicAnnotation,dbsnpIdentifier,EurEVSFrequecy,AfrEVSFrequecy,TotalEVSFrequecy,Eur1000GenomesFrequency,
     Afr1000GenomesFrequency,Amr1000GenomesFrequency,Asia1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-    PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLenght,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+    PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
 
     ## replace newlines with nothing at header line
     $stringTOreturn =~ s/\n|\s+//g;
