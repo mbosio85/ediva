@@ -61,8 +61,12 @@ def main ():
     alldata = list(csv.reader(args.infile))
     
     header = alldata.pop(0)
+    index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
+    
+    #alldata_clean = [ line for line in alldata if not line[index_varfunction] == 'synonymous SNV' ]
     
     alldata_transpose = zip(*alldata)
+    
     
     values2investigate = ['Total1000GenomesFrequency', 'TotalEVSFrequency', 'SegMentDup', 'Condel', 'VertebratesPhyloP', 'VertebratesPhastCons', 'SIFTScore']
     
@@ -84,17 +88,30 @@ def main ():
     
     # calculate rank product
     rank_product_list = list()
+    
+    max_maf_rank       = max(ranked_maf)
+    max_segdup_rank    = max(ranked_segdup)
+    max_condel_rank    = max(ranked_condel)
+    max_phastcons_rank = max(ranked_phastcons)
+    
     for i in range( len(binned_values) ):
-        rank_product = float( ( ranked_maf[i] * ranked_segdup[i] * ranked_condel[i] * ranked_phastcons[i]) ) / ( 100**2 ) # 4 tools deliver information, decrease the numeric value to more graspable values ### currently deleted * ranked_phylop[i]
-        #print 'ranked_maf[i] %f, ranked_segdup[i] %f, ranked_condel[i] %f, ranked_phylop[i] %f' % (ranked_maf[i], ranked_segdup[i], ranked_condel[i], ranked_phylop[i])
+        # skip synonymous variants
+        if alldata[i][index_varfunction] == 'synonymous SNV' or alldata[i][index_varfunction] == 'NA':
+            # synonymous SNVs get the maximum rank and are downgraded by that
+            rank_product = float( ( max_maf_rank * max_segdup_rank * max_condel_rank * max_phastcons_rank ) ) / ( 100**2 )
+        else:
+            rank_product = float( ( ranked_maf[i] * ranked_segdup[i] * ranked_condel[i] * ranked_phastcons[i]) ) / ( 100**2 ) # 4 tools deliver information, decrease the numeric value to more graspable values ### currently deleted * ranked_phylop[i]
+        
         rank_product_list.append(rank_product)
     
     # all rank products get a rank for more facile overview
     rankrank = scipy.stats.rankdata(rank_product_list)
     
     for i in range( len(alldata) ):
-        #alldata[i].append(rank_product_list[i])
-        alldata[i].append(int(rankrank[i])) #, ranked_maf[i], ranked_segdup[i], ranked_condel[i], debug_saver[i], ranked_phastcons[i], rank_product_list[i]])
+        # bin the final ranks into groups, to decrease resolution and have a max of about 1000
+        binned_rank = int(rankrank[i] / 100)
+        alldata[i].append( binned_rank )
+        #alldata[i].append(int(rankrank[i])) #, ranked_maf[i], ranked_segdup[i], ranked_condel[i], debug_saver[i], ranked_phastcons[i], rank_product_list[i]])
     
     outcsv = csv.writer(args.outfile)
     header.append('rank') #,'maf','segdup','condel','condelbin','phastcons','product'])

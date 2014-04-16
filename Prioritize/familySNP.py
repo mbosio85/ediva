@@ -130,6 +130,7 @@ def main (args):
     index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
     index_segdup      = identifycolumns(header, 'SegMentDup')
     index_gene        = identifycolumns(header, 'Gene(Refseq)')
+    index_str         = identifycolumns(header, 'SimpleTandemRepeatLength')
     
     # init for compound
     initializer = 0
@@ -156,7 +157,7 @@ def main (args):
             new_gene_set = set(new_gene.split(';'))
             initializer = 1
         
-        
+        # read minor allele frequencies
         try:
             MAF1k      = line[index_MAF1k]
             MAFevs     = line[index_MAFevs]
@@ -167,9 +168,14 @@ def main (args):
             MAF    = max(float(MAF1k), float(MAFevs))
         except:
             MAF    = 0
+        
+        # read sample names and according zygosity
         sampledata = line[index_sample]
         
-        # filter out genes, that are on the gene exclusion list.
+        # read simple tandem repeat information
+        tandem = line[index_str]
+        
+        # check, if gene is on the gene exclusion list.
         genenames = set()
         if args.geneexclusion:
             genecolumn   = re.sub('\(.*?\)','',line[index_gene])
@@ -180,15 +186,23 @@ def main (args):
         # look for de novo variants
         ###
         if args.inheritance == 'dominant_denovo':
-            #pp.pprint(line) # DEBUG
+            
             judgement = denovo(sampledata, family)
-            #pp.pprint(judgement)
-            # top SNP
+            
+            # exclude gene, if it is on the exclusion list
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
                 line.append('exclusionlist')
                 out.writerow(line)
-
+                continue
+            
+            # check before all others, if variant locates to simple tandem repeat region
+            elif judgement == 1 and not tandem == 'NA':
+                line.append('denovo')
+                line.append('tandem')
+                out.writerow(line)
+                continue
+            
             elif judgement == 1 and MAF <= 0.01:
                 
                 line.append('denovo')
@@ -199,12 +213,15 @@ def main (args):
                         if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
                                 if (line[index_segdup] == '0'):
                                         outfiltered.writerow(line)
+                
+                continue
             
             # fits inheritance, but is too frequent in the population
             elif judgement == 1 and MAF > 0.01:
                 line.append('denovo')
                 line.append('filtered')
                 out.writerow(line)
+                continue
             
             # does not fit anything
             else:
@@ -212,18 +229,27 @@ def main (args):
                 #line.append('bad_inheritance')
                 line.append('filtered')
                 out.writerow(line)
+                continue
         
         ###
         # look for familial dominant variants. (being tolerant for missing values)
         ###
         elif args.inheritance == 'dominant_inherited':
             judgement = dominant(sampledata, family)
-            # top SNP
+            # exclude gene, if it is on the exclusion list
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
                 line.append('exclusionlist')
                 out.writerow(line)
-
+                continue
+            
+            # check before all others, if variant locates to simple tandem repeat region
+            elif judgement == 1 and not tandem == 'NA':
+                line.append('dominant')
+                line.append('tandem')
+                out.writerow(line)
+                continue
+            
             elif judgement == 1 and MAF <= 0.05:
                 line.append('dominant')
                 line.append('pass')
@@ -232,18 +258,22 @@ def main (args):
                         if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
                                 if (line[index_segdup] == '0'):
                                         outfiltered.writerow(line)
+                continue
+            
             # fits inheritance, but is too frequent in the population
             elif judgement == 1 and MAF > 0.05:
                 line.append('dominant')
                 line.append('filtered')
                 out.writerow(line)
+                continue
+            
             # does not fit anything
             else:
                 line.append('NOT_' + args.inheritance)
                 #line.append('bad_inheritance')
                 line.append('filtered')
                 out.writerow(line)
-            pass
+                continue
         
         ###
         # look for recessive variants (be aware of trio and family inheritance)
@@ -251,11 +281,20 @@ def main (args):
         elif args.inheritance == 'recessive':
             judgement = recessive(sampledata, family, args.familytype)
             
+            # exclude gene, if it is on the exclusion list
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
                 line.append('exclusionlist')
                 out.writerow(line)
-
+                continue
+            
+            # check before all others, if variant locates to simple tandem repeat region
+            elif judgement == 1 and not tandem == 'NA':
+                line.append('recessive')
+                line.append('tandem')
+                out.writerow(line)
+                continue
+            
             elif judgement == 1 and MAF <= 0.03:
                 line.append('recessive')
                 line.append('pass')
@@ -264,12 +303,14 @@ def main (args):
                         if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
                                 if (line[index_segdup] == '0'):
                                     outfiltered.writerow(line)
+                continue
             
             # fits inheritance, but is too frequent in the population
             elif judgement == 1 and MAF > 0.03:
                 line.append('recessive')
                 line.append('filtered')
                 out.writerow(line)
+                continue
             
             # does not fit anything
             else:
@@ -277,6 +318,7 @@ def main (args):
                 #line.append('bad_inheritance')
                 line.append('filtered')
                 out.writerow(line)
+                continue
         
         ###
         # look for X linked recessive variants in trios
@@ -298,11 +340,21 @@ def main (args):
                 line.append('Trio_only')
                 line.append('filtered')
                 out.writerow(line)
+                continue
             
+            # exclude gene, if it is on the exclusion list
             elif len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
                 line.append('exclusionlist')
                 out.writerow(line)
+                continue
+            
+            # check before all others, if variant locates to simple tandem repeat region
+            elif judgement == 1 and not tandem == 'NA':
+                line.append('Xlinked')
+                line.append('tandem')
+                out.writerow(line)
+                continue
             
             elif judgement == 1 and MAF <= 0.01:
                 line.append('Xlinked')
@@ -312,18 +364,21 @@ def main (args):
                         if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
                                 if (line[index_segdup] == '0'):
                                     outfiltered.writerow(line)
+                continue
             
             # fits inheritance, but is too frequent in the population
             elif judgement == 1 and MAF > 0.01:
                 line.append('Xlinked')
                 line.append('filtered')
                 out.writerow(line)
+                continue
             
             else:
                 line.append('NOT_' + args.inheritance)
                 #line.append('bad_inheritance')
                 line.append('filtered')
                 out.writerow(line)
+                continue
         
         ###
         # look for compound heterozygous variants
@@ -359,6 +414,7 @@ def main (args):
                     compound_gene_storage[0].append('NOT_compound')
                     compound_gene_storage[0].append('filtered')
                     out.writerow(compound_gene_storage[0]) # there is only one line
+                    continue
                 
                 elif comp_judgement == 1:
                     for row in compound_gene_storage:
@@ -385,31 +441,35 @@ def main (args):
                 line.append('NOT_' + args.inheritance)
                 line.append('exclusionlist')
                 out.writerow(line)
-
+            
+            # check before all others, if variant locates to simple tandem repeat region
+            elif judgement == 1 and not tandem == 'NA':
+                line.append('compound')
+                line.append('tandem')
+                out.writerow(line)
+                continue
+            
             elif judgement == 1 and MAF <= 0.03:
                 if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
                         if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
                                 if (line[index_segdup] == '0'):
                                     compound_gene_storage.append(line)
-                                    pass
+                
+                continue
             
             # fits inheritance, but is too frequent in the population
             elif judgement == 1 and MAF > 0.03:
                 line.append('compound')
                 line.append('filtered')
                 out.writerow(line)
+                continue
             
             # does not fit anything
             else:
-                
-                #pp.pprint(judgement)
-                #pp.pprint(line)
-                
                 line.append('NOT_' + args.inheritance)
                 line.append('filtered')
                 out.writerow(line)
-            
-            pass
+                continue
     
     else:
         # clean up for last gene
