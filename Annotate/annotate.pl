@@ -21,6 +21,7 @@ use Getopt::Long;
 ## subroutine for usage of the tool
 sub usage { print "\n$0 \n usage:\n",
 	   "--input,-i \t\t VCF file containing the variants to annoate \n",
+	   "--quicklookup,-q \t variant format => chr\:position\:reference\:alteration \n",
 	   "--tempDir,-t \t\t Temporary scratch location for temp files (all temp files with the current session will be removed at the end of execution) \n\t\t\t default: input VCF location \n",
 	   "--geneDef,-g \t\t Gene deifnition you want to select for genic annotation (ensGene,refGene,knownGene,all) \n\t\t\t default: refGene \n",
 	   "--variantType,-v \t Type of variants to annotate from input VCF file (SNP,INDEL,all) \n\t\t\t default: all \n",
@@ -42,6 +43,7 @@ my $sep = ","; ## separator for annotation outfile; currently comma (,) is defau
 my $type = "all"; ## type of variants to annotate from input vcf file
 my $gtMode = "compact"; ## type of variants to annotate from input vcf file
 my $forceDel = 0; ## varibale for force deleting the output annotation file (if exists)
+my $qlookup = "NA"; ## varibale for enabling quick lookup mode of the program
 our $templocation = "INPATH"; ## scratch place for creating the temp files while annotating
 
 my %variants = (); ## hash to hold input variants from VCF
@@ -72,14 +74,21 @@ our $ANNOVAR = "/users/GD/tools/eDiVaCommandLine/lib/Annovar";
 
 
 ## grab command line options
-unknownArguments() if (!GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "forceNewFileCreate" => \$forceDel,"sampleGenotypeMode=s" => \$gtMode, "help" => \$help));
+unknownArguments() if (!GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "forceNewFileCreate" => \$forceDel, "quicklookup=s" => \$qlookup, "sampleGenotypeMode=s" => \$gtMode, "help" => \$help));
 
 
 ## check mandatory command line parameters and take necessary actions
-unless(($input) && $help == 0)
+unless(($input || $qlookup ne "NA") && $help == 0)
 {
 	usage;
 	exit 0;
+}
+
+## check on both input file and quick lookup mode
+if ($input and $qlookup ne "NA")
+{
+	print "\nERROR :: Either run the program with a VCF file or by using quick lookup command line arguments \n";
+	exit 0;	
 }
 
 ## final check of geen definition
@@ -116,6 +125,15 @@ if ($templocation ne "INPATH" and !(-d $templocation))
 	exit 0;
 }
 
+## final check on quick lookup mode parameter
+if ($qlookup ne "NA")
+{
+	if ($qlookup !~ m/\:/)
+	{
+		print "\nERROR :: Not a valid format. Correct format is chr:position:reference:alteration \n";
+		exit 0;		
+	}
+}
 
 
 ##############################################################################################
@@ -155,60 +173,61 @@ if (!(-e $genicAnn))
 
 my ($outFile,$SortedoutFile,$outFileIns); ## files to write annotation
 
-if ($input =~ m/\//) ## input file with full path
+if ($qlookup eq "NA")
 {
-	my @paths = split(/\//,$input);
-	my $len = scalar @paths;
-	my $mainOutpath = join("/",@paths[0..($len-2)]);
+	if ($input =~ m/\//) ## input file with full path
+	{
+		my @paths = split(/\//,$input);
+		my $len = scalar @paths;
+		my $mainOutpath = join("/",@paths[0..($len-2)]);
 
-	my @files = split(/\./,$paths[$len-1]);
-	$len = scalar @files;
-	my $tempfile = join(".",@files[0..($len-2)]);
-	$outFile = $mainOutpath."/".$tempfile.".annotated";
-	$SortedoutFile = $mainOutpath."/".$tempfile.".sorted.annotated";
-	$outFileIns = $mainOutpath."/".$tempfile.".inconsistent.annotated";
+		my @files = split(/\./,$paths[$len-1]);
+		$len = scalar @files;
+		my $tempfile = join(".",@files[0..($len-2)]);
+		$outFile = $mainOutpath."/".$tempfile.".annotated";
+		$SortedoutFile = $mainOutpath."/".$tempfile.".sorted.annotated";
+		$outFileIns = $mainOutpath."/".$tempfile.".inconsistent.annotated";
 	
-	## set temp location
-	if ($templocation eq "INPATH")
-	{
-		$templocation = $mainOutpath;
+		## set temp location
+		if ($templocation eq "INPATH")
+		{
+			$templocation = $mainOutpath;
+		}
+
+	}else{ ## just filename
+
+		my @files = split(/\./,$input);
+		my $len = scalar @files;
+		my $tempfile = join(".",@files[0..($len-2)]);
+		$outFile = $tempfile.".annotated";
+		$SortedoutFile = $tempfile.".sorted.annotated";
+		$outFileIns = $tempfile.".inconsistent.annotated";
+
+		## set temp location
+		if ($templocation eq "INPATH")
+		{
+			$templocation = ".";
+		}
 	}
 
-}else{ ## just filename
 
-	my @files = split(/\./,$input);
-	my $len = scalar @files;
-	my $tempfile = join(".",@files[0..($len-2)]);
-	$outFile = $tempfile.".annotated";
-	$SortedoutFile = $tempfile.".sorted.annotated";
-	$outFileIns = $tempfile.".inconsistent.annotated";
-
-	## set temp location
-	if ($templocation eq "INPATH")
+	## check on output file existence
+	if (-e $outFile or -e $SortedoutFile)
 	{
-		$templocation = ".";
+		## check for new file creation flag
+		if ($forceDel == 1)
+		{
+			## delete the files if exist
+			unlink($outFile);
+			unlink($SortedoutFile); 
+			print "MASSAGE :: Target output file(s) already exists. Removing them now \n";
+		}
+		else{
+			print "\nWARNING :: Target output file(s) already exists. Either rename them, remove them or set the --forceNewFileCreate variable \n";
+			exit 0;
+		}
 	}
-
 }
-
-
-## check on output file existence
-if (-e $outFile or -e $SortedoutFile)
-{
-	## check for new file creation flag
-	if ($forceDel == 1)
-	{
-		## delete the files if exist
-		unlink($outFile);
-		unlink($SortedoutFile); 
-		print "MASSAGE :: Target output file(s) already exists. Removing them now \n";
-	}
-	else{
-		print "\nWARNING :: Target output file(s) already exists. Either rename them, remove them or set the --forceNewFileCreate variable \n";
-		exit 0;
-	}
-}
-
 
 ##############################################################################################
 ## SUBROUTINES
@@ -1006,6 +1025,8 @@ sub getHeaderIns
 ## MAIN starts
 ########################################################################################################################
 
+if ($qlookup eq "NA")
+{
 ## start processing input VCF file
 print "MESSAGE :: Processing input VCF file - $input \n";
 
@@ -1543,16 +1564,102 @@ close(INPUT);
 ## Initialization completed
 print "MESSAGE :: Finished processing input VCF file - $input \n";
 
-## start threading and annotating
-print "MESSAGE :: Annotation starting \n";
+}else{
+	## Quick lookup mode 
+	my ($chr,$pos,$ref,$alt);
+	my @var = split(/\:/,$qlookup);
+	
+	## check for quick lookup data field consistency
+	if (scalar @var != 4)
+	{
+		print "\nERROR :: Not a valid format. Correct format is chr:position:reference:alteration \n";
+		exit 0;
+	}else{
+		## check for simple checking of the quick loookup data fields
+		if ($var[1] =~ m/[a-zA-Z]/)
+		{
+			print "\nERROR :: Not a valid position value \n";
+			exit 0;			
+		}
+		elsif ($var[2] =~ m/[0-9Nn]/)
+		{
+			print "\nERROR :: Not a valid reference allele value \n";
+			exit 0;			
+		}
+		elsif ($var[3] =~ m/[0-9Nn]/)
+		{
+			print "\nERROR :: Not a valid alternate allele value \n";
+			exit 0;			
+		}else{
+			## assign variation from quick look up format
+			$chr = $var[0];
+			$pos = $var[1];
+			$ref = $var[2];
+			$alt = $var[3];
+	
+			## take care of chr1 or Chr1 and convert to chr1/Chr1-> 1
+			if ($chr =~ m/^chr/ or $chr =~ m/^Chr/)
+			{
+				$chr = substr($chr,3);
+			}
+
+			## take care of chr 23 or 24 and convert to X or Y
+			if ($chr eq "23")
+			{
+				$chr = "X";
+			}
+
+			if ($chr eq "24")
+			{
+				$chr = "Y";
+			}
+
+			if ($chr eq "25")
+			{
+				$chr = "MT";
+			}
+			
+			### prepare ediva hash
+			## decide for variant type
+			my $lenref = length $ref;
+			my $lenalt = length $alt;
+			
+			if (($lenref + $lenalt) > 2) ## INDEL
+			{
+				my $token_ref = "NA";
+				my $token_obs = "NA";
+				
+				## make indelID
+				## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section				
+				if ($ref !~ m/[Nn]/ and $alt !~ m/[Nn]/)
+				{
+					$token_ref = unpack('L', md5($ref));
+					$token_obs = unpack('L', md5($alt));
+				}
+				$variants{ "$chr;$pos;$token_ref;$token_obs" } = "$chr;$pos;$ref;$alt;.";
+			}else{ ## SNP
+				$variants{ "$chr;$pos;$ref;$alt" } = "$chr;$pos;$ref;$alt;.";				
+			}					
+		} ## end of inner if - elsif -else
+
+	}## end of outer if -else
+}
 
 ## prepare missing data handler for db annotation
 &preparemissdb;
 
 ## spawn threds and push to list
-push @thrds, threads -> new(\&eDiVaAnnotation); ## spawn a thread for eDiVa annotation
-push @thrds, threads -> new(\&AnnovarAnnotation); ## spawn a thread for Annovar annotation
-push @thrds, threads -> new(\&eDiVaPublicOmics); ## spawn a thread for eDiVa public omics
+if ($qlookup eq "NA")
+{
+	## start threading and annotating
+	print "MESSAGE :: Annotation starting \n";
+
+	push @thrds, threads -> new(\&eDiVaAnnotation); ## spawn a thread for eDiVa annotation
+	push @thrds, threads -> new(\&AnnovarAnnotation); ## spawn a thread for Annovar annotation
+	push @thrds, threads -> new(\&eDiVaPublicOmics); ## spawn a thread for eDiVa public omics
+}else{
+	push @thrds, threads -> new(\&eDiVaAnnotation); ## spawn a thread for eDiVa annotation
+}
 
 ## join spawned threads
 foreach my $thr (@thrds)
@@ -1560,78 +1667,134 @@ foreach my $thr (@thrds)
         $thr -> join();
 }
 
-## write annotaton in file 
-print "MESSAGE :: Writing annotation to output file \n";
-
-
-## open file handler
-open (ANN, ">>".$outFile) or die "Cant open new file to write annotation \n";
-
-## write header to output file
-my $headerOutputFile = &getHeader;
-print ANN  $headerOutputFile."\n";
-
-## write data lines to main output file
-while (my($key, $value) = each(%variants)) 
+## write annotation to file or ender output
+if ($qlookup eq "NA")
 {
-	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
-	my $edivapublicanntoprint = "NA,NA";
-	my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
-	my $annovarValueToMatch = $chr.";".$position.";".$ref.";".$alt;
+	## write annotaton in file 
+	print "MESSAGE :: Writing annotation to output file \n";
 
-	$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
-	$annovarannotationtoprint = $Annovar{$annovarValueToMatch} if $Annovar{$annovarValueToMatch};
-	$samplewiseinfortoprint = $samples { $key } if $samples { $key };
-	$edivapublicanntoprint = $edivaStr { $chr.";".$position} if $edivaStr { $chr.";".$position}; 
+	## open file handler
+	open (ANN, ">>".$outFile) or die "Cant open new file to write annotation \n";
+
+	## write header to output file
+	my $headerOutputFile = &getHeader;
+	print ANN  $headerOutputFile."\n";
+
+	## write data lines to main output file
+	while (my($key, $value) = each(%variants)) 
+	{
+		my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
+		my $edivapublicanntoprint = "NA,NA";
+		my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
+		my $annovarValueToMatch = $chr.";".$position.";".$ref.";".$alt;
+
+		$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
+		$annovarannotationtoprint = $Annovar{$annovarValueToMatch} if $Annovar{$annovarValueToMatch};
+		$samplewiseinfortoprint = $samples { $key } if $samples { $key };
+		$edivapublicanntoprint = $edivaStr { $chr.";".$position} if $edivaStr { $chr.";".$position}; 
 	
-	## write annotation to file 
-	print ANN $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$aftoprint.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$edivapublicanntoprint.$sep.$samplewiseinfortoprint."\n";
+		## write annotation to file 
+		print ANN $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$aftoprint.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$edivapublicanntoprint.$sep.$samplewiseinfortoprint."\n";
+	}
+
+	## close the handler
+	close(ANN);
+
+	## check for inconsistent file presence, take action and open file handler
+	if (-e 	$outFileIns)
+	{
+		unlink($outFileIns);
+	}	
+	open (ANNINS, ">>".$outFileIns) or die "Cant open new file to write annotation \n";
+
+	## write header for inconsistent file
+	$headerOutputFile = &getHeaderIns;
+	print ANNINS  $headerOutputFile."\n";
+
+	## write data lines to main output file
+	while (my($key, $value) = each(%not_biallelic_variants)) 
+	{
+		my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
+		my $edivapublicanntoprint = "NA,NA";
+		my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
+
+		$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
+		$samplewiseinfortoprint = $samples { $key } if $samples { $key };
+		$edivapublicanntoprint = $edivaStr { $chr.";".$position} if $edivaStr { $chr.";".$position}; 
+
+		## write annotation to file 
+		print ANNINS $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$aftoprint.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$edivapublicanntoprint.$sep.$samplewiseinfortoprint."\n";	
+	}
+
+	## close the handler
+	close(ANNINS);
+
+
+	## sort the file
+	my $srtCmm = "sort -k1,1 -n -k2,2 --field-separator=, $outFile > $SortedoutFile ";
+	system($srtCmm);
+
+	## writing completed
+	print "MESSAGE :: Writing annotation completed \n";
+	print "MESSAGE :: Your annotated file is $outFile \n";
+	print "MESSAGE :: Your sorted annotated file is $SortedoutFile \n";
+	print "MESSAGE :: Reported non bi-allelic sites are in $outFileIns \n";
+	
+	## Finalize everything
+	print "MESSAGE :: Finalizing annotation process \n";
+	&finalize;
+	print "MESSAGE :: Finalization completed \n";
+
+}else{
+	
+	## render annotation to output
+	while (my($key, $value) = each(%variants)) 
+	{
+		my ($edivaannotationtoprint,$annovarannotationtoprint) = ("NA","NA");
+		my $edivapublicanntoprint = "NA,NA";
+		my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
+		#my $annovarValueToMatch = $chr.";".$position.";".$ref.";".$alt;
+
+		$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
+		$edivapublicanntoprint = $edivaStr { $chr.";".$position} if $edivaStr { $chr.";".$position}; 
+		
+		#$annovarannotationtoprint = $Annovar{$annovarValueToMatch} if $Annovar{$annovarValueToMatch};
+		#$edivapublicanntoprint = $edivaStr { $chr.";".$position} if $edivaStr { $chr.";".$position}; 
+		
+		my @edivavals = split(/\,/, $edivaannotationtoprint);
+		my @edivapublicvals = split(/\,/, $edivapublicanntoprint);
+
+		## render to command line output
+		print "chromosome: $chr \n";
+		print "position: $position \n";
+		print "Reference: $ref \n";
+		print "Alteration: $alt \n";
+		print "dbSNP identifier: $edivavals[0] \n";
+		print "EVS european frequency: $edivavals[1] \n";
+		print "EVS african frequency: $edivavals[2] \n";
+		print "EVS total frequency: $edivavals[3] \n";
+		print "1000genomes european frequency: $edivavals[4] \n";
+		print "1000genomes african frequency: $edivavals[5] \n";
+		print "1000genomes american frequency: $edivavals[6] \n";
+		print "1000genomes asian frequency: $edivavals[7] \n";
+		print "1000genomes total frequency: $edivavals[8] \n";
+		print "Segment duplication: $edivavals[9] \n";
+		print "Placental mammal phyloP: $edivavals[10] \n";
+		print "Primates phyloP: $edivavals[11] \n";
+		print "Vertebrates phyloP: $edivavals[12] \n";
+		print "Placental mammal phastcons: $edivavals[13] \n";
+		print "Primates phastcons: $edivavals[14] \n";
+		print "Vertebrates phastcons: $edivavals[15] \n";
+		print "Gerp score1: $edivavals[16] \n";			
+		print "Gerp score2: $edivavals[17] \n";
+		print "Sift: $edivavals[18] \n";			
+		print "polyphen2: $edivavals[19] \n";
+		print "Mutationassessor: $edivavals[20] \n";			
+		print "Condel: $edivavals[21] \n";
+		print "Cadd score1: $edivavals[22] \n";			
+		print "Cadd score2: $edivavals[23] \n";
+		print "Simple tandem repeat region: $edivapublicvals[0] \n";			
+		print "Simple tandem repeat length: $edivapublicvals[1] \n";
+		
+	}
 }
-
-## close the handler
-close(ANN);
-
-## check for inconsistent file presence, take action and open file handler
-if (-e 	$outFileIns)
-{
-	unlink($outFileIns);
-}
-open (ANNINS, ">>".$outFileIns) or die "Cant open new file to write annotation \n";
-
-## write header for inconsistent file
-$headerOutputFile = &getHeaderIns;
-print ANNINS  $headerOutputFile."\n";
-
-## write data lines to main output file
-while (my($key, $value) = each(%not_biallelic_variants)) 
-{
-	my ($edivaannotationtoprint,$annovarannotationtoprint,$samplewiseinfortoprint) = ("NA","NA","NA");
-	my $edivapublicanntoprint = "NA,NA";
-	my ($chr,$position,$ref,$alt,$aftoprint) = split(/\;/, $value);
-
-	$edivaannotationtoprint = $eDiVa{$key} if $eDiVa{$key};
-	$samplewiseinfortoprint = $samples { $key } if $samples { $key };
-	$edivapublicanntoprint = $edivaStr { $chr.";".$position} if $edivaStr { $chr.";".$position}; 
-
-	## write annotation to file 
-	print ANNINS $chr.$sep.$position.$sep.$ref.$sep.$alt.$sep.$aftoprint.$sep.$annovarannotationtoprint.$sep.$edivaannotationtoprint.$sep.$edivapublicanntoprint.$sep.$samplewiseinfortoprint."\n";	
-}
-
-## close the handler
-close(ANNINS);
-
-
-## sort the file
-my $srtCmm = "sort -k1,1 -n -k2,2 --field-separator=, $outFile > $SortedoutFile ";
-system($srtCmm);
-
-## writing completed
-print "MESSAGE :: Writing annotation completed \n";
-print "MESSAGE :: Your annotated file is $outFile \n";
-print "MESSAGE :: Your sorted annotated file is $SortedoutFile \n";
-print "MESSAGE :: Reported non bi-allelic sites are in $outFileIns \n";
-
-## Finalize everything
-print "MESSAGE :: Finalizing annotation process \n";
-&finalize;
-print "MESSAGE :: Finalization completed \n";
