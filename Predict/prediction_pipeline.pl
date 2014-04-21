@@ -176,8 +176,8 @@ if [ -s \$TMPDIR/\$NAME.sort.bam.bai ];
 then
    echo Local Re-alignment
    echo -e \"\\n #### doing Local Realignment: java -jar \$GATK -nt $cpu -T RealignerTargetCreator -R \$REF -I \$TMPDIR/\$NAME.sort.bam -o \$OUTF/\$NAME.intervals -known \$DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE \\n\"
-   java -jar \$GATK -nt $cpu -T RealignerTargetCreator -R \$REF -I \$TMPDIR/\$NAME.sort.bam -o \$OUTF/\$NAME.intervals -known \$DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE
-   java -jar \$GATK -T IndelRealigner -R \$REF -I \$TMPDIR/\$NAME.sort.bam -targetIntervals \$OUTF/\$NAME.intervals -o \$TMPDIR/\$NAME.realigned.bam -known \$DBINDEL --maxReadsForRealignment 10000 --consensusDeterminationModel USE_SW --downsampling_type NONE \$FMQ
+   java -jar \$GATK -nt $cpu -T RealignerTargetCreator -R \$REF -I \$TMPDIR/\$NAME.sort.bam -o \$OUTF/\$NAME.intervals -known \$DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE # -L \$EXOME
+   java -jar \$GATK -T IndelRealigner -R \$REF -I \$TMPDIR/\$NAME.sort.bam -targetIntervals \$OUTF/\$NAME.intervals -o \$TMPDIR/\$NAME.realigned.bam -known \$DBINDEL --maxReadsForRealignment 10000 --consensusDeterminationModel USE_SW --downsampling_type NONE # -L \$EXOME
 else
    echo \$NAME.sort.bam.bai not found
    exit
@@ -205,8 +205,8 @@ fi
 if [ -s \$TMPDIR/\$NAME.realigned.dm.bam ];
 then
    echo -e \" \\n #### Base quality recalibration \\n \"
-   java -jar \$GATK -T BaseRecalibrator -nct $cpu --default_platform illumina -cov ReadGroupCovariate -cov QualityScoreCovariate -cov CycleCovariate -cov ContextCovariate -R \$REF -I \$TMPDIR/\$NAME.realigned.dm.bam -knownSites \$DBSNP --downsampling_type NONE -o \$TMPDIR/\$NAME.recal_data.grp
-   java -jar \$GATK -T PrintReads -R \$REF -I \$TMPDIR/\$NAME.realigned.dm.bam -BQSR \$TMPDIR/\$NAME.recal_data.grp -o \$OUTF/\$NAME.realigned.dm.recalibrated.bam
+   java -jar \$GATK -T BaseRecalibrator -nct $cpu --default_platform illumina -cov ReadGroupCovariate -cov QualityScoreCovariate -cov CycleCovariate -cov ContextCovariate -R \$REF -I \$TMPDIR/\$NAME.realigned.dm.bam -knownSites \$DBSNP --downsampling_type NONE -o \$TMPDIR/\$NAME.recal_data.grp # -L \$EXOME
+   java -jar \$GATK -T PrintReads -R \$REF -I \$TMPDIR/\$NAME.realigned.dm.bam -BQSR \$TMPDIR/\$NAME.recal_data.grp -o \$OUTF/\$NAME.realigned.dm.recalibrated.bam # -L \$EXOME
    
 else
    echo \$NAME.realigned.dm.bam not found
@@ -238,7 +238,7 @@ if [ -s \$OUTF/\$NAME.realigned.dm.recalibrated.bam ];
 then
    echo -e \"\\n #### GATK: Call SNPs and Indels with the GATK Unified Genotyper \\n\"
    #java  -jar \$GATK -T UnifiedGenotyper -nt $cpu -R \$REF -I \$OUTF/\$NAME.realigned.dm.recalibrated.bam -o \$OUTF/GATK.both.raw.vcf -glm BOTH --downsampling_type NONE
-   java -jar \$GATK -T HaplotypeCaller -nct $cpu -R \$REF --dbsnp \$DBSNP -I \$OUTF/\$NAME.realigned.dm.recalibrated.bam -o \$OUTF/GATK.both.raw.vcf -l \$EXOME
+   java -jar \$GATK -T HaplotypeCaller -nct $cpu -R \$REF --dbsnp \$DBSNP -I \$OUTF/\$NAME.realigned.dm.recalibrated.bam -o \$OUTF/GATK.both.raw.vcf -L \$EXOME
 
    echo -e \"\\n #### GATK: Split SNPs and Indels \\n\"
    java  -jar \$GATK -T SelectVariants -R \$REF --variant \$OUTF/GATK.both.raw.vcf -o \$OUTF/GATK.snps.raw.vcf -selectType SNP
@@ -483,10 +483,10 @@ else {
 my @fusepipe = ("
 
 # fuse indel and snp calls into one file
-java -Xmx5g -jar \$GATK -T CombineVariants -R \$REF --variant \$OUTF/SNP_Intersection/merged.enriched.vcf --variant \$OUTF/Indel_Intersection/merged.enriched.vcf -o \$OUTF/all_variants.vcf"
+java -Xmx5g -jar \$GATK -T CombineVariants -R \$REF --variant \$OUTF/SNP_Intersection/merged.enriched.vcf --variant \$OUTF/Indel_Intersection/merged.enriched.vcf -o \$OUTF/all_variants.vcf -U LENIENT_VCF_PROCESSING
 
 
-);
+");
 
 
 
