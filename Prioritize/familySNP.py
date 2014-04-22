@@ -4,6 +4,12 @@ import pprint
 import re
 from scipy.stats import poisson
 
+try:
+    import xlsxwriter
+    writeXLS = TRUE
+except:
+    writeXLS = FALSE
+
 # Note header:
 #[   'Chr',
 #    'Position',
@@ -1061,9 +1067,9 @@ def recessive(sampledata, family, familytype):
             # hom ref
             #if int(refcoverage) >= 8 and int(altcoverage) == 0:
             elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.007 and altcoverage / coverage <= 0.05:
-                judgement = 1
+                judgement = 0
                 #sub_pp.pprint(['./. 0 8 0', name])
-                continue
+                break
             
             # hom alt
             #elif int(altcoverage) >=8 and int(refcoverage) == 0:
