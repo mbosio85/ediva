@@ -6,9 +6,9 @@ from scipy.stats import poisson
 
 try:
     import xlsxwriter
-    writeXLS = TRUE
+    writeXLS = True
 except:
-    writeXLS = FALSE
+    writeXLS = False
 
 # Note header:
 #[   'Chr',
