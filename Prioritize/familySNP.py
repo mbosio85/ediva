@@ -211,15 +211,26 @@ def main (args):
             
             elif judgement == 1 and MAF <= 0.01:
                 
-                line.append('denovo')
-                line.append('pass')
-                out.writerow(line)
-                
                 if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
-                        if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
-                                if (line[index_segdup] == '0'):
-                                        outfiltered.writerow(line)
-                
+                    if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
+                        if (line[index_segdup] == '0'):
+                            line.append('denovo')
+                            line.append('pass')
+                            out.writerow(line)
+                            outfiltered.writerow(line)
+                # e.g. intronic variants fitting the criteria
+                        else:
+                            line.append(args.inheritance)
+                            line.append('filtered')
+                            out.writerow(line)
+                    else:
+                        line.append(args.inheritance)
+                        line.append('filtered')
+                        out.writerow(line)
+                else:
+                    line.append(args.inheritance)
+                    line.append('filtered')
+                    out.writerow(line)
                 continue
             
             # fits inheritance, but is too frequent in the population
@@ -257,13 +268,26 @@ def main (args):
                 continue
             
             elif judgement == 1 and MAF <= 0.05:
-                line.append('dominant')
-                line.append('pass')
-                out.writerow(line)
                 if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
-                        if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
-                                if (line[index_segdup] == '0'):
-                                        outfiltered.writerow(line)
+                    if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
+                        if (line[index_segdup] == '0'):
+                            line.append('dominant')
+                            line.append('pass')
+                            out.writerow(line)
+                            outfiltered.writerow(line)
+                # e.g. intronic variants fitting the criteria
+                        else:
+                            line.append(args.inheritance)
+                            line.append('filtered')
+                            out.writerow(line)
+                    else:
+                        line.append(args.inheritance)
+                        line.append('filtered')
+                        out.writerow(line)
+                else:
+                    line.append(args.inheritance)
+                    line.append('filtered')
+                    out.writerow(line)
                 continue
             
             # fits inheritance, but is too frequent in the population
@@ -302,13 +326,27 @@ def main (args):
                 continue
             
             elif judgement == 1 and MAF <= 0.03:
-                line.append('recessive')
-                line.append('pass')
-                out.writerow(line)
+                
                 if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
-                        if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
-                                if (line[index_segdup] == '0'):
-                                    outfiltered.writerow(line)
+                    if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
+                        if (line[index_segdup] == '0'):
+                            line.append('recessive')
+                            line.append('pass')
+                            out.writerow(line)
+                            outfiltered.writerow(line)
+                # e.g. intronic variants fitting the criteria
+                        else:
+                            line.append(args.inheritance)
+                            line.append('filtered')
+                            out.writerow(line)
+                    else:
+                        line.append(args.inheritance)
+                        line.append('filtered')
+                        out.writerow(line)
+                else:
+                    line.append(args.inheritance)
+                    line.append('filtered')
+                    out.writerow(line)
                 continue
             
             # fits inheritance, but is too frequent in the population
@@ -363,13 +401,26 @@ def main (args):
                 continue
             
             elif judgement == 1 and MAF <= 0.01:
-                line.append('Xlinked')
-                line.append('pass')
-                out.writerow(line)
                 if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
-                        if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
-                                if (line[index_segdup] == '0'):
-                                    outfiltered.writerow(line)
+                    if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
+                        if (line[index_segdup] == '0'):
+                            line.append('Xlinked')
+                            line.append('pass')
+                            out.writerow(line)
+                            outfiltered.writerow(line)
+                # e.g. intronic variants fitting the criteria
+                        else:
+                            line.append(args.inheritance)
+                            line.append('filtered')
+                            out.writerow(line)
+                    else:
+                        line.append(args.inheritance)
+                        line.append('filtered')
+                        out.writerow(line)
+                else:
+                    line.append(args.inheritance)
+                    line.append('filtered')
+                    out.writerow(line)
                 continue
             
             # fits inheritance, but is too frequent in the population
@@ -455,9 +506,21 @@ def main (args):
             
             elif judgement == 1 and MAF <= 0.03:
                 if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
-                        if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
-                                if (line[index_segdup] == '0'):
-                                    compound_gene_storage.append(line)
+                    if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
+                        if (line[index_segdup] == '0'):
+                            compound_gene_storage.append(line)
+                        else:
+                            line.append(args.inheritance)
+                            line.append('filtered')
+                            out.writerow(line)
+                    else:
+                        line.append(args.inheritance)
+                        line.append('filtered')
+                        out.writerow(line)
+                else:
+                    line.append(args.inheritance)
+                    line.append('filtered')
+                    out.writerow(line)
                 
             
             # fits inheritance, but is too frequent in the population
@@ -495,6 +558,32 @@ def main (args):
                     row.append('filtered')
                     out.writerow(row)
         
+    
+    ### write an xls output
+    if writeXLS == True:
+        # open output file for re-reading
+        args.filteredfile.close()
+        fh = open(args.filteredfile.name, 'r')
+        
+        # open xls file for writing
+        xls = xlsxwriter.Workbook(args.filteredfile.name + ".xlsx")
+        worksheet = xls.add_worksheet('ediva_filtered' + args.inheritance)
+        
+        row = 0
+        
+        # read line by line and transform to xls
+        for line in fh:
+            line.rstrip('\n')
+            data = line.split(',')
+            
+            worksheet.write_row(row, 0, data)
+            
+            row += 1
+        
+        xls.close()
+    
+    exit(0)
+
 
 ###################################################
 # sub routines
@@ -950,11 +1039,43 @@ def dominant(sampledata, family):
                 judgement = 1
                 continue
             
-            # do not do any other judgements, i.e.
-            # being tolerant for refcoverage >= 8 and altcoverage == 0, because it could be that the carrier is not yet sick
-            # also tolerate low coverage
-            judgement = 1
-            continue
+            ### do not do any other judgements, i.e.
+            ### being tolerant for refcoverage >= 8 and altcoverage == 0, because it could be that the carrier is not yet sick
+            ### also tolerate low coverage
+            ##judgement = 1
+            ##continue
+            
+            # now a few more complex steps, if genotype is missing (only non-affected individuals should have missing values)
+            
+            refcoverage = float(refcoverage)
+            altcoverage = float(altcoverage)
+            
+            coverage = refcoverage + altcoverage
+            
+            if coverage == 0:
+                judgement = 0
+                break
+            
+            # hom ref
+            #if int(refcoverage) >= 8 and int(altcoverage) == 0:
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.007 and altcoverage / coverage <= 0.05:
+                judgement = 0
+                #sub_pp.pprint(['./. 0 8 0', name])
+                break
+            
+            # hom alt
+            #elif int(altcoverage) >=8 and int(refcoverage) == 0:
+            elif poisson.cdf( float(refcoverage), float(coverage/2) ) <= 0.007  and refcoverage / coverage <= 0.05:
+                judgement = 1
+                #sub_pp.pprint(['./. 0 0 8', name])
+                continue
+            
+            # het
+            #elif int(refcoverage) >= 8 and not int(altcoverage) == 0:
+            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) >= 0.007 or altcoverage / coverage >= 0.05:
+                judgement = 1
+                #sub_pp.pprint(['./. 0 8 not 0', name])
+                continue
         
         else:
             pass
