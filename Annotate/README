@@ -2,20 +2,28 @@
 ## USAGE
 ########################################################################################################
 
-annotate.pl 
- usage:
+annotate.pl usage:
 --input,-i 		 VCF file containing the variants to annoate 
+
+--quicklookup,-q 	 Option : Command line variant argument. Variant format => chr:position:reference:alteration 
+			 Option : File containing variants (one variant per each line). Variant format => chr:position:reference:alteration 
+
 --tempDir,-t 		 Temporary scratch location for temp files (all temp files with the current session will be removed at the end of execution) 
 			 default: input VCF location 
+
 --geneDef,-g 		 Gene deifnition you want to select for genic annotation (ensGene,refGene,knownGene,all) 
 			 default: refGene 
+
 --variantType,-v 	 Type of variants to annotate from input VCF file (SNP,INDEL,all) 
 			 default: all 
+
 --sampleGenotypeMode,-s  complete: reports all genotypes from the input VCF file
 			 compact: reports only heterozygous and homozygous alteration genotypes from the input VCF file 
 			 none: exclude sample wise genotype information in annotation 
 			 default: compact 
+
 --forceNewFileCreate,-f  If set, then it will over-write existing output annotation file with the same name 
+
 --help,-h 		 show help 
 
 
@@ -24,3 +32,4 @@ annotate.pl
 ########################################################################################################
 1. Currently no annotation for chr MT
 2. Currently no annotation for unknown chr regions as well
+3. only database annotation on quick lookup mode
