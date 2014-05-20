@@ -3,6 +3,8 @@
 copy this shell file to your desired location, provide the 
 necessary information inside and run the pipeline.
 
+NB. currently run the shell script from ant-login only.
+
 ##
 
 # TODO for version 1.1
