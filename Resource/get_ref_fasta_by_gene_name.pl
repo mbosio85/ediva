@@ -20,35 +20,27 @@ while (<DBF>)
 {
 	chomp $_;
 	my @dl = split(/\t/,$_);
-	#print SAMFILE $dl[0]."\t".$dl[1]."\t".$dl[2]."\t".($dl[5] - $extendbp)."\t".($dl[6] + $extendbp)."\n";
 	if (exists $gene { $dl[0] })
 	{
-		$gene { $dl[0] } = $gene { $dl[0] }.";".$dl[1]."\t".$dl[2]."\t".$dl[7]."\t".$dl[8];
+		$gene { $dl[0] } = $gene { $dl[0] }.";".$dl[1]."\t".$dl[2]."\t".$dl[7]."\t".$dl[8]."\t".$dl[5]."\t".$dl[6];
 	}else{
-		$gene { $dl[0] } = $dl[1]."\t".$dl[2]."\t".$dl[7]."\t".$dl[8];
+		$gene { $dl[0] } = $dl[1]."\t".$dl[2]."\t".$dl[7]."\t".$dl[8]."\t".$dl[5]."\t".$dl[6];
 	}
 }
 close(DBF);
 
-## create samtools infile
+## create infile for samtools
 unlink($ARGV[0].'.db.samfile');
-open (SAMFILE, '>>'.$ARGV[0].'.db.samfile') or die "cant open new file \n";
+open (INFILE, '>>'.$ARGV[0].'.db.samfile') or die "cant open new file \n";
 
+## loop over all the genes and their isoforms and exons and prepare final input file for samtools to extract reference genome in fasta format
 while ( my ($key, $value) = each(%gene) ) 
 {
+	## process genes containing multiple transcript isoforms
 	if ($value =~ m/\;/)
 	{
-		#my $minstart = "NA";
-		#my $maxend = "NA";
-		#my $chr = "NA";
 		my $exon = "exon";
-		#my $trs = '';
 		my @dts = split(/\;/,$value);		
-
-		## matrices of exon starts and ends for each isoform
-		#my @exonstarts = ();
-		#my @exonends = ();
-		#my $maxeCount = 0;
 		
 		open (GN, ">>".$temploc."/".$key);
 		
@@ -57,24 +49,67 @@ while ( my ($key, $value) = each(%gene) )
                 	my @line = split(/\t/,$dts[$i]);
                        	my @starts = split(/\,/, $line[2]);
                        	my @ends = split(/\,/, $line[3]);
+			my @newstarts = ();
+			my @newends = ();
+			my $cdsStart = $line[4];
+			my $cdsEnd = $line[5];
+			my $j = 0;
+			my $keep = 0;
+			## fix the cdsstart and cdsend in the exons and prepare new starts and ends
 			for (my $i = 0; $i < scalar @starts; $i++)
 			{
 				if ($starts[$i] ne '')
 				{
-					print GN $line[1]."\t".$starts[$i]."\t".$ends[$i]."\n";
+					my $nstart = $starts[$i];
+					my $nend = $ends[$i];
+					## check for cdsstart is inside the exon
+					if ($cdsStart >= $starts[$i] and $cdsStart < $ends[$i] and $keep == 0)
+					{
+						$nstart = $cdsStart;
+						$keep = 1;
+					}
+					if($cdsEnd > $starts[$i] and $cdsEnd <= $ends[$i] and $keep == 1)
+					{
+						$nend = $cdsEnd;
+						$newstarts[$j] = $nstart;
+                                                $newends[$j] = $nend;
+						$keep = 0;
+						## this would be the last exon to consider as this exon contains the cdsEnd
+					}
+					if($keep == 1)
+					{
+						$newstarts[$j] = $nstart;
+						$newends[$j] = $nend;
+						$j = $j + 1;
+					}	
 				}
+			}
+			## print the new exon starts and ends for this gene
+			if(scalar @newstarts == scalar @newends)
+			{
+				for (my $i = 0; $i < scalar @newstarts; $i++)
+				{
+					if ($newstarts[$i] ne '')
+					{
+						print GN $line[1]."\t".$newstarts[$i]."\t".$newends[$i]."\n";
+					}	
+				}
+			}else{
+				print "debug:: ".join("\t",$dts[$i])."\n";
 			}
 		}
                 
 		close(GN);
 		
+		## sort the gene exon start end file and run bedtools to merge(union) over the overlapping exons
 		my $genefile = $temploc."/".$key;
 		my $srtCmd = "sort -n -k2,2 ".$genefile." > ".$genefile.".sorted.bed";
 		system($srtCmd);
 		my $bedmerCmd = "/usr/bin/bedtools merge -i ".$genefile.".sorted.bed"." > ".$genefile.".bed";
 		system($bedmerCmd);
-		sleep 3;
+		sleep 5;
 		my $gfile = $genefile.".bed";
+		## read the bedtools output and print on the infile
 		if (-e $gfile)
 		{
 			open (GN2,$gfile);
@@ -83,16 +118,15 @@ while ( my ($key, $value) = each(%gene) )
 			{
 				chomp $_;
 				my ($chr,$start,$end) = split(/\t/,$_);
-				#print SAMFILE $key."\t".$exon.($i+1)."\t".$dtline[1]."\t".($es[$i] - $extendbp)."\t".($ee[$i] + $extendbp)."\n";
-				print SAMFILE $key."\t".$exon.$i."\t".$chr."\t".($start - $extendbp)."\t".($end + $extendbp)."\n";
+				print INFILE $key."\t".$exon.$i."\t".$chr."\t".($start - $extendbp)."\t".($end + $extendbp)."\n";
 				$i = $i + 1;
 			}
 			close(GN2);
 		}
 		
-		## clear temploc for this gene
+		## clear temploc for this gene, delete the temp files created above
 		my $clCmd = "rm ".$temploc."/".$key."*";
-		system($clCmd);
+		#system($clCmd);
 		
 		#for ( my $i = 0; $i < scalar @dts; $i++)
                 #{
@@ -176,19 +210,57 @@ while ( my ($key, $value) = each(%gene) )
 		my @es = split(/\,/,$dtline[2]);
 		my @ee = split(/\,/,$dtline[3]);
 		my $exon = "exon";	
-	
-		for(my $i = 0; $i < scalar @es; $i++)
-		{
-			if ($es[$i] ne '')
+		my $cdsStart = $dtline[4];
+                my $cdsEnd = $dtline[5];
+		my $j = 0;
+		my $keep = 0;
+		my @newstarts = ();
+		my @newends = ();
+
+                for (my $i = 0; $i < scalar @es; $i++)
+                {
+	                if ($es[$i] ne '')
+                        {
+         		        my $nstart = $es[$i];
+                        	my $nend = $ee[$i];
+                                if ($cdsStart >= $es[$i] and $cdsStart < $ee[$i] and $keep == 0)
+                                {
+  	                              $nstart = $cdsStart;
+                                      $keep = 1;
+                                }
+                                if($cdsEnd > $es[$i] and $cdsEnd <= $ee[$i] and $keep == 1)
+                                {
+                                	$nend = $cdsEnd;
+                                        $newstarts[$j] = $nstart;
+                                        $newends[$j] = $nend;
+                                        $keep = 0;
+                                }
+                                if($keep == 1)
+                                {
+                                        $newstarts[$j] = $nstart;
+                                        $newends[$j] = $nend;
+                                        $j = $j + 1;
+                        	}
+                	}
+                }
+
+                if(scalar @newstarts == scalar @newends)
+                {
+			for(my $i = 0; $i < scalar @newstarts; $i++)
 			{
-				print SAMFILE $key."\t".$exon.($i+1)."\t".$dtline[1]."\t".($es[$i] - $extendbp)."\t".($ee[$i] + $extendbp)."\n";
+				if ($newstarts[$i] ne '')
+				{
+					print INFILE $key."\t".$exon.($i+1)."\t".$dtline[1]."\t".($newstarts[$i] - $extendbp)."\t".($newends[$i] + $extendbp)."\n";
+				}
 			}
+		}else{
+			print "debug:: ".$value."\n";
 		}
 	}
 	
 }
 
-close(SAMFILE);
+close(INFILE);
 
 ## get refseq from human ref genome
 unlink($ARGV[2]);
