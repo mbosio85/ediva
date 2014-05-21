@@ -2,15 +2,16 @@ use warnings;
 use strict;
 
 ## check command line 
-if (@ARGV != 3)
+if (@ARGV != 4)
 {
-	print "usage:: $0 <gene_file> <bp_to_extend_on_both_sides_after_merging> <output_fasta_file_name> \n";
+	print "usage:: $0 <gene_file> <bp_to_extend_on_both_sides_after_merging> <output_fasta_file_name> <temp_location>\n";
 	exit 0;
 }
 
 ## vars
 my $extendbp = $ARGV[1];
 my %gene = ();
+my $temploc = $ARGV[3];
 
 ## browse over the generated res file from db
 open (DBF, $ARGV[0].'.db') or die "cant open file \n";
@@ -37,86 +38,115 @@ while ( my ($key, $value) = each(%gene) )
 {
 	if ($value =~ m/\;/)
 	{
-		my $minstart = "NA";
-		my $maxend = "NA";
-		my $chr = "NA";
+		#my $minstart = "NA";
+		#my $maxend = "NA";
+		#my $chr = "NA";
 		my $exon = "exon";
 		#my $trs = '';
 		my @dts = split(/\;/,$value);		
 
 		## matrices of exon starts and ends for each isoform
-		my @exonstarts = ();
-		my @exonends = ();
-		my $maxeCount = 0;
+		#my @exonstarts = ();
+		#my @exonends = ();
+		#my $maxeCount = 0;
+		
+		open (GN, ">>".$temploc."/".$key);
 		
 		for ( my $i = 0; $i < scalar @dts; $i++)
                 {
-                        my @line = split(/\t/,$dts[$i]);
-                        my @starts = split(/\,/, $line[2]);
-                        if ($i == 0)
+                	my @line = split(/\t/,$dts[$i]);
+                       	my @starts = split(/\,/, $line[2]);
+                       	my @ends = split(/\,/, $line[3]);
+			for (my $i = 0; $i < scalar @starts; $i++)
 			{
-				$maxeCount = scalar @starts;
-			}else{
-				if (scalar @starts > $maxeCount)
+				if ($starts[$i] ne '')
 				{
-					$maxeCount = scalar @starts;
+					print GN $line[1]."\t".$starts[$i]."\t".$ends[$i]."\n";
 				}
 			}
 		}
                 
-		for ( my $i = 0; $i < scalar @dts; $i++)
-                {
-			for (my $j = 0; $j < $maxeCount; $j++)
-			{
-				$exonstarts[ $i ] [ $j ] = "NA";
-				$exonends[ $i ] [ $j ] = "NA";
-			}
-		}
-
-		for ( my $i = 0; $i < scalar @dts; $i++)
-		{
-			my @line = split(/\t/,$dts[$i]);
-			$chr = $line[1];
-			my @starts = split(/\,/, $line[2]);
-			my @ends = split(/\,/,$line[3]);
+		close(GN);
 		
-			for(my $j = 0; $j < scalar @starts; $j++)
+		my $genefile = $temploc."/".$key;
+		my $srtCmd = "sort -n -k2,2 ".$genefile." > ".$genefile.".sorted.bed";
+		system($srtCmd);
+		my $bedmerCmd = "/usr/bin/bedtools merge -i ".$genefile.".sorted.bed"." > ".$genefile.".bed";
+		system($bedmerCmd);
+		sleep 3;
+		my $gfile = $genefile.".bed";
+		if (-e $gfile)
+		{
+			open (GN2,$gfile);
+			my $i = 1;
+			while (<GN2>)
 			{
-				if($starts[$j] eq '')
-				{
-					$starts[$j] = "NA";
-					$ends[$j] = "NA";
-				}
-				$exonstarts[ $i ] [ $j ] = $starts[$j];
-				$exonends[ $i ] [ $j ] = $ends[$j];	
+				chomp $_;
+				my ($chr,$start,$end) = split(/\t/,$_);
+				#print SAMFILE $key."\t".$exon.($i+1)."\t".$dtline[1]."\t".($es[$i] - $extendbp)."\t".($ee[$i] + $extendbp)."\n";
+				print SAMFILE $key."\t".$exon.$i."\t".$chr."\t".($start - $extendbp)."\t".($end + $extendbp)."\n";
+				$i = $i + 1;
 			}
-		}	
+			close(GN2);
+		}
+		
+		## clear temploc for this gene
+		my $clCmd = "rm ".$temploc."/".$key."*";
+		system($clCmd);
+		
+		#for ( my $i = 0; $i < scalar @dts; $i++)
+                #{
+		#	for (my $j = 0; $j < $maxeCount; $j++)
+		#	{
+		#		$exonstarts[ $i ] [ $j ] = "NA";
+		#		$exonends[ $i ] [ $j ] = "NA";
+		#	}
+		#}
+
+		#for ( my $i = 0; $i < scalar @dts; $i++)
+		#{
+		#	my @line = split(/\t/,$dts[$i]);
+		#	$chr = $line[1];
+		#	my @starts = split(/\,/, $line[2]);
+		#	my @ends = split(/\,/,$line[3]);
+		#
+		#	for(my $j = 0; $j < scalar @starts; $j++)
+		#	{
+		#		if($starts[$j] eq '')
+		#		{
+		#			$starts[$j] = "NA";
+		#			$ends[$j] = "NA";
+		#		}
+		#		$exonstarts[ $i ] [ $j ] = $starts[$j];
+		#		$exonends[ $i ] [ $j ] = $ends[$j];	
+		#	}
+		#}	
 		
 		## we neeed column wise traversal
-		for(my $j = 0; $j < $maxeCount; $j++)
-		{
-			for (my $i = 0; $i < scalar @dts; $i++)
-			{
-				if( $i == 0 )
-				{
-	                                $minstart = $exonstarts[ $i ] [ $j ];
-                                        $maxend = $exonends[ $i ] [ $j ];
-				}else{
-					if ($exonstarts[ $i ] [ $j ] ne "NA")
-					{
-						if ($minstart >= $exonstarts[ $i ] [ $j ])
-						{
-							$minstart = $exonstarts[ $i ] [ $j ];
-						}
-						if ($maxend <= $exonends[ $i ] [ $j ])
-						{
-							$maxend = $exonends[ $i ] [ $j ];
-						}
-					}
-				}
-			}
-			print SAMFILE $key."\t"."exon".($j+1)."\t".$chr."\t".($minstart - $extendbp)."\t".($maxend + $extendbp)."\n";
-		}	
+		#for(my $j = 0; $j < $maxeCount; $j++)
+		#{
+		#	for (my $i = 0; $i < scalar @dts; $i++)
+		#	{
+		#		if( $i == 0 )
+		#		{
+	        #                       $minstart = $exonstarts[ $i ] [ $j ];
+                #                        $maxend = $exonends[ $i ] [ $j ];
+		#		}else{
+		#			if ($exonstarts[ $i ] [ $j ] ne "NA")
+		#			{
+		#				if ($minstart >= $exonstarts[ $i ] [ $j ])
+		#				{
+		#					$minstart = $exonstarts[ $i ] [ $j ];
+		#				}
+		#				if ($maxend <= $exonends[ $i ] [ $j ])
+		#				{
+		#					$maxend = $exonends[ $i ] [ $j ];
+		#				}
+		#			}
+		#		}
+			#}
+		#	print SAMFILE $key."\t"."exon".($j+1)."\t".$chr."\t".($minstart - $extendbp)."\t".($maxend + $extendbp)."\n";
+		#}	
 	
 
 		#for ( my $i = 0; $i < scalar @dts; $i++)
@@ -189,3 +219,4 @@ while(<POSITIONS>)
 
 close(POSITIONS);
 close(FASTA);
+
