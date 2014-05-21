@@ -1,7 +1,6 @@
 #!/bin/bash
 
 BIN=/users/GD/tools/ediva/Resource
-
 GENEFILE=file_containing_genes_per_line
 BPS=100 ## amount in bps to extend on both sides of the exons
 FASTAOUT=output.fasta ## output fasta file name
