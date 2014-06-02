@@ -27,6 +27,7 @@ sub usage { print "\n$0 usage:\n",
 	   "--geneDef,-g \t\t Gene deifnition you want to select for genic annotation (ensGene,refGene,knownGene,all) \n\t\t\t default: refGene \n\n",
 	   "--variantType,-v \t Type of variants to annotate from input VCF file (SNP,INDEL,all) \n\t\t\t default: all \n\n",
 	   "--sampleGenotypeMode,-s  complete: reports all genotypes from the input VCF file\n\t\t\t compact: reports only heterozygous and homozygous alteration genotypes from the input VCF file \n\t\t\t none: exclude sample wise genotype information in annotation \n\t\t\t default: compact \n\n",
+	   "--onlyGenicAnnotation,-o  If set, then only genic annotation will be performed \n\n",
 	   "--forceNewFileCreate,-f  If set, then it will over-write existing output annotation file with the same name \n\n",
 	   "--help,-h \t\t show help \n\n"
 }
@@ -43,6 +44,7 @@ my $geneDef = "refGene"; ## gene Definition
 my $sep = ","; ## separator for annotation outfile; currently comma (,) is default;
 my $type = "all"; ## type of variants to annotate from input vcf file
 my $gtMode = "compact"; ## type of variants to annotate from input vcf file
+my $onlygenic = 0; ## variable for only genic annotation 
 my $forceDel = 0; ## varibale for force deleting the output annotation file (if exists)
 my $qlookup = "NA"; ## varibale for enabling quick lookup mode of the program
 our $templocation = "INPATH"; ## scratch place for creating the temp files while annotating
@@ -75,7 +77,7 @@ our $ANNOVAR = "/users/GD/tools/eDiVaCommandLine/lib/Annovar";
 
 
 ## grab command line options
-unknownArguments() if (!GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "forceNewFileCreate" => \$forceDel, "quicklookup=s" => \$qlookup, "sampleGenotypeMode=s" => \$gtMode, "help" => \$help));
+unknownArguments() if (!GetOptions("input=s" => \$input, "tempDir=s" => \$templocation, "geneDef=s" => \$geneDef, "variantType=s" => \$type, "onlyGenicAnnotation" => \$onlygenic, "forceNewFileCreate" => \$forceDel, "quicklookup=s" => \$qlookup, "sampleGenotypeMode=s" => \$gtMode, "help" => \$help));
 
 
 ## check mandatory command line parameters and take necessary actions
@@ -1038,31 +1040,55 @@ sub AnnovarAnnotation
 sub getHeader
 {
     my $stringTOreturn; ## header to return
-        
-    ## check for gene definiton and construct header according to that
-    if($geneDef eq 'ensGene')
-    {
-        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
-        AminoAcidChange(Ensembl),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
-        Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
-    }elsif($geneDef eq 'refGene')
-    {
-        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),
-        dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
-        Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
-    }elsif($geneDef eq 'knownGene')
-    {
-        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,
-        TotalEVSFrequency,Eur1000GenomesFrequency,Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
-    }else{
-        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
-        AminoAcidChange(Ensembl),Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
-        Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
-        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
-    }
+    
+	if ($onlygenic == 1)
+	{
+		## only genic annotation header
+		## check for gene definiton and construct header according to that
+	    if($geneDef eq 'ensGene')
+	    {
+	        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
+	        AminoAcidChange(Ensembl),NA,NA,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+	    }elsif($geneDef eq 'refGene')
+	    {
+	        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),
+	        NA,NA,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+	    }elsif($geneDef eq 'knownGene')
+	    {
+	        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),NA,NA,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+	    }else{
+	        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
+	        AminoAcidChange(Ensembl),Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),NA,NA,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+	    }
+		
+	}else{
+	    ## normal annotation header
+		## check for gene definiton and construct header according to that
+	    if($geneDef eq 'ensGene')
+	    {
+	        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
+	        AminoAcidChange(Ensembl),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
+	        Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
+	        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+	    }elsif($geneDef eq 'refGene')
+	    {
+	        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),
+	        dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
+	        Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
+	        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+	    }elsif($geneDef eq 'knownGene')
+	    {
+	        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,
+	        TotalEVSFrequency,Eur1000GenomesFrequency,Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
+	        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+	    }else{
+	        $stringTOreturn = "Chr,Position,Reference,Alteration,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),
+	        AminoAcidChange(Ensembl),Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,
+	        Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,
+	        PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)";
+	    }		
+	}    
+	
     ## replace newlines with nothing at header line
     $stringTOreturn =~ s/\n|\s+//g;
     return $stringTOreturn;
@@ -1830,13 +1856,19 @@ print "MESSAGE :: Finished processing input VCF file - $input \n";
 ## spawn threds and push to list
 if ($qlookup eq "NA")
 {
-	## start threading and annotating
-	print "MESSAGE :: Annotation starting \n";
+	if ($onlygenic == 1)
+	{
+		## start a sigle thread for annovar genic annotation
+		print "MESSAGE :: Annotation starting \n";
+		push @thrds, threads -> new(\&AnnovarAnnotation); ## spawn a thread for Annovar annotation
+	}else{
+		## start threading and annotating
+		print "MESSAGE :: Annotation starting \n";
 
-	push @thrds, threads -> new(\&eDiVaAnnotation); ## spawn a thread for eDiVa annotation
-	push @thrds, threads -> new(\&AnnovarAnnotation); ## spawn a thread for Annovar annotation
-	push @thrds, threads -> new(\&eDiVaPublicOmics); ## spawn a thread for eDiVa public omics
-
+		push @thrds, threads -> new(\&eDiVaAnnotation); ## spawn a thread for eDiVa annotation
+		push @thrds, threads -> new(\&AnnovarAnnotation); ## spawn a thread for Annovar annotation
+		push @thrds, threads -> new(\&eDiVaPublicOmics); ## spawn a thread for eDiVa public omics	
+	}
 }else{
 	
 	push @thrds, threads -> new(\&eDiVaAnnotation); ## spawn a thread for eDiVa annotation
