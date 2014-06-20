@@ -178,7 +178,10 @@ while (<VCF>)
 		$seen_call_rate = ($genotype_count / $samples) * 100;
 	
 		## calculate average gq across sample genotypes
-		$seen_avg_gq = $seen_avg_gq / $genotype_count;
+		if($genotype_count > 0)
+		{
+			$seen_avg_gq = $seen_avg_gq / $genotype_count;
+		}
 
         	## variant row wise filters
         	# $allelefrac between $min_avg_af and $max_avg_af for het variants in 30 sample genotypes
