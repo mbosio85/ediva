@@ -21,8 +21,8 @@ sub usage { print "\n$0 \n usage: \n",
            "--gq \t minimum genotype quality in the sample genotype (default : 10) \n",
            "--avg_gq \t  minimum average genotype quality for the variant (default : 20) \n",
            "--call_rate \t  minimum call rate in sample set (default : 80\%) \n",
-           "--min_avg_af \t  minimum average allele fraction in minimum 30 sample genotypes (default : 0.32) \n",
-           "--max_avg_af \t  maximum average allele fraction in minimum 30 sample genotypes (default : 0.68) \n",
+           "--min_avg_af \t  minimum average allele fraction in minimum 30 sample genotypes (default : 0.38) \n",
+           "--max_avg_af \t  maximum average allele fraction in minimum 30 sample genotypes (default : 0.62) \n",
 	   "--help \t\t show help \n";
 }
 
@@ -34,8 +34,8 @@ my $dp = 8;
 my $gq = 10;
 my $avg_gq = 20;
 my $call_rate = 80;
-my $min_avg_af = 0.32;
-my $max_avg_af = 0.68;
+my $min_avg_af = 0.38;
+my $max_avg_af = 0.62;
 my $help = 0;
 
 ## get parameters
@@ -76,19 +76,23 @@ unlink($exfile);
 open (NEW,">>".$outfile) or die "Cant open new file \n";
 open (BAD,">>".$exfile) or die "Cant open new file \n";
 
+## reported variants counter
+my $allvars = 0;
+my $passedvars = 0;
+my $filteredvars = 0;
+
 open (VCF, $infile) or die "Cant open $infile \n";
 
 ## start browsing data
 while (<VCF>)
 {
 	my @data = ();
-        my $allelefrac = "NA";
+        my $allelefrac = 0;
         my $sample_count_for_allelefrac = 0;
-	my $sample_count = 0;
 	my $genotype_count = 0;
 	my $samples = 0;
 	my $seen_call_rate = "NA";
-	my $seen_avg_gq = 0;	
+	my $seen_avg_gq = 0;
 
 	if ($_ =~ m/^#/) 
 	{
@@ -102,7 +106,7 @@ while (<VCF>)
 		chomp $_;
 		## split data line
 		@data = split(/\t/,$_);
-		
+		$allvars = $allvars + 1;
 
 		## iterate over all the samples for this variant in the VCF file; we start with index 9 in the data line cause thats the point
 		## where the sample information starts
@@ -116,42 +120,43 @@ while (<VCF>)
 			{
 				if ($sampleInfo[0] ne '0/0')
 				{
-					## only variant sites
-					$sample_count = $sample_count + 1;
-					
+					## only variant sites	
 					my ($refDP,$altDP) = ("NA","NA");
 					if ($sampleInfo[1] =~ m/\,/)
 					{
 						($refDP,$altDP) = split(/\,/,$sampleInfo[1]);
-						## calculate allelic fraction only for het variants
-						my @gcounts = split(/\//,$sampleInfo[0]);
-						if ($gcounts[0] eq '0' or $gcounts[1] eq '0')
-						{
-							if (($altDP + $refDP) > 0)
-							{
-								$allelefrac = $altDP / ($altDP + $refDP);
-								$sample_count_for_allelefrac = $sample_count_for_allelefrac + 1;
-							}
-						}
+						
+						## sample genotype filters
+						# $ad_alt_allele >= 3;
+						# $dp >= 8;
+						# $gq >= 10;
+	                                        if ($altDP < $ad_alt_allele and $sampleInfo[2] < $dp and $sampleInfo[3] < $gq)
+	                                        {
+							## set genotype to no call
+		                                        $data[$i] = "./.";
+	                                        }
+
+					}else{
+						if ($sampleInfo[2] < $dp and $sampleInfo[3] < $gq)
+                                        	{
+                                                	## set genotype to no call
+                                                	$data[$i] = "./.";
+                                                }
+                                                
 					}
 
-					## sample genptype filters
-					# $ad_alt_allele >= 3;
-					# $dp >= 8;
-					# $gq >= 10;
-					if ($altDP < $ad_alt_allele or $sampleInfo[2] < $dp or $sampleInfo[3] < $gq)
-					{
-						## set genotype to no call
-						$data[$i] = "./.";
-					}
 				}else{
-					## homozygous sites
-					$sample_count = $sample_count + 1;
+					## hom reference sites
+					if ($sampleInfo[2] < $dp and $sampleInfo[3] < $gq)
+                                        {
+                                        	## set genotype to no call
+                                                $data[$i] = "./.";
+                                        }
 				}
 			}
 		}
 
-		## loop over the sample genotypes again to get corrected genotype counts for calculating call rate
+		## loop over the sample genotypes again to get corrected genotype counts for calculating call rate, average genotpe quality and allele fraction for het variants
 	        for (my $i = 9; $i < @data ; $i++)
         	{
                 	if ($data[$i] =~ m/\:/)
@@ -160,9 +165,25 @@ while (<VCF>)
                         	my @sampleInfo = split(/\:/,$data[$i]);
                         	if ($sampleInfo[0] ne './.')
                         	{
+					## get genotype count and sum over GQ for later avg gq across all samples
                                 	$genotype_count = $genotype_count + 1;
 					$seen_avg_gq = $seen_avg_gq + $sampleInfo[3];
-                        	}
+					
+					if ($sampleInfo[1] =~ m/\,/)
+					{
+                        			my ($refDP,$altDP) = split(/\,/,$sampleInfo[1]);
+                                		my @gcounts = split(/\//,$sampleInfo[0]);
+						## calculate allele fraction for het variants
+                                		if (($gcounts[0] eq '0' and $gcounts[1] ne '0') or ($gcounts[0] ne '0' and $gcounts[1] eq '0'))
+                                		{
+                                			if (($altDP + $refDP) > 0)
+                                        		{
+                                		        	$allelefrac = $allelefrac + ($altDP / ($altDP + $refDP));
+                                        			$sample_count_for_allelefrac = $sample_count_for_allelefrac + 1;
+                                        		}
+                                		}
+					}
+				}
                 	}
                 	$samples = $samples + 1;
         	}
@@ -174,13 +195,11 @@ while (<VCF>)
 			$allelefrac = $allelefrac/$sample_count_for_allelefrac;
 		}
 
-		## calculate call rate percentage
-		$seen_call_rate = ($genotype_count / $samples) * 100;
-	
-		## calculate average gq across sample genotypes
-		if($genotype_count > 0)
+		## calculate call rate percentage and average gq across sample genotypes
+		if ($samples > 0)
 		{
-			$seen_avg_gq = $seen_avg_gq / $genotype_count;
+			$seen_call_rate = ($genotype_count / $samples) * 100;
+			$seen_avg_gq = $seen_avg_gq / $samples;
 		}
 
         	## variant row wise filters
@@ -189,20 +208,27 @@ while (<VCF>)
         	# $avg_gq >= 20
 		if ($seen_call_rate >= $call_rate and $seen_avg_gq >= $avg_gq)
 		{
-			if ($sample_count >= 30 or $allelefrac ne "NA")
+			if ($sample_count_for_allelefrac >= 30 and $allelefrac ne "NA")
 			{
 				if ($allelefrac >= $min_avg_af and $allelefrac <= $max_avg_af)
 				{
 					## print lines in the new file
         				print NEW join("\t",@data)."\n";
+					$passedvars = $passedvars + 1;
+				}else{
+					## print lines in the bad file
+					print BAD join("\t",@data)."\n";
+					$filteredvars = $filteredvars + 1;
 				}
 			}else{
 				## print lines in the new file
 				print NEW join("\t",@data)."\n";
+				$passedvars = $passedvars + 1;
 			}
 		}else{
 			## print lines in the bad file
 			print BAD join("\t",@data)."\n"; 
+			$filteredvars = $filteredvars + 1;
 		}
 	}	
 }
@@ -211,3 +237,7 @@ while (<VCF>)
 close(NEW);
 close(BAD);
 close(VCF);
+
+print "total variants in $infile > $allvars \n";
+print "passed variants in $outfile > $passedvars \n";
+print "filtered out variants in $exfile > $filteredvars \n";
