@@ -51,6 +51,8 @@ import re
 
 def main ():
     
+    sub_pp = pprint.PrettyPrinter(indent = 4)
+    
     parser = argparse.ArgumentParser(description = 'rank SNPs according to their mutation properties')
     
     parser.add_argument('--infile', type=argparse.FileType('r'), dest='infile', required=True, help='comma separated list of SNPs annotated with mutation impact data. [required]')
@@ -62,6 +64,7 @@ def main ():
     
     header = alldata.pop(0)
     index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
+    index_genicfunction = identifycolumns(header, 'Function(Refseq)')
     
     #alldata_clean = [ line for line in alldata if not line[index_varfunction] == 'synonymous SNV' ]
     
@@ -73,18 +76,24 @@ def main ():
     # binning, because otherwise subtle differences get too much weight
     binned_values = binning(alldata_transpose, header, 'MAF')
     ranked_maf    = rank(binned_values)
+    
     binned_values = binning(alldata_transpose, header, 'segdup')
     ranked_segdup = rank(binned_values)
+    
     binned_values = binning(alldata_transpose, header, 'condel')
-    
-    debug_saver = binned_values
-    
     ranked_condel = rank(binned_values)
+    
     binned_values = binning(alldata_transpose, header, 'PhyloP')
     ranked_phylop = rank(binned_values)
+    
     binned_values = binning(alldata_transpose, header, 'PhastCons')
     ranked_phastcons = rank(binned_values)
     
+    binned_values = binning(alldata_transpose, header, 'Cadd2')
+    ranked_cadd   = binned_values
+    
+    #sub_pp.pprint(binned_values)
+    #exit(0)
     
     # calculate rank product
     rank_product_list = list()
@@ -93,14 +102,30 @@ def main ():
     max_segdup_rank    = max(ranked_segdup)
     max_condel_rank    = max(ranked_condel)
     max_phastcons_rank = max(ranked_phastcons)
+    max_cadd_rank      = max(ranked_cadd)
+    
     
     for i in range( len(binned_values) ):
+        
+        ## DEBUG
+        #print alldata[i][6]
+        if alldata[i][6].startswith('DDX52'):
+            print(alldata[i])
+            print([ranked_maf[i], ranked_segdup[i], ranked_condel[i], ranked_phastcons[i], ranked_cadd[i]])
+        
         # skip synonymous variants
-        if alldata[i][index_varfunction] == 'synonymous SNV' or alldata[i][index_varfunction] == 'NA':
+        if ( alldata[i][index_varfunction] == 'synonymous SNV' or alldata[i][index_varfunction] == 'NA' ) and not alldata[i][index_genicfunction] == 'splicing':
             # synonymous SNVs get the maximum rank and are downgraded by that
-            rank_product = float( ( max_maf_rank * max_segdup_rank * max_condel_rank * max_phastcons_rank ) ) / ( 100**2 )
+            rank_product = float( ( max_maf_rank * max_segdup_rank * max_condel_rank * max_phastcons_rank * max_cadd_rank ) ) / ( 100**2 )
         else:
-            rank_product = float( ( ranked_maf[i] * ranked_segdup[i] * ranked_condel[i] * ranked_phastcons[i]) ) / ( 100**2 ) # 4 tools deliver information, decrease the numeric value to more graspable values ### currently deleted * ranked_phylop[i]
+            
+            ## DEBUG
+            #print alldata[i][6]
+            #if alldata[i][6].startswith('DDX52'):
+            #    print(alldata[i])
+            #    print([ranked_maf[i], ranked_segdup[i], ranked_condel[i], ranked_phastcons[i], ranked_cadd[i]])
+            
+            rank_product = float( ranked_maf[i] * ranked_segdup[i] * ranked_condel[i] * ranked_phastcons[i] * ranked_cadd[i] ) / ( 100**2 ) # 4 tools deliver information, decrease the numeric value to more graspable values ### currently deleted * ranked_phylop[i]
         
         rank_product_list.append(rank_product)
     
@@ -110,7 +135,8 @@ def main ():
     for i in range( len(alldata) ):
         # bin the final ranks into groups, to decrease resolution and have a max of about 1000
         binned_rank = int(rankrank[i] / 100)
-        alldata[i].append( binned_rank )
+        #alldata[i].append( binned_rank )
+        alldata[i].append( rank_product_list[i] )
         #alldata[i].append(int(rankrank[i])) #, ranked_maf[i], ranked_segdup[i], ranked_condel[i], debug_saver[i], ranked_phastcons[i], rank_product_list[i]])
     
     outcsv = csv.writer(args.outfile)
@@ -179,22 +205,26 @@ def binning (alldata, header, parameter):
         index_condel  = identifycolumns(header, 'Condel')
         column_condel = alldata[index_condel]
         
+        index_function  = identifycolumns(header, 'Function(Refseq)')
+        column_function = alldata[index_function]
+        
         mean_condel = getmean(column_condel)
 
         for i in range( len(column_condel) ):
-            if column_condel[i] == 'NA':
+            if column_condel[i] == 'NA' and not column_function[i] == 'splicing':
                 condel = round(mean_condel, 2)
-                bin_value = int(condel * 100) # binning of condel values (bad 1-100 good)
-                bin_value_rev = abs(bin_value - 100 ) # reverse order
-                binned_values.append(bin_value_rev)
-                #binned_values.append(bin_value)
+            
+            elif column_condel[i] == 'NA' and column_function[i] == 'splicing':
+                #print(alldata[6][i]) ## DEBUG
+                condel = 1
+                
             else:
                 condel = round(float(column_condel[i]), 2)
-                bin_value = int(condel * 100) # binning of condel values (bad 1-100 good)
-                bin_value_rev = abs(bin_value - 100 ) # reverse order --- small values after reversion get small ranks
-                binned_values.append(bin_value_rev)
-                #binned_values.append(bin_value)
-                #binned_values.append(1)
+                
+            
+            bin_value = int(condel * 100) # binning of condel values (bad 1-100 good)
+            bin_value_rev = abs(bin_value - 100 ) # reverse order
+            binned_values.append(bin_value_rev)
     
     # PhyloP --- this value is not used in the rank product!!!
     elif parameter == 'PhyloP':
@@ -239,6 +269,25 @@ def binning (alldata, header, parameter):
                 bin_value_rev = abs(bin_value - 100 )
                 binned_values.append(bin_value_rev)
     
+    # Cadd
+    # Cadd already represents ranked scores ranging from
+    elif parameter == 'Cadd2':
+        index_cadd = identifycolumns(header, 'Cadd2')
+        column_cadd = alldata[index_cadd]
+        
+        mean_cadd = getmean(column_cadd)
+        
+        for i in range( len(column_cadd) ):
+            if column_cadd[i] == 'NA':
+                cadd = round(mean_cadd, 2)
+                
+                bin_value_rev = abs(cadd - 100 )
+                binned_values.append(bin_value_rev) # [good 1 - 100 bad]
+            else:
+                
+                bin_value_rev = abs(float(column_cadd[i]) - 100 )
+                binned_values.append(bin_value_rev)
+                
     return(binned_values)
             
 def getmean (datalist):
