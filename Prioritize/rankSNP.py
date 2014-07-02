@@ -107,23 +107,12 @@ def main ():
     
     for i in range( len(binned_values) ):
         
-        ## DEBUG
-        #print alldata[i][6]
-        if alldata[i][6].startswith('DDX52'):
-            print(alldata[i])
-            print([ranked_maf[i], ranked_segdup[i], ranked_condel[i], ranked_phastcons[i], ranked_cadd[i]])
         
         # skip synonymous variants
         if ( alldata[i][index_varfunction] == 'synonymous SNV' or alldata[i][index_varfunction] == 'NA' ) and not alldata[i][index_genicfunction] == 'splicing':
             # synonymous SNVs get the maximum rank and are downgraded by that
             rank_product = float( ( max_maf_rank * max_segdup_rank * max_condel_rank * max_phastcons_rank * max_cadd_rank ) ) / ( 100**2 )
         else:
-            
-            ## DEBUG
-            #print alldata[i][6]
-            #if alldata[i][6].startswith('DDX52'):
-            #    print(alldata[i])
-            #    print([ranked_maf[i], ranked_segdup[i], ranked_condel[i], ranked_phastcons[i], ranked_cadd[i]])
             
             rank_product = float( ranked_maf[i] * ranked_segdup[i] * ranked_condel[i] * ranked_phastcons[i] * ranked_cadd[i] ) / ( 100**2 ) # 4 tools deliver information, decrease the numeric value to more graspable values ### currently deleted * ranked_phylop[i]
         
@@ -215,7 +204,6 @@ def binning (alldata, header, parameter):
                 condel = round(mean_condel, 2)
             
             elif column_condel[i] == 'NA' and column_function[i] == 'splicing':
-                #print(alldata[6][i]) ## DEBUG
                 condel = 1
                 
             else:
