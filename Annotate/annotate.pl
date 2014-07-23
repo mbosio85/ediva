@@ -1211,7 +1211,12 @@ while(<INPUT>)
 		if ($chr =~ m/[MTmt]/ or $chr =~ m/\_/)
 		{
 			print "WARNING:: $0 does not support chromosome $chr currently. This variant line will be skipped in the final annotation output \n";			
-		}else
+		}
+		elsif($alt !~ m/[ACGT]/)
+		{
+			print "WARNING:: Unknown alternate allele detected at $chr and $position. This variant line will be skipped in the final annotation output \n";
+		}
+		else
 		{
 		## grab the AF from the INFO field in the VCF
 		foreach my $info (@infos)
