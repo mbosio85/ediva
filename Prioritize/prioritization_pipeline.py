@@ -208,7 +208,9 @@ EDIVA=%s
 SAMTOOLS=%s
 REF=%s
 
-""" % (job_name, args.outfolder, args.outfolder, args.outfolder, gatk, ediva, samtools, ref))
+DBSNP=%s
+
+""" % (job_name, args.outfolder, args.outfolder, args.outfolder, gatk, ediva, samtools, ref, dbsnp))
 
 ######
 # if a multisample call was given...
@@ -266,26 +268,38 @@ cp $OUTF/combined.variants.vcf $OUTF/combined.variants.supplement.vcf
     """
     
 
-# if everything is fine, add the mpileup part of the script
+#### if everything is fine, add the mpileup part of the script
+###elif len(bam_list) == len(vcf_list):
+###    script_content = script_content + """
+###
+#### pileup call
+#### create position list
+###sed -e 's/chr//' $OUTF/combined.variants.vcf | awk '{OFS=\"\\t\"; if (!/^#/){print $1,$2}}'  > $OUTF/variant.position.bed
+###
+#### header
+###echo -e \"chr\\tstart\\tref\\t%s\" > $OUTF/variant.position.mpileup
+###
+#### pileup
+###$SAMTOOLS mpileup -l $OUTF/variant.position.bed -f $REF -b $OUTF/bam.list >> $OUTF/variant.position.mpileup
+###
+###
+#### do the supplementing
+###python $EDIVA/Predict/supplement_vcf.py --vcffile $OUTF/combined.variants.vcf --readfile $OUTF/variant.position.mpileup --outfile $OUTF/combined.variants.supplement.vcf
+###
+###""" % (header)
+
+# if everything is fine, do genotyping in all family members
 elif len(bam_list) == len(vcf_list):
     script_content = script_content + """
 
-# pileup call
-# create position list
-sed -e 's/chr//' $OUTF/combined.variants.vcf | awk '{OFS=\"\\t\"; if (!/^#/){print $1,$2}}'  > $OUTF/variant.position.bed
+# do Genotyping in all family members
+java -jar $GATK -T UnifiedGenotyper -R $REF -I %s --dbsnp $DBSNP -o $OUTF/combined.variants.supplement.temp.vcf -alleles $OUTF/combined.variants.vcf --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -glm BOTH
 
-# header
-echo -e \"chr\\tstart\\tref\\t%s\" > $OUTF/variant.position.mpileup
+python $EDIVA/Prioritize/vcf_filter.py --infile $OUTF/combined.variants.supplement.temp.vcf --outfile $OUTF/combined.variants.supplement.vcf
 
-# pileup
-$SAMTOOLS mpileup -l $OUTF/variant.position.bed -f $REF -b $OUTF/bam.list >> $OUTF/variant.position.mpileup
+rm $OUTF/combined.variants.supplement.temp.vcf
 
-
-# do the supplementing
-python $EDIVA/Predict/supplement_vcf.py --vcffile $OUTF/combined.variants.vcf --readfile $OUTF/variant.position.mpileup --outfile $OUTF/combined.variants.supplement.vcf
-
-""" % (header)
-
+""" % (list_file)
 
 ######
 # do the annotation
