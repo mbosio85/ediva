@@ -1,0 +1,48 @@
+
+
+#### Ediva creates pipelines to walk you through variant prediction, prioritization and filtering
+#### Therefore it needs to know a lot of folders and pedigree information, supllied by config files
+#### Those config files in turn are used to create the actual pipelines
+
+### Step 1
+### create a config file for all the paths used by the prediction part
+
+# for usage info
+python Predict/setup.py -h
+
+# to run
+python Predict/setup.py --newconfig ediva.conf --edivapath --reference --dbindel --dbsnp --bwa --gatk --samtools --novosort --picard --bedtools --exome
+# if you want to run clindel as indel caller, you should also provide
+ --clindel --shoreref
+# instead of giving all options on the command line, you could either provide no parameter at all, which will lead to an assisted setup run
+# additionally you can also prvide an old config file and just mention the parameters, which should be replaced
+
+### Step 2
+### create the prediction pipeline using the config file
+
+# for usage info
+perl Predict/prediction_pipeline.pl 
+
+# to run
+perl Predict/prediction_pipeline.pl --infolder --outfolder --qsubname --config ediva.conf --namestart --namelength --firstreadextension --secondreadextension 
+# optional
+ --fusevariants
+
+### Step 3
+### create a set of files, that contain the locations of all variants of the family members, their alignment files and pedigree
+
+# for usage
+python Prioritize/collect_family_info.py -h
+
+# to run
+python Prioritize/collect_family_info.py --outfile family.conf --sampleinfo [--sampleinfo --sampleinfo ...]
+
+### Step 4
+### create the Prioritization and Filtering pipeline
+
+# for usage
+python Prioritize/prioritization_pipeline.py -h
+
+# to run
+python Prioritize/prioritization_pipeline.py --config ediva.conf --family family.conf --outfolder --inheritance --familytype --qsubname 
+
