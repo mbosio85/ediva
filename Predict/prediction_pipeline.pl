@@ -536,7 +536,7 @@ set -e
 #\$ -pe smp $cpu
 #\$ -l virtual_free=${mem}G
 
-source /etc/profile
+### source /etc/profile
 export _JAVA_OPTIONS=\"-Djava.io.tmpdir=\$TMPDIR \$_JAVA_OPTIONS\"
 
 
