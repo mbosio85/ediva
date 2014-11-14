@@ -24,7 +24,7 @@ try:
         
         
         if counter == 10000:
-            if 30 <= min <= 71 and 30 <= max <= 71:
+            if 30 <= min <= 74 and 30 <= max <= 74:
                 sys.stdout.write('33')
             elif 60 <= min <= 110 and 60 <= max <= 110:
                 sys.stdout.write('64')
