@@ -1,42 +1,54 @@
+import prioritization_support_functions
 import pprint
 import argparse
-import os.path
+import os
 import re
+if not os.environ.get('DRMAA_LIBRARY_PATH'):
+    print "Adding the DRMAA library path to the environment"
+    os.environ['DRMAA_LIBRARY_PATH'] = "/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0"
+import pickle
+import subprocess
+import imp
+import datetime
 
+curpath= os.path.realpath(__file__)
+curpath = curpath.split('/')
+curpath = '/'.join(curpath[:-2])
+curpath += '/'
+
+qsubclass = imp.load_source('qsubclass', os.path.abspath(curpath + 'pipeline_control/qsubclass.py'))
+pipeline_element = imp.load_source('pipeline_element', os.path.abspath(curpath +'pipeline_control/pipeline_element.py'))
+
+python_path  = '/software/so/el6.3/PythonPackages-2.7.6/bin/python'
+pipe_script  = os.path.abspath(curpath +'/pipeline_control/pipeline_element.py')
+qsub_script = os.path.abspath(curpath +'pipeline_control/qsubclass.py')
+
+
+
+def multisample_check(multi,vcf):
+    predicted = False
+    base = vcf[0]
+    for i in vcf:
+        predicted = i==base            
+    
+    
+    if predicted != multi:
+        msg= "The multisample variable is set to %s but the vcf files suggest it should be changed to %s"%(multi,predicted)
+        while True:
+            print msg
+            a =raw_input("Should I change it ? please write 'yes' or 'no'")
+            if a == 'yes':
+                multi = predicted
+                break
+            elif a == 'no':
+                break
+    return multi
+
+
+########## main routine starts here ##################
 pp = pprint.PrettyPrinter(indent = 5)
 
-parser = argparse.ArgumentParser(description = 'Create a file that will be run in the cluster to fully run the prioritization in eDiVa.')
-
-parser.add_argument('--config',  type=argparse.FileType('r'), dest='config',  required=True, help='The config file you created using setup.py, containing all paths of GATK, SAMTOOLS, etc.')
-parser.add_argument('--family',  type=argparse.FileType('r'), dest='family',  required=True, help='A file containing all paths to vcf and bam files, including the affection status. Can be created with collect_family_info.py')
-parser.add_argument('--outfolder', type=str, dest='outfolder', required=True, help='The folder where the output data should be written to.')
-parser.add_argument('--inheritance', choices=['dominant_denovo', 'dominant_inherited', 'recessive', 'Xlinked', 'compound'], dest='inheritance', required=True, action = 'append', help="""choose a inheritance model [required]
-This option can be called multiple times.
-dominant_inherited: used for families
-dominant_denovo: apply to novel variants seen in the affected individuals
-
-recessive: detect recessive, homozygous variants (if trio is specified the script will require that all non-affected are heterozygous)
-Xlinked: used for X linked recessive variants in trios only
-compound: detect compound heterozygous recessive variants
-""")
-parser.add_argument('--familytype', choices=['trio', 'family'], dest='familytype', required=True, help="choose if the data you provide is a trio or a larger family")
-parser.add_argument('--multisample', required=False, action='store_true', help="if your input variants have been called using GATK multi sample calling, you should toggle this option.")
-parser.add_argument('--qsubname', type=str, dest='qsub_name', required=True, help='name of the script you want to start later on')
-parser.add_argument('--jobname', type=str, dest='job_name', required=False, default='prioritize', help='name of the job that will be run on your cluster [default: prioritize]')
-parser.add_argument('--force', action = 'store_true', help='Enable eDiVa to overwrite old output')
-
-args = parser.parse_args()
-
-# does the output folder exist?
-if not os.path.exists(args.outfolder):
-    print "Creating output folder %s" % args.outfolder
-    os.makedirs(args.outfolder)
-
-# check if pipeline was run in that folder already
-if os.path.isfile("%s/combined.variants.vcf" % args.outfolder) and not args.force:
-    print("The output files of prior run still exist in the specified folder. Please use the --force option or choose another folder.")
-
-# read the general config file for paths of GATK, eDiVa and so on
+args = prioritization_support_functions.parse_args()
 
 for line in args.config:
     line = line.rstrip('\n')
@@ -89,11 +101,10 @@ bam_list    = list()
 vcf_list    = list()
 sample_list = list()
 affection   = dict()
-
 no_bams_given = False
+qoptions_def  = False
 
-for line in args.family:
-    
+for line in args.family:    
     # find the header and skip it
     m = re.search("ID.*status.*vcf.*bam", line)
     
@@ -126,7 +137,6 @@ for line in args.family:
     
 # finally - create a string, that can be used to merge the vcf files
 variant_joint_string = ' '.join(variant_string)
-
 # create a string, that can be used to select samples out of a multi sample call file
 sample_joint_string  = ' '.join(sample_string)
 
@@ -187,6 +197,41 @@ if args.job_name[0].isdigit():
     job_name = 'p' + args.job_name
 else:
     job_name = args.job_name
+ 
+# #Automatic check if multisample is set to the correct value   
+#args.multisample = multisample_check(args.multisample,vcf_list)
+
+##########################
+## NEW PART WITH PIPELINE CONTROL AND AUTORUN ...
+##########################
+#qclass = qsubclass.disclaimer()
+qclass = True
+
+if qclass:
+    qlist =list()
+    logfile = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "qsub_log.log"
+    if args.qoptions ==None:
+        qoptions,logfile = qsubclass.getOptions()
+        qoptions = dict()
+        qoptions,logfile = qsubclass.getOptions()
+        qoptions['-e'] = list()
+        qoptions['-e'].append(str(args.outfolder))
+        qoptions['-o'] = list()
+        qoptions['-o'].append(str(args.outfolder))
+        qoptions['-N'] = [job_name]
+        if qoptions.get('-l',False):
+            qoptions['-l'].append("virtual_free=%dG"%mem)
+        else:
+            qoptions['-l'] = list()
+            qoptions['-l'].append("virtual_free=%dG,h_rt=51600"%mem)
+        qoptions['-pe'] = list() 
+    else:
+        print "Automatic Logfile:%s"%logfile
+        qoptions = qsubclass.parse_command_options(args.qoptions,args.outfolder,args.qsub_name)
+    print qoptions
+    pipe = list()
+    
+##########################
 
 # create a qsub script, that:
 script_content = str()
@@ -211,42 +256,48 @@ REF=%s
 DBSNP=%s
 
 """ % (job_name, args.outfolder, args.outfolder, args.outfolder, gatk, ediva, samtools, ref, dbsnp))
-
+env_var = script_content
 ######
 # if a multisample call was given...
 ######
 
 #  extract information from the multi sample call file and save to combined.variants.supplement.vcf
 
-if args.multisample is True:
-    script_content = script_content + """
+if args.multisample:
+    text= """
 
 # select samples from multisample call file
 java -Xmx2g -jar $GATK -R $REF -T SelectVariants --variant %s -o $OUTF/combined.variants.temp.vcf %s -env -ef
 
 # filter out variants, where no sample has more support than 5 reads
-perl $EDIVA/Prioritize/post_gatkms_filter.pl --infile $OUTF/combined.variants.temp.vcf --outfile $OUTF/combined.variants.vcf
+python $EDIVA/Prioritize/post_gatkms_filter.py --infile $OUTF/combined.variants.temp.vcf --outfile $OUTF/combined.variants.vcf
 
 # clean up
 rm $OUTF/combined.variants.temp.vcf
 
 """ % (vcf_list[0], sample_joint_string)
+    script_content += text
+    p_element = pipeline_element.pipeline_element(env_var+text,"Multisample + filtering")
+    p_element.set_error("Error in multisample+filtering executions Please refer to SGE job error file")
+    pipe.append(p_element)
 
 
 #######
 # merges the vcfs (if no multisample call was given)
 #######
-
-if args.multisample is False:
+else:
 
     # produces a line like this:
     # java -Xmx4g -jar /users/GD/tools/GATK/GenomeAnalysisTK-2.8-1-g932cd3a/GenomeAnalysisTK.jar -T CombineVariants -R /users/GD/resource/human/hg19/hg19.fasta --variant:40ACVi 40ACVi_indel.vcf --variant:40ACVm 40ACVm_indel.vcf --variant:40ACVp 40ACVp_indel.vcf -o 40ACV/combined.variants.indel.vcf --unsafe LENIENT_VCF_PROCESSING
-    script_content = script_content + ("""
+    text = ("""
 # merge vcf files
 java -jar $GATK -T CombineVariants -R $REF %s -o $OUTF/combined.variants.vcf --unsafe LENIENT_VCF_PROCESSING
     
     """ % (variant_joint_string))
-
+    script_content += text
+    p_element = pipeline_element.pipeline_element(env_var+text,"Non multisample + vcf merging")
+    p_element.set_error("Error in merging executions Please refer to SGE job error file")
+    pipe.append(p_element)
 
 
 
@@ -260,37 +311,20 @@ if ( len(bam_list) == 0 or not len(bam_list) == len(vcf_list) ):
     print """ You did not provide the same amount of bam files and vcf files.
     Just creating a merge vcf script.
     """
-    script_content = script_content + """
+    text =  """
 
 # only renaming combined.vcf to supplemented vcf, because supplementing will not be done
 cp $OUTF/combined.variants.vcf $OUTF/combined.variants.supplement.vcf
 
     """
-    
-
-#### if everything is fine, add the mpileup part of the script
-###elif len(bam_list) == len(vcf_list):
-###    script_content = script_content + """
-###
-#### pileup call
-#### create position list
-###sed -e 's/chr//' $OUTF/combined.variants.vcf | awk '{OFS=\"\\t\"; if (!/^#/){print $1,$2}}'  > $OUTF/variant.position.bed
-###
-#### header
-###echo -e \"chr\\tstart\\tref\\t%s\" > $OUTF/variant.position.mpileup
-###
-#### pileup
-###$SAMTOOLS mpileup -l $OUTF/variant.position.bed -f $REF -b $OUTF/bam.list >> $OUTF/variant.position.mpileup
-###
-###
-#### do the supplementing
-###python $EDIVA/Predict/supplement_vcf.py --vcffile $OUTF/combined.variants.vcf --readfile $OUTF/variant.position.mpileup --outfile $OUTF/combined.variants.supplement.vcf
-###
-###""" % (header)
+    script_content += text
+    p_element = pipeline_element.pipeline_element(env_var+text,"Renaming VCF")
+    p_element.set_error("Error in renaming VCF executions Please refer to SGE job error file")
+    pipe.append(p_element)
 
 # if everything is fine, do genotyping in all family members
 elif len(bam_list) == len(vcf_list):
-    script_content = script_content + """
+    text= """
 
 # do Genotyping in all family members
 java -jar $GATK -T UnifiedGenotyper -R $REF -I %s --dbsnp $DBSNP -o $OUTF/combined.variants.supplement.temp.vcf -alleles $OUTF/combined.variants.vcf --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -glm BOTH
@@ -300,29 +334,40 @@ python $EDIVA/Prioritize/vcf_filter.py --infile $OUTF/combined.variants.suppleme
 rm $OUTF/combined.variants.supplement.temp.vcf
 
 """ % (list_file)
-
+    script_content += text
+    p_element = pipeline_element.pipeline_element(env_var+text,"Genotyping in all family members")
+    p_element.set_error("Error in Genotyping in all family members execution Please refer to SGE job error file")
+    pipe.append(p_element)
 ######
 # do the annotation
 ######
 
-script_content = script_content + """
+text= """
 
 
 # annotation
 perl $EDIVA/Annotate/annotate.pl --input $OUTF/combined.variants.supplement.vcf --sampleGenotypeMode complete -f
 
 """
+script_content += text
+p_element = pipeline_element.pipeline_element(env_var+text,"Annotation in all family members")
+p_element.set_error("Error in Annotation execution Please refer to SGE job error file")
+pipe.append(p_element)
+
 ######
 # do the ranking
 ######
 
-script_content = script_content + """
+text= """
 
 # rank the variants given
 python $EDIVA/Prioritize/rankSNP.py --infile $OUTF/combined.variants.supplement.sorted.annotated --outfile $OUTF/combined.variants.supplement.ranked
 
 """
-
+script_content += text
+p_element = pipeline_element.pipeline_element(env_var+text,"Ranking in all family members")
+p_element.set_error("Error in Ranking execution Please refer to SGE job error file")
+pipe.append(p_element)
 ######
 # inheritance pattern
 ######
@@ -339,13 +384,17 @@ for inhet_mode in args.inheritance:
         print "Creating output folder %s" % inhet_folder
         os.makedirs(inhet_folder)
     
-    script_content = script_content + """
+    text ="""
     
 # run inheritance mode: %s
 python $EDIVA/Prioritize/familySNP.py --infile $OUTF/combined.variants.supplement.ranked  --outfile $OUTF/%s/combined.variants.supplement.%s --filteredoutfile $OUTF/%s/combined.variants.supplement.filtered%s --family $OUTF/pedigree.tree --inheritance %s --familytype %s --geneexclusion $EDIVA/Resource/gene_exclusion_list.txt
     
     """ % ((inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, args.familytype))
-    pass
+    script_content += text
+    p_element = pipeline_element.pipeline_element(env_var+text,"Inheritance mode %s in all family members"%inhet_mode)
+    p_element.set_error("Error in Inheritance %s in all family members execution Please refer to SGE job error file"%inhet_mode)
+    pipe.append(p_element)
+    
 
 # write out the script file
 try:
@@ -361,3 +410,47 @@ except Exception,e:
 
 SCRIPT.write(script_content)
 SCRIPT.close()
+
+##############
+# NEW SECTION FOR PIPELINE CONTROL
+###########
+
+pipeline_element.save_pipeline(pipe,script_location+'.pipe')
+
+if qclass:
+    command = "%s %s %s %s"%(python_path,pipe_script,script_location+'.pipe','log.log')
+    qlist.append(qsubclass.qsubCall(command,qoptions,list(),logfile))
+    print qoptions
+    print "\n\ncommand\n"
+    command = str.replace(command,'//','/')
+    print command
+    
+    
+    
+ 
+if qclass:
+    try:
+        print "Now I'm saving the queue list in %s file"%(logfile+'.qlist')
+        with open(logfile +'.qlist','wb') as outfile:
+            pickle.dump(qlist, outfile)
+    except :
+        print('error saving pipeline list to file')
+    print """
+    
+    Now I'm running the pipeline files:
+    
+    ############################################################################
+    Please remind that the terminal should not be closed for a correct execution
+    ############################################################################
+        UNLESS:
+    If you want to simply let me run in background follow the proposed instructions:
+    
+        >Ctrl+Z
+        >bg
+        >disown -h %jid # Where jid is the currend job id. Usually it is 1 but
+                        # Please check it before placing a wrong number
+    
+    
+    """    
+    qsubclass.run_qlist(logfile+'.qlist')
+    print "Finished, have a nice day :)"

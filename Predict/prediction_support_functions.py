@@ -30,6 +30,7 @@ def usage() :
             "--fusevariants \t call this parameter to write all variants (SNPs and InDels) into one file [sample_name.vcf]\n"
             "--cpu \t number of cpu cores to be used (applicable only for a few steps) [default = 4]\n"
             "--mem \t amount of Memory dedicated to your job in Gb. The amount of memory must not be bigger than available in the machine. [default = 12]\n"
+            "--sample_list \t comma separated list of sample filenames, it can be used to select just few samples in the folder"
             "--help \t\t show help \n")
     return None   
     
@@ -52,7 +53,8 @@ def parse_commandline():
         parser.add_argument('--fusevariants',                     dest ="fusevariants", action='store_true' , required=False,	 help= "--firstreadextension \t describes the name of the first read file (e.g. 1.fastq.gz or 1_sequence.txt.gz)\n")  
         parser.add_argument('--cpu',                    type=int, dest ="cpu",          required=False,      		        help= "--cpu \t number of cpu cores to be used (applicable only for a few steps) [default = 4]\n")  
         parser.add_argument('--mem',                    type=int, dest ="mem",          required=False,     		        help= "--mem \t amount of Memory dedicated to your job in Gb. The amount of memory must not be bigger than available in the machine. [default = 12]\n")
-        parser.add_argument('--qoptions',               type=str, dest ="qoptions",     required=False,     		        help= "--qoptions \t qsub options with this format: -X val,-Y val,-Z, -XX value\n")  
+        parser.add_argument('--qoptions',               type=str, dest ="qoptions",     required=False,     		        help= "--qoptions \t qsub options with this format: -X val,-Y val,-Z, -XX value\n")
+        parser.add_argument('--sample_list',            type=str, dest ="sample_list",  required=False,     		        help= "--sample_list \t comma separated list of sample filenames, it can be used to select just few samples in the folder")
         Err_message = "not enough input arguments for command line launch: "    
         args = parser.parse_args()
         if args.infolder:
@@ -107,6 +109,8 @@ def parse_commandline():
             parser_["qoptions"] = args.qoptions
         else:
             Err_message+= "ERROR: somthing wrong with qoptions"
+        if args.sample_list:
+            parser_["sample_list"] = args.sample_list
             
             
         ## now that we have the variables - check for the required ones if they exist or not:
@@ -427,19 +431,24 @@ def get_extensions(infolder):
 # PIPELINE SCRIPT WRITING
 #######################################################################
 #######################################################################
-def find_samples(infolder, namestart,namelength,first_e, second_e):
+def find_samples(infolder, namestart,namelength,first_e, second_e,sample_list):
     samples =  list()
-    first_read  = [each for each in os.listdir(infolder) if each.endswith(first_e)]
-    second_read = [each for each in os.listdir(infolder) if each.endswith(second_e)]
-    for i in range(0,len(first_read)):
-        tmp = first_read[i]
-        tmp = tmp[:-len(first_e)]
-        first_read[i] = tmp
-    for i in range(0,len(second_read)):
-        tmp = second_read[i]
-        tmp = tmp[:-len(second_e)]
-        second_read[i] = tmp
-    samples = list(set(first_read) & set(second_read))
+    if sample_list == None:
+        first_read  = [each for each in os.listdir(infolder) if each.endswith(first_e)]
+        second_read = [each for each in os.listdir(infolder) if each.endswith(second_e)]
+        for i in range(0,len(first_read)):
+            tmp = first_read[i]
+            tmp = tmp[:-len(first_e)]
+            first_read[i] = tmp
+        for i in range(0,len(second_read)):
+            tmp = second_read[i]
+            tmp = tmp[:-len(second_e)]
+            second_read[i] = tmp
+        samples = list(set(first_read) & set(second_read))
+    else:
+        #samples are already selected:
+        samples = sample_list.split(',')
+        
     return(samples)
 
 def make_dirs(outfolder,sample):

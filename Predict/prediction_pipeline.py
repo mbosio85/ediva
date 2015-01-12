@@ -41,6 +41,7 @@ mem             = 20
 help_c          = 0
 cursor ="\n>"
 qoptions_def = False
+sample_list = None
 
 (commandLine,inargs) = prediction_support_functions.parse_commandline()
 
@@ -68,6 +69,8 @@ if commandLine:
         qoptions_input = True
     else:
         qoptions_input = False
+    if inargs.get("sample_list",False):
+        sample_list = inargs["sample_list"]
 else:
     ### Gather and parse input file
     parsed_config   = prediction_support_functions.parse_config_file()
@@ -131,7 +134,7 @@ else:
 #       Fill the pipeline with the correct parameters
 #   End.
 
-samples = prediction_support_functions.find_samples(infolder,nameStart,nameLength,firstreadextension,secondreadextension)
+samples = prediction_support_functions.find_samples(infolder,nameStart,nameLength,firstreadextension,secondreadextension,sample_list)
 
 
 #qclass = qsubclass.disclaimer()

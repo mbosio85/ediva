@@ -33,8 +33,9 @@ def predict_win():
         commandline  += """ --namestart {0[namestart]} --namelength {0[namelength]} --firstreadextension {0[read1]} --secondreadextension  {0[read2]} --indelcaller {0[indel]}""".format(NewWin.result)
         commandline += """ --cpu {0[cpu]} --mem {0[mem]} """.format(NewWin.result)
         commandline +=""" --qoptions " {0[qopts]}" """.format(NewWin.result) #The space before { is key for the command line to work
-        if NewWin.result['force']==1:
-           commandline += " --force "
+        if NewWin.result.get('sample_list',False):
+               commandline += " --sample_list "+NewWin.result.get('sample_list',False)
+               
         commandline = python_path + ' ' + predict_script + ' ' + commandline + '&'
         print commandline         
         subprocess.call(commandline,shell=True)

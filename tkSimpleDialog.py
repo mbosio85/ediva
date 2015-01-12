@@ -18,6 +18,9 @@ green ='#60a917'
 mango = '#f09609'
 azzurro = '#1ba1f2'
 txt_dim =15
+global infolder_
+global read1_
+global read2_
 
 font_type ="Helvetica"
 
@@ -382,7 +385,7 @@ class Predict_window(Dialog):
 
         #Force tick.
         self.var_f = IntVar()
-        Label(master, text="Do you want to fuse the outputs:", background=steel,fg='white',font=(font_type, txt_dim)
+        Label(master, text="Do you want to fuse SNP and INDEL?:", background=steel,fg='white',font=(font_type, txt_dim)
               ).grid(row=9,column=0,columnspan=2,sticky=W)
         self.f = Checkbutton(master, text="Fusevariants?", variable=self.var_f,background=steel,fg='white',selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim),activebackground= emerald ,activeforeground='white' )
@@ -438,6 +441,7 @@ class Predict_window(Dialog):
         
     def apply(self):
         NewWin = qSubDetails(self.master)
+        cpu_mem_params = ',-pe smp %d,-l virtual_free=%dG'%(self.cpu.get(),self.mem.get())
         if NewWin.result != None:
             self.result = {
                 "force"     :self.var_f.get(),
@@ -453,10 +457,33 @@ class Predict_window(Dialog):
                 "indel"     :self.var_indel.get(),
                 "mem"       :self.mem.get(),
                 "cpu"       :self.cpu.get(),
-                "qopts"     :NewWin.result
+                "qopts"     :NewWin.result+cpu_mem_params
                 }
-            print self.result
+            #print self.result
         else :
+            self.result = None
+            
+        #IDEA: setup master.something with the fields I want and thats it
+        
+        infolder_ =self.infolder
+        read1_    =self.read1.get()
+        read2_    = self.read2.get()
+        first_read  = [each for each in os.listdir(infolder_) if each.endswith(read1_)]
+        second_read = [each for each in os.listdir(infolder_) if each.endswith(read2_)]
+        for i in range(0,len(first_read)):
+            tmp = first_read[i]
+            tmp = tmp[:-len(read1_)]
+            first_read[i] = tmp
+        for i in range(0,len(second_read)):
+            tmp = second_read[i]
+            tmp = tmp[:-len(read2_)]
+            second_read[i] = tmp
+        self.master.sample_list = list(set(first_read) & set(second_read))     
+        
+        get_samples = Sample_list_window(self.master)
+        if get_samples.result != None:
+            self.result['sample_list']  = get_samples.result
+        else:
             self.result = None
         
       
@@ -864,4 +891,83 @@ class qSubDetails(Dialog):
         self.update_idletasks()
         self.apply()
         self.cancel()
-        return self.result   
+        return self.result
+    
+    
+
+class Sample_list_window(Dialog):
+    '''
+    Window to gather the sample_list to send to prediction
+
+    '''
+
+    
+    def body(self, master):
+        self.configure(background=steel)
+        self.resizable(0,0)
+        #Title
+        
+        
+        samples = self.master.sample_list
+        
+        self.queue =Label(master, text="\nSamples to process:\n",background=orange,fg='white',font=(font_type, txt_dim)).grid(row=0,column=0,columnspan=3,sticky='W'+'E')
+        
+        #From list to dictionary:
+        self.sample_list = dict()
+        for i in samples:
+            self.sample_list[i] = 1
+        self.var_value = StringVar()
+        i = 1
+        #Populate now with the samples checkboxes        
+        for sample in self.sample_list:
+            i+=1
+            self.sample_list[sample] = IntVar()
+            self.sample_list[sample].set(1)
+            l = Checkbutton(master, text=sample, variable=self.sample_list[sample] ,background=steel,fg='white',selectcolor=steel,
+                 highlightthickness=0,font=(font_type, txt_dim),activebackground= orange,activeforeground='white'     )
+            l.grid(row=i,columnspan=3,sticky='W')
+        return self.queue# initial focus
+    
+    def apply(self):
+        #scan the checkboxes and return the string
+        return_string = list()
+        keys = self.sample_list.keys()
+        for k in keys:
+            value = self.sample_list.get(k)
+            if value.get() >0:
+                return_string.append(k)
+        return_string = ','.join(return_string)
+        self.result = return_string
+        #print self.result
+        if len(return_string)==0:
+            self.result=None
+            return None
+        
+    def validate(self):
+        return 1
+    
+    def buttonbox(self):
+        # add standard button box. override if you don't want the
+        # standard buttons
+        box = Frame(self,background = steel)
+        w = Button(box, text="Ok", width=10, command=self.ok,fg='white',font=(font_type, txt_dim)
+                ,highlightbackground= steel,background=  steel,activebackground= orange,activeforeground='white')
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Back", width=10, command=self.cancel,fg='white',font=(font_type, txt_dim)
+                ,highlightbackground= steel,background=  steel,activebackground= orange,activeforeground='white')
+        w.pack(side=LEFT, padx=5, pady=5)
+        self.bind("<Return>", self.ok)
+        #self.bind("<Escape>", self.cancel)
+        box.pack()
+    
+        
+    def ok(self, event=None):
+        if not self.validate():
+            self.initial_focus.focus_set() # put focus back
+            return'whit'
+        self.withdraw()
+        self.update_idletasks()
+        self.apply()
+        self.cancel()
+        return self.result
+    
