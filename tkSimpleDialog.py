@@ -49,7 +49,7 @@ class Dialog(Toplevel):
 
         self.buttonbox()
 
-        self.grab_set()
+        #self.grab_set()
 
         if not self.initial_focus:
             self.initial_focus = self
@@ -256,6 +256,7 @@ class Predict_window(Dialog):
         self.file = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('All files','*')],title='Choose the  configuration file')
         if self.file != None:
             self.file =abs_path = os.path.abspath(self.file.name)
+            self.filename_string.set(self.filename_string.get() + ' [...%s]'%self.file[-15:])
         else:
             self.file = None
         
@@ -266,7 +267,8 @@ class Predict_window(Dialog):
             self.infolder = tkFileDialog.askdirectory(parent=self)
             if self.infolder != None and os.path.isdir(self.infolder):
                 self.infolder=os.path.abspath(self.infolder)
-                self.infolder_string.set('In_dir : %s'%self.infolder)
+                self.infolder_string.set(self.infolder_string.get() + ' [...%s]'%self.infolder[-15:])
+                #self.infolder_string.set('In_dir : %s'%self.infolder)
         except:
             self.infolder=None
         
@@ -276,6 +278,7 @@ class Predict_window(Dialog):
             self.outfolder = tkFileDialog.askdirectory(parent=self)
             if self.outfolder != None and os.path.isdir(self.outfolder):
                 self.outfolder=os.path.abspath(self.outfolder)
+                self.outfolder_string.set(self.outfolder_string.get() + ' [...%s]'%self.outfolder[-15:])
             else:
                 self.outfolder=None
         except:
@@ -308,12 +311,16 @@ class Predict_window(Dialog):
         self.infolder_.grid(row=1,column=0,columnspan=3)
         
         #Outfolder selection button
-        self.outfolder_ = Button(master,text='Outfolder directory',command=self.outfolder_search,width=50,
+        self.outfolder_string = StringVar()
+        self.outfolder_string.set('Outfolder directory')
+        self.outfolder_ = Button(master,textvariable=self.outfolder_string,command=self.outfolder_search,width=50,
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= emerald,activeforeground='white'  )        
         self.outfolder_.grid(row=2,column=0,columnspan=3)
         
         #Config file selection button
-        self.filename = Button(master,text='Config. File',command=self.file_search,width=50,background=steel,fg='white',
+        self.filename_string = StringVar()
+        self.filename_string.set('Config. File')
+        self.filename = Button(master,textvariable=self.filename_string,command=self.file_search,width=50,background=steel,fg='white',
                                font=(font_type, txt_dim),activebackground= emerald,activeforeground='white'  )        
         self.filename.grid(row=3,column=0,columnspan=3)
         
@@ -385,6 +392,7 @@ class Predict_window(Dialog):
 
         #Force tick.
         self.var_f = IntVar()
+        self.var_f.set(1)
         Label(master, text="Do you want to fuse SNP and INDEL?:", background=steel,fg='white',font=(font_type, txt_dim)
               ).grid(row=9,column=0,columnspan=2,sticky=W)
         self.f = Checkbutton(master, text="Fusevariants?", variable=self.var_f,background=steel,fg='white',selectcolor=steel
@@ -430,18 +438,19 @@ class Predict_window(Dialog):
         if not self.validate():
             self.initial_focus.focus_set() # put focus back
             return'whit'
-        #self.withdraw()
+        #
         self.update_idletasks()
         self.apply()
         if self.result != None:
             self.cancel()
+            #self.withdraw()
             return self.result
         else:
-            pass
+            return None
         
     def apply(self):
         NewWin = qSubDetails(self.master)
-        cpu_mem_params = ',-pe smp %d,-l virtual_free=%dG'%(self.cpu.get(),self.mem.get())
+        cpu_mem_params = ',-pe smp %d,-l virtual_free=%dG,-N %s ,-e %s/, -o %s/'%(self.cpu.get(),self.mem.get(),self.qsub.get(),self.outfolder,self.outfolder)
         if NewWin.result != None:
             self.result = {
                 "force"     :self.var_f.get(),
@@ -529,6 +538,8 @@ class Predict_window(Dialog):
         #check qsubname 
         if len(self.qsub.get())<1 :
             tkMessageBox.showwarning("Predict","Qsub must contain text")
+        elif self.qsub.get()[0].isdigit():
+            tkMessageBox.showwarning("Predict","Qsub must must not start with a digit")
             return 0
         #check maximum coverage exists
         if len(self.max_cov.get())<1 :
@@ -545,16 +556,39 @@ class Prioritize_window(Dialog):
     '''
     Window to gather the needed Annotate.py values : the output is a dictionary with variables to launch the command.
     '''
-    def file_search(self):
+    def plus1(self,var,l):
+        var.set(int(var.get())+1)
+        l.textvariable = var
+        return var.get()
+    
+    def minus1(self,var,l):
+        var.set(max(1,int(var.get())-1))
+        l.textvariable = var
+        return var.get()
+    
+    def config_file_search(self):
         file_ = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('All files','*')],title='Choose the  configuration file')
         if file_ != None and file != 'None':
             file_ =abs_path = os.path.abspath(file_.name)
-            return file_
+            self.config_file.set(file_)
+            self.cfg_str.set(self.cfg_str.get()+ '[...%s]'%self.config_file.get()[-15:])
+            return None
         else:
             pass
         
         #return abs_path
         
+    def family_file_search(self):
+        file_ = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('All files','*')],title='Choose the  configuration file')
+        if file_ != None and file != 'None':
+            file_ =abs_path = os.path.abspath(file_.name)
+            self.family_file.set(file_)
+            self.family_str.set(self.family_str.get() + '[...%s]'%self.family_str.get()[-15:])
+            return None
+        else:
+            pass
+        
+        #return abs_path
         
     
     def outfolder_search(self):
@@ -563,6 +597,7 @@ class Prioritize_window(Dialog):
                 
             if self.outfolder != None:
                 self.outfolder=os.path.abspath(self.outfolder)
+                self.outfolder_string.set(self.outfolder_string.get() + ' [...%s]'%self.outfolder[-15:])
         except:
             pass
 
@@ -574,6 +609,7 @@ class Prioritize_window(Dialog):
         self.update_idletasks()
         self.apply()
         if self.result != None:
+            self.withdraw()
             self.cancel()
             return self.result
         else:
@@ -587,18 +623,24 @@ class Prioritize_window(Dialog):
         
         #Config file selection button
         self.config_file = StringVar()
-        self.cfg_button = Button(master,text='Global configuration file',command= lambda : self.config_file.set(self.file_search()) ,width=50,
+        self.cfg_str = StringVar()
+        self.cfg_str.set('Global configuration file')
+        self.cfg_button = Button(master,textvariable=self.cfg_str,command=self.config_file_search,width=50,
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )       
         self.cfg_button.grid(row=1,column=0,columnspan=3)
         
         #Config file selection button
         self.family_file = StringVar()
-        fam_button = Button(master,text='Family configuration file',command= lambda : self.family_file.set(self.file_search()) ,width=50,
+        self.family_str = StringVar()
+        self.family_str.set('Family configuration file')
+        fam_button = Button(master,textvariable = self.family_str,command= self.family_file_search ,width=50,
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )       
         fam_button.grid(row=2,column=0,columnspan=3)
        
         #Outfolder selection button
-        self.outfolder_ = Button(master,text='Outfolder directory',command=self.outfolder_search,width=50,
+        self.outfolder_string = StringVar()
+        self.outfolder_string.set('Outfolder directory')
+        self.outfolder_ = Button(master,textvariable=self.outfolder_string,command=self.outfolder_search,width=50,
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )        
         self.outfolder_.grid(row=3,column=0,columnspan=3)
         
@@ -659,9 +701,38 @@ class Prioritize_window(Dialog):
         self.qsub.grid(row=11, column=2,columnspan=2,sticky='E')
         self.jname.grid(row=12, column=2,columnspan=2,sticky='E')
         
+        #CPU label and buttons
+        self.cpu = IntVar()
+        self.cpu.set(1)
+        self.lcpu = Label(master, textvariable = (self.cpu),width=20, background=steel,fg='white',font=(font_type, txt_dim))
+        self.nlcpu = Label(master, text = 'CPU',width=20, background=steel,fg='white',font=(font_type, txt_dim-4))
+        self.lcpu.grid(row=14,column=0,columnspan=1)#,sticky='E')
+        self.nlcpu.grid(row=13,column=0,columnspan=1)#,sticky='W')
+        self.plus_cpu = Button(master,text = '+',command=lambda : self.cpu.set(self.plus1(self.cpu,self.lcpu) ) ,
+                                 background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )
+        self.minus_cpu = Button(master,text= '-',command=lambda : self.cpu.set(self.minus1(self.cpu,self.lcpu) ),
+                                 background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )
+        self.plus_cpu.grid(row=14,column=0,sticky='E')
+        self.minus_cpu.grid(row=14,column=0,sticky='W')
+
+        #MEM GB label and buttons
+        self.mem = IntVar()
+        self.mem.set(12)
+        self.l_mem = Label(master, textvariable = (self.mem),width=20, background=steel,fg='white',font=(font_type, txt_dim))
+        self.n_mem = Label(master, text = 'GB Memory',width=20, background=steel,fg='white',font=(font_type, txt_dim-4))
+        self.l_mem.grid(row=14,column=2,columnspan=1)
+        self.n_mem.grid(row=13,column=2,columnspan=1)
+        self.plus_mem = Button(master,text ='+',command=lambda : self.mem.set(self.plus1(self.mem,self.l_mem) ),
+                                 background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )
+        self.minus_mem = Button(master,text='-',command=lambda : self.mem.set(self.minus1(self.mem,self.l_mem) ),
+                                 background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )
+        self.plus_mem.grid(row=14,column=2,sticky='E')
+        self.minus_mem.grid(row=14,column=2,sticky='W')
+        
         return self.cfg_button
     def apply(self):
         NewWin = qSubDetails(self.master)
+        cpu_mem_params = ',-pe smp %d,-l virtual_free=%dG,-N %s, -e %s/, -o %s/'%(self.cpu.get(),self.mem.get(),self.jname.get(),self.outfolder,self.outfolder)
         if NewWin.result != None:
             self.result = {
                 "force"     :self.var_f.get(),
@@ -671,8 +742,9 @@ class Prioritize_window(Dialog):
                 "qsubname"  :self.qsub.get(),
                 "jobname"   :self.jname.get(),
                 "inheritance":self.inheritance,
-                "qopts"     :NewWin.result
+                "qopts"     :NewWin.result+cpu_mem_params
                 }
+
             if len(self.config_file.get())>0and self.config_file.get()!='None' :
                 self.result["config"] = self.config_file.get()
             if len(self.family_file.get())>0 and self.family_file.get()!='None' :
@@ -690,20 +762,23 @@ class Prioritize_window(Dialog):
             else:
                 raise
         except:
-            tkMessageBox.showwarning("Predict","Please Select one Output Folder")
+            tkMessageBox.showwarning("Prioritize","Please Select one Output Folder")
             return 0
         #check qsubname 
         if len(self.qsub.get())<1 :
-            tkMessageBox.showwarning("Predict","Qsub must contain text")
+            tkMessageBox.showwarning("Prioritize","Qsub must contain text")
             return 0
         #check job name exists
         if len(self.jname.get())<1 :
-            tkMessageBox.showwarning("Predict","Job name must contain text")
+            tkMessageBox.showwarning("Prioritize","Job name must contain text")
+            return 0
+        elif self.jname.get()[0].isdigit():
+            tkMessageBox.showwarning("Prioritize","Job name must not start with a digit")
             return 0
         #Inheritance:
         or_val = self.var_ih5.get() + self.var_ih4.get() +self.var_ih3.get() +self.var_ih2.get() +self.var_ih1.get()
         if or_val == 0:
-            tkMessageBox.showwarning("Predict","Choose at least one inheritance mode")
+            tkMessageBox.showwarning("Prioritize","Choose at least one inheritance mode")
             return 0
         else:
             self.inheritance = list()

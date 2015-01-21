@@ -209,7 +209,7 @@ qclass = True
 
 if qclass:
     qlist =list()
-    logfile = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "qsub_log.log"
+    logfile = os.path.abspath(args.outfolder) + '/'+ datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "qsub_log.log"
     if args.qoptions ==None:
         qoptions,logfile = qsubclass.getOptions()
         qoptions = dict()
@@ -270,12 +270,12 @@ if args.multisample:
 java -Xmx2g -jar $GATK -R $REF -T SelectVariants --variant %s -o $OUTF/combined.variants.temp.vcf %s -env -ef
 
 # filter out variants, where no sample has more support than 5 reads
-python $EDIVA/Prioritize/post_gatkms_filter.py --infile $OUTF/combined.variants.temp.vcf --outfile $OUTF/combined.variants.vcf
+%s $EDIVA/Prioritize/post_gatkms_filter.py --infile $OUTF/combined.variants.temp.vcf --outfile $OUTF/combined.variants.vcf
 
 # clean up
 rm $OUTF/combined.variants.temp.vcf
 
-""" % (vcf_list[0], sample_joint_string)
+""" % (vcf_list[0], sample_joint_string,python_path)
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Multisample + filtering")
     p_element.set_error("Error in multisample+filtering executions Please refer to SGE job error file")
@@ -329,11 +329,11 @@ elif len(bam_list) == len(vcf_list):
 # do Genotyping in all family members
 java -jar $GATK -T UnifiedGenotyper -R $REF -I %s --dbsnp $DBSNP -o $OUTF/combined.variants.supplement.temp.vcf -alleles $OUTF/combined.variants.vcf --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -glm BOTH
 
-python $EDIVA/Prioritize/vcf_filter.py --infile $OUTF/combined.variants.supplement.temp.vcf --outfile $OUTF/combined.variants.supplement.vcf
+%s $EDIVA/Prioritize/vcf_filter.py --infile $OUTF/combined.variants.supplement.temp.vcf --outfile $OUTF/combined.variants.supplement.vcf
 
 rm $OUTF/combined.variants.supplement.temp.vcf
 
-""" % (list_file)
+""" % (list_file,python_path)
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Genotyping in all family members")
     p_element.set_error("Error in Genotyping in all family members execution Please refer to SGE job error file")
@@ -346,9 +346,11 @@ text= """
 
 
 # annotation
-perl $EDIVA/Annotate/annotate.pl --input $OUTF/combined.variants.supplement.vcf --sampleGenotypeMode complete -f
+#perl $EDIVA/Annotate/annotate.pl --input $OUTF/combined.variants.supplement.vcf --sampleGenotypeMode complete -f
+%s $EDIVA/Annotate/annotate.py --input $OUTF/combined.variants.supplement.vcf --sampleGenotypeMode complete -f
 
-"""
+
+"""%(python_path)
 script_content += text
 p_element = pipeline_element.pipeline_element(env_var+text,"Annotation in all family members")
 p_element.set_error("Error in Annotation execution Please refer to SGE job error file")
@@ -361,9 +363,9 @@ pipe.append(p_element)
 text= """
 
 # rank the variants given
-python $EDIVA/Prioritize/rankSNP.py --infile $OUTF/combined.variants.supplement.sorted.annotated --outfile $OUTF/combined.variants.supplement.ranked
+%s $EDIVA/Prioritize/rankSNP.py --infile $OUTF/combined.variants.supplement.sorted.annotated --outfile $OUTF/combined.variants.supplement.ranked
 
-"""
+"""%(python_path)
 script_content += text
 p_element = pipeline_element.pipeline_element(env_var+text,"Ranking in all family members")
 p_element.set_error("Error in Ranking execution Please refer to SGE job error file")
@@ -387,9 +389,9 @@ for inhet_mode in args.inheritance:
     text ="""
     
 # run inheritance mode: %s
-python $EDIVA/Prioritize/familySNP.py --infile $OUTF/combined.variants.supplement.ranked  --outfile $OUTF/%s/combined.variants.supplement.%s --filteredoutfile $OUTF/%s/combined.variants.supplement.filtered%s --family $OUTF/pedigree.tree --inheritance %s --familytype %s --geneexclusion $EDIVA/Resource/gene_exclusion_list.txt
+%s $EDIVA/Prioritize/familySNP.py --infile $OUTF/combined.variants.supplement.ranked  --outfile $OUTF/%s/combined.variants.supplement.%s --filteredoutfile $OUTF/%s/combined.variants.supplement.filtered%s --family $OUTF/pedigree.tree --inheritance %s --familytype %s --geneexclusion $EDIVA/Resource/gene_exclusion_list.txt
     
-    """ % ((inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, args.familytype))
+    """ % ((python_path,inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, args.familytype))
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Inheritance mode %s in all family members"%inhet_mode)
     p_element.set_error("Error in Inheritance %s in all family members execution Please refer to SGE job error file"%inhet_mode)

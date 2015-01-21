@@ -21,10 +21,10 @@ def predict_win():
     '''
     Opens the Prediction dialog box
     '''
-    Predict.config(state='disable')
-    Annotate.config(state='disable')
-    Prioritize.config(state='disable')
-    Quit.config(state='disable')
+    #Predict.config(state='disable')
+    #Annotate.config(state='disable')
+    #Prioritize.config(state='disable')
+    #Quit.config(state='disable')
 
     NewWin = tkd.Predict_window(root)
     
@@ -38,25 +38,25 @@ def predict_win():
                
         commandline = python_path + ' ' + predict_script + ' ' + commandline + '&'
         print commandline         
-        subprocess.call(commandline,shell=True)
+        subprocess.Popen(commandline,shell=True)
         
         
-    Predict.config(state='normal')
-    Annotate.config(state='normal')
-    Prioritize.config(state='normal')
-    Quit.config(state='normal')
-
-
+    #Predict.config(state='normal')
+    #Annotate.config(state='normal')
+    #Prioritize.config(state='normal')
+    #Quit.config(state='normal')
+    #
+    #
 
 
 def annotate_win():
     '''
     Opens the Annotation dialog box
     '''
-    Predict.config(state='disable')
-    Annotate.config(state='disable')
-    Prioritize.config(state='disable')
-    Quit.config(state='disable')
+    #Predict.config(state='disable')
+    #Annotate.config(state='disable')
+    #Prioritize.config(state='disable')
+    #Quit.config(state='disable')
 
     NewWin= tkd.Annotate_window(root)
     if NewWin.result != None:
@@ -69,23 +69,23 @@ def annotate_win():
 
         commandline = python_path + ' ' + annotate_script + ' ' + commandline + '&'
         print commandline
-        subprocess.call(commandline,shell=True)
+        subprocess.Popen(commandline,shell=True)
         
-    Predict.config(state='normal')
-    Annotate.config(state='normal')
-    Prioritize.config(state='normal')
-    Quit.config(state='normal')
+    #Predict.config(state='normal')
+    #Annotate.config(state='normal')
+    #Prioritize.config(state='normal')
+    #Quit.config(state='normal')
 
 
 def prioritize_win():
     '''
     Opens the Prioritization dialog box
     '''
-
-    Predict.config(state='disable')
-    Annotate.config(state='disable')
-    Prioritize.config(state='disable')
-    Quit.config(state='disable')
+    #
+    #Predict.config(state='disable')
+    #Annotate.config(state='disable')
+    #Prioritize.config(state='disable')
+    #Quit.config(state='disable')
 
 
     NewWin = tkd.Prioritize_window(root)
@@ -105,12 +105,12 @@ def prioritize_win():
         commandline +=""" --qoptions " {0[qopts]}" """.format(NewWin.result)#The space before { is key for the command line to work
         commandline = python_path + ' ' + prioritize_script + ' ' + commandline 
         print commandline
-        subprocess.call(commandline,shell=True)
-    
-    Predict.config(state='normal')
-    Annotate.config(state='normal')
-    Prioritize.config(state='normal')
-    Quit.config(state='normal')
+        subprocess.Popen(commandline,shell=True)
+
+    #Predict.config(state='normal')
+    #Annotate.config(state='normal')
+    #Prioritize.config(state='normal')
+    #Quit.config(state='normal')
 ##############################
 #### MAIN
 ##############################

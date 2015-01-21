@@ -52,7 +52,7 @@ def parse_config_file(msg):
                 #setup.main(True,text)
                 token = 0
     token =1
-    prompt_0 = "Please insert the config file \n >"
+    prompt_0 = "Please insert the %s config file \n >"%msg
     prompt = prompt_0
     while token : 
         #outputs a prompt, parse it to a full path and  checks that it works

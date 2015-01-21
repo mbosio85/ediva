@@ -209,14 +209,12 @@ def parse_config_file():
                 #if (os.path.isfile(text)):
                 #cmd =  ("python ./setup.py --newconfig %s"%text)
                 cmd =  ("%s %s/setup.py --newconfig %s"%(python_path,predictpath,text))
-                print cmd
+                #print cmd
                 p=subprocess.call(cmd,shell=True)
                 stdout,stderr = p.communicate()
                 p.wait()
-
                 token = 0
-                print token
-                raise
+                
     
     
     token =1
@@ -647,7 +645,7 @@ if [ -s $OUTF/$NAME.realigned.dm.recalibrated.bam ];
 then
    echo -e \"\\n #### GATK: Call SNPs and Indels with the GATK Unified Genotyper \\n\"
    #java  -jar $GATK -T UnifiedGenotyper -nt {0[cpu]} -R $REF -I $OUTF/$NAME.realigned.dm.recalibrated.bam -o $OUTF/GATK.both.raw.vcf -glm BOTH --downsampling_type NONE
-   java -jar $GATK -T HaplotypeCaller -nct {0[cpu]} -R $REF --dbsnp $DBSNP -I $OUTF/$NAME.realigned.dm.recalibrated.bam -o $OUTF/GATK.both.raw.vcf -L $EXOME
+   java -jar $GATK -T HaplotypeCaller -nct 1 -R $REF --dbsnp $DBSNP -I $OUTF/$NAME.realigned.dm.recalibrated.bam -o $OUTF/GATK.both.raw.vcf -L $EXOME
 
    echo -e \"\\n #### GATK: Split SNPs and Indels \\n\"
    java  -jar $GATK -T SelectVariants -R $REF --variant $OUTF/GATK.both.raw.vcf -o $OUTF/GATK.snps.raw.vcf -selectType SNP

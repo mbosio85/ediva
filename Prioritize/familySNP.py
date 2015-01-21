@@ -3,12 +3,15 @@ import csv
 import pprint
 import re
 from scipy.stats import poisson
+import os
 
 try:
     import xlsxwriter
+    import xlrd
     writeXLS = True
 except:
     writeXLS = False
+    print 'No XlS riter'
 
 # Note header:
 #[   'Chr',
@@ -561,26 +564,75 @@ def main (args):
     
     ### write an xls output
     if writeXLS == True:
-        # open output file for re-reading
+        ## open output file for re-reading
         args.filteredfile.close()
-        fh = open(args.filteredfile.name, 'r')
+        fh = open(args.filteredfile.name, 'r+')
+        #
+        ## open xls file for writing
+        #xls = xlsxwriter.Workbook(args.filteredfile.name + ".xlsx")
+        #worksheet = xls.add_worksheet('ediva_filtered' + args.inheritance)
+        #
+        #row = 0
+        #
+        ## read line by line and transform to xls
+        #for line in fh:
+        #    line.rstrip('\n')
+        #    data = line.split(',')
+        #    
+        #    worksheet.write_row(row, 0, data)
+        #    
+        #    row += 1
+        #
+        #xls.close()
+        
+        # open output file for re-reading
+        
+        excel_name = '/variant_prioritization_report.xlsx'#args.filteredfile.name + ".xlsx"
+        tmp_name = 'tmp.xlsx'
+        
+        excel_path  =  os.path.dirname(args.outfile).split('/')
+        excel_path  = '/'.join(excel_path)[:-1]
+        excel_name = excel_path+excel_name
+        
         
         # open xls file for writing
-        xls = xlsxwriter.Workbook(args.filteredfile.name + ".xlsx")
+        print "Printing the Excel file"
+        xls = xlsxwriter.Workbook(tmp_name)
         worksheet = xls.add_worksheet('ediva_filtered' + args.inheritance)
-        
         row = 0
-        
+        fh.seek(0)
         # read line by line and transform to xls
         for line in fh:
-            line.rstrip('\n')
+            #line.rstrip('\n')
             data = line.split(',')
-            
-            worksheet.write_row(row, 0, data)
-            
+            worksheet.write_row(row, 0, data)            
             row += 1
         
+            
+        #check if already exist
+        with open(excel_name,'r') as old_excel:
+            print "Updating the existing file with the already existing sheets"
+            workbook_rd = xlrd.open_workbook(excel_name)
+            worksheets = workbook_rd.sheet_names()
+            for worksheet_name in worksheets:
+                try:
+                    worksheet_rd = workbook_rd.sheet_by_name(worksheet_name)
+                    worksheet_wr = xls.add_worksheet(worksheet_name)
+                    
+                    num_rows = worksheet_rd.nrows - 1
+                    curr_row = -1
+                    while curr_row < num_rows:
+                            curr_row += 1
+                            row_content = worksheet_rd.row(curr_row)
+                            row_content_values = [x.value for x in row_content]
+                            worksheet_wr.write_row(curr_row, 0, row_content_values)
+                            #print row
+                except:
+                    print "There was a problem in processing %s sheet. \nIt may be because the sheet was already there before"%(worksheet_name)
+        fh.close()
         xls.close()
+        os.remove(excel_name)
+        os.rename(tmp_name, excel_name)
     
     exit(0)
 

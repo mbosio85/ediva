@@ -20,8 +20,8 @@ If GATK multi-sample calls are supplied, just enter the same vcf file name for e
 """)
 
 args = parser.parse_args()
-
-
+token = True
+line_list = list()
 
 # write header
 with open(args.config,'w+') as config_file:
@@ -53,50 +53,93 @@ with open(args.config,'w+') as config_file:
             args.config.write('\n')
     
     
-    else:
-        
-        while True:
-            print ("\nNEW SAMPLE:\n")
-            print("If you supply GATK multi-sample calls, then just mention the same file name, if you're asked for a vcf file.")
-            print("Remember. If you want to stop entering data, just leave a field empty and hit enter.\n")
-            readline.parse_and_bind("tab: complete")
-            readline.set_completer_delims(' \t\n;')
-            name   = raw_input("\tPlease enter the sample ID. The format should be same as the vcf file, you will provide later. \n\t: ")
-            if name == '':
-                print("\tField empty. Quitting...")
-                break
-            token = 1
-            while token:
-                affect =  raw_input("\tPlease enter if the sample is affected or not. [0 - unaffected, 1 - affected] \n\t: ")
-                if affect == '':
+    else:       
+        ok_john_go_on = True
+        while ok_john_go_on:#If list : then review
+            # for each element ask questions with default value on enter
+            if len(line_list)>0:
+                print"-------------------------------"
+                for l in range(len(line_list)):
+                    print ("\nREVIEWING SAMPLE:\n")
+                    params = line_list[l].split('\t')
+                    print params
+                    readline.parse_and_bind("tab: complete")
+                    readline.set_completer_delims(' \t\n;')
+                    name   = raw_input("\tReviewing sample ID: %s  Press enter to maintain it\n\t: "%params[0])or params[0]
+                    token = 1
+                    while token:
+                        affect =  (raw_input("\tPlease enter if the sample is affected or not. [0 - unaffected, 1 - affected] \n\t" +  
+                                             "Press enter for %s \n\t:"%params[1]) or params[1]  ) 
+                        if affect in  ['0','1']:
+                            token = 0
+                    readline.parse_and_bind("tab: complete")
+                    readline.set_completer_delims(' \t\n;')
+                    print("\tPlease enter the location of the respective vcf file. \n")
+                    vcf = raw_input("\tPress enter to keep %s\n\t:"%params[2]) or params[2]
+                    
+                    readline.parse_and_bind("tab: complete")
+                    readline.set_completer_delims(' \t\n;')
+                    print("\tPlease enter the location of the respective bam file. \n")
+                    bam    = raw_input("\tPress enter to keep %s\n\t:"%params[3]) or params[3]
+                    line_list[l]  = '\t'.join([name,affect,vcf,bam])
+                    
+            
+            print"-------------------------------"
+            while True:
+                print ("\nNEW SAMPLE:\n")
+                print("If you supply GATK multi-sample calls, then just mention the same file name, if you're asked for a vcf file.")
+                print("Remember. If you want to stop entering data, just leave a field empty and hit enter.\n")
+                readline.parse_and_bind("tab: complete")
+                readline.set_completer_delims(' \t\n;')
+                name   = raw_input("\tPlease enter the sample ID. The format should be same as the vcf file, you will provide later. \n\t: ")
+                if name == '':
                     print("\tField empty. Quitting...")
-                    token = 0
                     break
-                elif affect in  ['0','1']:
-                    token = 0
-            if affect == '':
-                    print("\tField empty. Quitting...")
+                token = 1
+                while token:
+                    affect =  raw_input("\tPlease enter if the sample is affected or not. [0 - unaffected, 1 - affected] \n\t: ")
+                    if affect == '':
+                        print("\tField empty. Quitting...")
+                        token = 0
+                        break
+                    elif affect in  ['0','1']:
+                        token = 0
+                if affect == '':
+                        print("\tField empty. Quitting...")
+                        break  
+                readline.parse_and_bind("tab: complete")
+                readline.set_completer_delims(' \t\n;')
+                vcf    = raw_input("\tPlease enter the location of the respective vcf file. \n\t: ")
+                if vcf == '':
+                    print("Field empty. Quitting...")
                     break
                 
-            readline.parse_and_bind("tab: complete")
-            readline.set_completer_delims(' \t\n;')
-            vcf    = raw_input("\tPlease enter the location of the respective vcf file. \n\t: ")
-            if vcf == '':
-                print("Field empty. Quitting...")
-                break
+                readline.parse_and_bind("tab: complete")
+                readline.set_completer_delims(' \t\n;')
+                bam    = raw_input("\tPlease enter the location of the respective bam file. \n\t: ")
+                if bam == '':
+                    print("\tField empty. Quitting...")
+                    break
+                line_list.append('\t'.join([name, affect, vcf, bam]))
+                #config_file.write('\t'.join([name, affect, vcf, bam]))
+                #config_file.write('\n')
             
-            readline.parse_and_bind("tab: complete")
-            readline.set_completer_delims(' \t\n;')
-            bam    = raw_input("\tPlease enter the location of the respective bam file. \n\t: ")
-            if bam == '':
-                print("\tField empty. Quitting...")
-                break
-            
-            config_file.write('\t'.join([name, affect, vcf, bam]))
+            while True:
+                print"-------------------------------"
+                print ("\nDATA CONFIRMATION:\n")
+                tmp = raw_input("\tDo you want to review your data?\n\t:'y' or 'n', Hit enter for 'n'\n\t:")or 'n'
+                if tmp == 'y':
+                    break
+                elif tmp =='n':
+                    ok_john_go_on=False
+                    break
+                
+        for line in line_list:
+            config_file.write(line)
             config_file.write('\n')
-            
-print"\n RESUME of the CONFIG FILE \n"
+print"-------------------------------"            
+print"\nRESUME of the CONFIG FILE \n"
 with open(args.config,'r+') as config_file:
     for line in config_file:
         print line
-        
+print"-------------------------------"          
