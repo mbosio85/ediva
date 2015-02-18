@@ -247,11 +247,11 @@ script_content = ("""
 source /etc/profile
 export _JAVA_OPTIONS=\"-Djava.io.tmpdir=$TMPDIR $_JAVA_OPTIONS\"
 
-OUTF=%s
-GATK=%s
-EDIVA=%s
-SAMTOOLS=%s
-REF=%s
+export OUTF=%s
+export GATK=%s
+export EDIVA=%s
+export SAMTOOLS=%s
+export REF=%s
 
 DBSNP=%s
 
@@ -391,7 +391,7 @@ for inhet_mode in args.inheritance:
 # run inheritance mode: %s
 %s $EDIVA/Prioritize/familySNP.py --infile $OUTF/combined.variants.supplement.ranked  --outfile $OUTF/%s/combined.variants.supplement.%s --filteredoutfile $OUTF/%s/combined.variants.supplement.filtered%s --family $OUTF/pedigree.tree --inheritance %s --familytype %s --geneexclusion $EDIVA/Resource/gene_exclusion_list.txt
     
-    """ % ((python_path,inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, args.familytype))
+    """ % ((inhet_mode,python_path, inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, args.familytype))
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Inheritance mode %s in all family members"%inhet_mode)
     p_element.set_error("Error in Inheritance %s in all family members execution Please refer to SGE job error file"%inhet_mode)

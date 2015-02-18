@@ -4,6 +4,7 @@ import pprint
 import re
 from scipy.stats import poisson
 import os
+import MySQLdb
 
 try:
     import xlsxwriter
@@ -120,6 +121,7 @@ def main (args):
     
     header.append('inheritance')
     header.append('filter')
+    header.extend(['OMIM_name','OMIM_ID','clinical_significance', 'disease_name', 'clinical_review',' access_number'])
     outfiltered.writerow(header)
     
     out.writerow(header)
@@ -567,50 +569,86 @@ def main (args):
         ## open output file for re-reading
         args.filteredfile.close()
         fh = open(args.filteredfile.name, 'r+')
-        #
-        ## open xls file for writing
-        #xls = xlsxwriter.Workbook(args.filteredfile.name + ".xlsx")
-        #worksheet = xls.add_worksheet('ediva_filtered' + args.inheritance)
-        #
-        #row = 0
-        #
-        ## read line by line and transform to xls
-        #for line in fh:
-        #    line.rstrip('\n')
-        #    data = line.split(',')
-        #    
-        #    worksheet.write_row(row, 0, data)
-        #    
-        #    row += 1
-        #
-        #xls.close()
-        
         # open output file for re-reading
         
         excel_name = '/variant_prioritization_report.xlsx'#args.filteredfile.name + ".xlsx"
         tmp_name = 'tmp.xlsx'
-        
-        excel_path  =  os.path.dirname(args.outfile).split('/')
-        excel_path  = '/'.join(excel_path)[:-1]
+
+        excel_path  =  os.path.dirname(args.outfile.name).split('/')
+        excel_path  = '/'.join(excel_path[:-1])
         excel_name = excel_path+excel_name
         
         
         # open xls file for writing
-        print "Printing the Excel file"
+        print "Printing the Excel file:"
         xls = xlsxwriter.Workbook(tmp_name)
-        worksheet = xls.add_worksheet('ediva_filtered' + args.inheritance)
-        row = 0
+        sheet_name = 'ediva_filtered' + args.inheritance
+        sheet_name=sheet_name[:30]
+        worksheet = xls.add_worksheet(sheet_name)
+        row_xls=0
         fh.seek(0)
+        username    = "rrahman"
+        database    = "eDiVa_scratch"
+        dbhost      = "mysqlsrv-ediva.linux.crg.es"
+        passw       = "mDWr41J1"
+         
+        db = MySQLdb.connect(host=dbhost, # your host, usually localhost
+        user=username, # your username
+        passwd=passw)#, # your password
+        #db=database) # name of the data base        
+        cur = db.cursor()
+        
+        
         # read line by line and transform to xls
         for line in fh:
             #line.rstrip('\n')
             data = line.split(',')
-            worksheet.write_row(row, 0, data)            
-            row += 1
+            
+            ## Adding Omim and Clinvar annotation 18-02-2015
+                    
+            gene_name = data[6]
+            
+            sql = ("SELECT gene_name , title_mim_number ,details_mim_number "+
+                   "FROM eDiVa_scratch.Table_gene2mim, eDiVa_scratch.Table_omim "+
+                   "where eDiVa_scratch.Table_gene2mim.mim_number = eDiVa_scratch.Table_omim.mim_number "+
+                   "and eDiVa_scratch.Table_gene2mim.gene_name ='%s';"%gene_name)
+                #sql = "select chr,pos,lengthofrepeat,copyNum,region from ediva_public_omics.Table_simpleRepeat;"
+            cur.execute(sql)
+            
+            omim_disease = ""
+            omim_web=""
+            
+            for row in cur:
+                omim_disease+=str(row[1])+" | "
+                omim_web+=str(row[2])+" | "
+            sql_clinvar =("SELECT clinical_significance, disease_name, clinical_review, access_number "+
+                          "FROM eDiVa_scratch.Table_clinvar "+
+                          "WHERE chr='%s' and pos='%s' and ref='%s'and alt='%s'"
+                          %(data[0],data[1],data[2],data[3])
+            )
+            
+            
+            cur.execute(sql_clinvar)         
+            clinvar_clinical_significance = ""
+            clinvar_disease_name = ""
+            clinvar_clinical_review = ""
+            clinvar_access_number = ""
+            for row in cur:
+                clinvar_clinical_significance +=str(row[0])+" | "
+                clinvar_disease_name +=str(row[1])+" | "
+                clinvar_clinical_review +=str(row[2])+" | "
+                clinvar_access_number +=str(row[3])+" | "
+            
+            data.extend([omim_disease,omim_web,clinvar_disease_name,clinvar_access_number,clinvar_clinical_review,clinvar_clinical_significance])
+            ######## -till here
+            worksheet.write_row(row_xls, 0, data)            
+            row_xls += 1
+        cur.close()
+        db.close()
         
             
         #check if already exist
-        with open(excel_name,'r') as old_excel:
+        try:
             print "Updating the existing file with the already existing sheets"
             workbook_rd = xlrd.open_workbook(excel_name)
             worksheets = workbook_rd.sheet_names()
@@ -629,9 +667,11 @@ def main (args):
                             #print row
                 except:
                     print "There was a problem in processing %s sheet. \nIt may be because the sheet was already there before"%(worksheet_name)
+            os.remove(excel_name)
+        except:
+            pass
         fh.close()
         xls.close()
-        os.remove(excel_name)
         os.rename(tmp_name, excel_name)
     
     exit(0)

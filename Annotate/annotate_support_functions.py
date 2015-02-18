@@ -154,18 +154,19 @@ def out_file_generate(infile,qlookup,templocation,forceDel,tempfile):
     outFileIns      = ''
     
     if qlookup == "NA":
-        filename = ntpath.basename(infile)[:-4]
-        pathname = ntpath.dirname(infile)
+        filename = os.path.basename(infile)[:-4]
+        pathname = os.path.dirname(infile)
         if len(pathname)>1:
             pathname = pathname +'/'
             if templocation == "INPATH":
                 templocation = pathname
         elif templocation == "INPATH":
                 templocation = "."
-            
-        outFile  = pathname+ "/"+filename+".annotated"
-        sortedOutFile = pathname+"/" + filename +".sorted.annotated"
-        outFileIns = pathname+"/"+filename + ".inconsistent.annotated"       
+        
+	
+        outFile  = pathname+ filename+".annotated"
+        sortedOutFile = pathname+ filename +".sorted.annotated"
+        outFileIns = pathname+filename + ".inconsistent.annotated"       
         ## check on output file existence
         if os.path.exists(outFile) or os.path.exists(sortedOutFile):
             ## check for new file creation flag
@@ -956,13 +957,13 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                                     ## check for the GT and AD fields
                                     if gtindex == "NF":
                                         print ("WARNING:: Weird genotype format %s found in $input at chromosome %s and position %s. No GT field present in %s \n"
-                                               %(myline[8],chr_col,pos,myline[8] ))
+                                               %(myline[8],chr_col,position,myline[8] ))
                                     if adindex == "NF":
                                         print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. No AD field present in %s \n"
-                                        %(myline[8], infile,chr_col,pos,myline[8]))
+                                        %(myline[8], infile,chr_col,position,myline[8]))
                                 else:
                                     print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. Expected genotype format field separator \":\" \n"
-                                           %(myline[8],infile,chr_col,pos))
+                                           %(myline[8],infile,chr_col,position))
                         ## process based on alteration
 			    if ',' in alt : ## section for all sites other than bi-allelic
 				alts = alt.split(',')

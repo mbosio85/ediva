@@ -177,7 +177,7 @@ def main ():
     
     ##############################################
     print('Database search for OMIM values for a subset of variants')
-    db_search(alldata_transpose[6])
+    db_search(alldata_transpose[6],alldata_transpose[0],alldata_transpose[1],alldata_transpose[2],alldata_transpose[3])
     
     #excel writing
     ### write an xls output by reading the existing output file if it exists
@@ -329,7 +329,7 @@ def bin_list(in_list,th_1=None,th_2=None,invert=False,n_bins=100):
     return out_array#.astype(int).tolist()
   
   
-def db_search(variant_list):
+def db_search(variant_list,chr_,pos,ref,alt):
     ''' Function to search in the edivaweb database the omim links for each of the ranked variants
     And then store the result in a new table.
     It's a test to see wether we can get the data from that database or not'''
@@ -338,9 +338,9 @@ def db_search(variant_list):
     outStr = dict()
     ## DB parameters
     username    = "rrahman"
-    database    = "eDiVa_public_omics"
-    dbhost      = "www.ediva.crg.eu"#:3306"
-    passw       = "Temp1234"
+    database    = "eDiVa_scratch"
+    dbhost      = "mysqlsrv-ediva.linux.crg.es"
+    passw       = "mDWr41J1"
      
     db = MySQLdb.connect(host=dbhost, # your host, usually localhost
     user=username, # your username
@@ -348,21 +348,46 @@ def db_search(variant_list):
     #db=database) # name of the data base
     
     cur = db.cursor()
-    for i in range(10):
+    for i in range(10):#len(variant_list)):
         gene_name = variant_list[i]
+        
         sql = ("SELECT gene_name , title_mim_number ,details_mim_number "+
-               "FROM eDiVa_innoDB.Table_gene2mim, eDiVa_innoDB.Table_omim "+
-               "where eDiVa_innoDB.Table_gene2mim.mim_number = eDiVa_innoDB.Table_omim.mim_number "+
-               "and eDiVa_innoDB.Table_gene2mim.gene_name ='%s';"%gene_name)
+               "FROM eDiVa_scratch.Table_gene2mim, eDiVa_scratch.Table_omim "+
+               "where eDiVa_scratch.Table_gene2mim.mim_number = eDiVa_scratch.Table_omim.mim_number "+
+               "and eDiVa_scratch.Table_gene2mim.gene_name ='%s';"%gene_name)
             #sql = "select chr,pos,lengthofrepeat,copyNum,region from ediva_public_omics.Table_simpleRepeat;"
     
         cur.execute(sql)
 
         count = 0
+        omim_disease =""
+        omim_2 = ""
         for row in cur:
             count +=1
             print row
-        #print("%s  : %d mim_terms"%(gene_name,count))    
+   
+            omim_2+=row[2]+ " | "
+            omim_disease+=row[1]+ " | "
+        print omim_disease
+        print omim_2
+        print '\n\n'
+        if count >1:
+            print("%s  : %d mim_terms"%(gene_name,count))
+        
+        
+        sql_clinvar =("SELECT clinical_significance, disease_name, clinical_review, access_number "+
+                      "FROM eDiVa_scratch.Table_clinvar "+
+                      "WHERE chr='%s' and pos='%s' and ref='%s'and alt='%s'"
+                      %(chr_[i],pos[i],ref[i],alt[i] )
+        )
+        cur.execute(sql_clinvar)
+
+        count = 0
+        for row in cur:
+            count +=1
+            #print row[0:2]
+        if count >1:
+            print("%s  : %d clinvar_count \n"%(gene_name,count))
     cur.close()
     db.close()
     
