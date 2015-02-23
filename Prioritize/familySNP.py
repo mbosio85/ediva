@@ -587,10 +587,10 @@ def main (args):
         worksheet = xls.add_worksheet(sheet_name)
         row_xls=0
         fh.seek(0)
-        username    = "rrahman"
-        database    = "eDiVa_scratch"
+        username    = "edivacrg"
+        database    = "eDiVa_annotation"
         dbhost      = "mysqlsrv-ediva.linux.crg.es"
-        passw       = "mDWr41J1"
+        passw       = "FD5KrT3q"
          
         db = MySQLdb.connect(host=dbhost, # your host, usually localhost
         user=username, # your username
@@ -609,9 +609,9 @@ def main (args):
             gene_name = data[6]
             
             sql = ("SELECT gene_name , title_mim_number ,details_mim_number "+
-                   "FROM eDiVa_scratch.Table_gene2mim, eDiVa_scratch.Table_omim "+
-                   "where eDiVa_scratch.Table_gene2mim.mim_number = eDiVa_scratch.Table_omim.mim_number "+
-                   "and eDiVa_scratch.Table_gene2mim.gene_name ='%s';"%gene_name)
+                   "FROM eDiVa_annotation.Table_gene2mim, eDiVa_annotation.Table_omim "+
+                   "where eDiVa_annotation.Table_gene2mim.mim_number = eDiVa_annotation.Table_omim.mim_number "+
+                   "and eDiVa_annotation.Table_gene2mim.gene_name ='%s';"%gene_name)
                 #sql = "select chr,pos,lengthofrepeat,copyNum,region from ediva_public_omics.Table_simpleRepeat;"
             cur.execute(sql)
             
@@ -622,7 +622,7 @@ def main (args):
                 omim_disease+=str(row[1])+" | "
                 omim_web+=str(row[2])+" | "
             sql_clinvar =("SELECT clinical_significance, disease_name, clinical_review, access_number "+
-                          "FROM eDiVa_scratch.Table_clinvar "+
+                          "FROM eDiVa_annotation.Table_clinvar "+
                           "WHERE chr='%s' and pos='%s' and ref='%s'and alt='%s'"
                           %(data[0],data[1],data[2],data[3])
             )
