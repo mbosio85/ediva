@@ -587,7 +587,7 @@ def seq_pipeline(script,in_paths,in_vars):
                echo Local Re-alignment
                echo -e "\\n #### doing Local Realignment: java -jar $GATK -nt {0[cpu]} -T RealignerTargetCreator -R $REF -I $TMPDIR/$NAME.sort.bam -o $OUTF/$NAME.intervals -known $DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE \\n\"
                java -jar $GATK -nt {0[cpu]} -T RealignerTargetCreator -R $REF -I $TMPDIR/$NAME.sort.bam -o $OUTF/$NAME.intervals -known $DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE # -L $EXOME
-               java -jar $GATK -nt {0[cpu]} -T IndelRealigner -R $REF -I $TMPDIR/$NAME.sort.bam -targetIntervals $OUTF/$NAME.intervals -o $TMPDIR/$NAME.realigned.bam -known $DBINDEL --maxReadsForRealignment 10000 --consensusDeterminationModel USE_SW --downsampling_type NONE # -L $EXOME
+               java -jar $GATK  -T IndelRealigner -R $REF -I $TMPDIR/$NAME.sort.bam -targetIntervals $OUTF/$NAME.intervals -o $TMPDIR/$NAME.realigned.bam -known $DBINDEL --maxReadsForRealignment 10000 --consensusDeterminationModel USE_SW --downsampling_type NONE # -L $EXOME
             else
                echo $NAME.sort.bam.bai not found >&2
                exit 1
