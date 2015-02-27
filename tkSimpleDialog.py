@@ -253,27 +253,30 @@ class Predict_window(Dialog):
     Window to gather the needed Annotate.py values : the output is a dictionary with variables to launch the command.
     '''
     def file_search(self):
+        str_default='Config. File'
         self.file = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('All files','*')],title='Choose the  configuration file')
         if self.file != None:
             self.file =abs_path = os.path.abspath(self.file.name)
-            self.filename_string.set(self.filename_string.get() + ' [...%s]'%self.file[-15:])
+            self.filename_string.set(str_default + ' [...%s]'%self.file[-15:])
         else:
             self.file = None
         
         #return abs_path
         
     def infolder_search(self):
+        str_default='Input Folder'
         try:
             self.infolder = tkFileDialog.askdirectory(parent=self)
             if self.infolder != None and os.path.isdir(self.infolder):
                 self.infolder=os.path.abspath(self.infolder)
-                self.infolder_string.set(self.infolder_string.get() + ' [...%s]'%self.infolder[-15:])
+                self.infolder_string.set(str_default + ' [...%s]'%self.infolder[-15:])
                 #self.infolder_string.set('In_dir : %s'%self.infolder)
         except:
             self.infolder=None
         
     
     def outfolder_search(self):
+        str_default='Output Folder'
         try:
             self.outfolder = tkFileDialog.askdirectory(parent=self)
             if self.outfolder != None and os.path.isdir(self.outfolder):
@@ -303,7 +306,7 @@ class Predict_window(Dialog):
         
         #Infolder selection button
         self.infolder_string = StringVar()
-        self.infolder_string.set('Input directory')
+        self.infolder_string.set('Input Folder')
         self.infolder_ = Button(master,textvariable=self.infolder_string,command=self.infolder_search,width=50,background=steel,fg='white',
                                 font=(font_type, txt_dim),activebackground= emerald,activeforeground='white'  )
         #self.infolder_ = Button(master,text='Input directory',command=self.infolder_search,width=50,background=steel,fg='white',
@@ -312,7 +315,7 @@ class Predict_window(Dialog):
         
         #Outfolder selection button
         self.outfolder_string = StringVar()
-        self.outfolder_string.set('Outfolder directory')
+        self.outfolder_string.set('Output Folder')
         self.outfolder_ = Button(master,textvariable=self.outfolder_string,command=self.outfolder_search,width=50,
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= emerald,activeforeground='white'  )        
         self.outfolder_.grid(row=2,column=0,columnspan=3)
@@ -467,6 +470,7 @@ class Predict_window(Dialog):
                 "mem"       :self.mem.get(),
                 "cpu"       :self.cpu.get(),
                 "qopts"     :NewWin.result+cpu_mem_params
+                
                 }
             #print self.result
         else :
@@ -567,11 +571,12 @@ class Prioritize_window(Dialog):
         return var.get()
     
     def config_file_search(self):
+        str_default='Global configuration file'
         file_ = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('All files','*')],title='Choose the  configuration file')
         if file_ != None and file != 'None':
             file_ =abs_path = os.path.abspath(file_.name)
             self.config_file.set(file_)
-            self.cfg_str.set(self.cfg_str.get()+ '[...%s]'%self.config_file.get()[-15:])
+            self.cfg_str.set(str_default+ '[...%s]'%self.config_file.get()[-15:])
             return None
         else:
             pass
@@ -579,11 +584,12 @@ class Prioritize_window(Dialog):
         #return abs_path
         
     def family_file_search(self):
+        str_default = 'Family configuration file'
         file_ = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('All files','*')],title='Choose the  configuration file')
         if file_ != None and file != 'None':
             file_ =abs_path = os.path.abspath(file_.name)
             self.family_file.set(file_)
-            self.family_str.set(self.family_str.get() + '[...%s]'%self.family_str.get()[-15:])
+            self.family_str.set(str_default + '[...%s]'%self.family_str.get()[-15:])
             return None
         else:
             pass
@@ -592,15 +598,31 @@ class Prioritize_window(Dialog):
         
     
     def outfolder_search(self):
+        str_default='Outfolder directory'
         try:
             self.outfolder = tkFileDialog.askdirectory(parent=self)
                 
             if self.outfolder != None:
                 self.outfolder=os.path.abspath(self.outfolder)
-                self.outfolder_string.set(self.outfolder_string.get() + ' [...%s]'%self.outfolder[-15:])
+                self.outfolder_string.set(str_default + ' [...%s]'%self.outfolder[-15:])
         except:
             pass
-
+    
+    def gex_file_search(self):
+        str_default='Gene exclusion list file'
+        file_ = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('txt files','*.txt')],
+                title='Choose the  gene exclusion list file',
+                initialdir='/users/GD/tools/ediva/Resource/')
+        if file_ != None and file != 'None':
+            file_ =abs_path = os.path.abspath(file_.name)
+            self.gex_file.set(file_)
+            self.gex_str.set(str_default+ '[...%s]'%self.gex_file.get()[-15:])
+            return None
+        else:
+            pass
+        
+        #return abs_path
+    
     def ok(self, event=None):
         if not self.validate():
             self.initial_focus.focus_set() # put focus back
@@ -618,116 +640,151 @@ class Prioritize_window(Dialog):
     def body(self, master):
         self.configure(background =steel)
         self.resizable(0,0)
+        cur_row =0 
         #Title
-        Label(master, text="\nPrioritize Options:\n",background=cobalt,fg='white',font=(font_type, txt_dim)).grid(row=0,column=0,columnspan=3,sticky='W'+'E')
+        Label(master, text="\nPrioritize Options:\n",background=cobalt,fg='white',font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
+        
         
         #Config file selection button
+        cur_row+=1
         self.config_file = StringVar()
         self.cfg_str = StringVar()
         self.cfg_str.set('Global configuration file')
         self.cfg_button = Button(master,textvariable=self.cfg_str,command=self.config_file_search,width=50,
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )       
-        self.cfg_button.grid(row=1,column=0,columnspan=3)
+        self.cfg_button.grid(row=cur_row,column=0,columnspan=3)
         
         #Config file selection button
+        cur_row+=1
         self.family_file = StringVar()
         self.family_str = StringVar()
         self.family_str.set('Family configuration file')
         fam_button = Button(master,textvariable = self.family_str,command= self.family_file_search ,width=50,
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )       
-        fam_button.grid(row=2,column=0,columnspan=3)
+        fam_button.grid(row=cur_row,column=0,columnspan=3)
        
         #Outfolder selection button
+        cur_row+=1
         self.outfolder_string = StringVar()
         self.outfolder_string.set('Outfolder directory')
         self.outfolder_ = Button(master,textvariable=self.outfolder_string,command=self.outfolder_search,width=50,
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )        
-        self.outfolder_.grid(row=3,column=0,columnspan=3)
+        self.outfolder_.grid(row=cur_row,column=0,columnspan=3)
         
-        #Family Type [trio - family]
-        Label(master, text="Select the Family type:",background=steel,fg='white',font=(font_type, txt_dim)).grid(row=4,column=0,columnspan=1,sticky=W)
+        #Gene_exclusion_list file
+        cur_row+=1
+        self.gex_file = StringVar()
+        self.gex_str = StringVar()
+        self.gex_str.set('Gene exclusion list file')
+        self.gex_button = Button(master,textvariable=self.gex_str,command=self.gex_file_search,width=50,
+                                 background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )       
+        self.gex_button.grid(row=cur_row,column=0,columnspan=3)
+        
+        
+        cur_row+=1
+        Label(master, text="---------------------------------------------------",background=steel,fg='white').grid(row=cur_row,column=0,columnspan=3)
+        
+                #Family Type [trio - family]
+        cur_row+=1
+        Label(master, text="Select the Family type:",background=steel,fg='white',font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=1,sticky=W)
         #Combo box button
         self.var_value = StringVar()
         fam_type =ttk.Combobox(master,state='readonly', textvariable=self.var_value,background=cobalt,font=(font_type, txt_dim-2))
         fam_type['values'] = ('family', 'trio')
         fam_type.current(0)
-        fam_type.grid(row=4,column=2,sticky='W')
+        fam_type.grid(row=cur_row,column=2,sticky='W')
+        
+        cur_row+=1
+        Label(master, text="---------------------------------------------------",background=steel,fg='white').grid(row=cur_row,column=0,columnspan=3)
         
         #Inheritance
-        Label(master, text="Select Inheritance mode/s:",background=steel,fg='white',font=(font_type, txt_dim)).grid(row=5,column=0,columnspan=3)
+        cur_row+=1
+        Label(master, text="Select Inheritance mode/s:",background=steel,fg='white',font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3)
+        cur_row+=1
         self.var_ih1 = IntVar()
         ih1 = Checkbutton(master, text="dominant_inherited", variable=self.var_ih1,background=steel,fg='white',selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground='white' )
-        ih1.grid(row=6 ,column=0)
+        ih1.grid(row=cur_row ,column=0)
         self.var_ih2 = IntVar()
         ih2 = Checkbutton(master, text="recessive", variable=self.var_ih2,background=steel,fg='white',selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground='white' )
-        ih2.grid(row=6 ,column=1)
+        ih2.grid(row=cur_row ,column=1)
         self.var_ih3 = IntVar()
         ih3 = Checkbutton(master, text="dominant_denovo", variable=self.var_ih3,background=steel,fg='white',selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground='white' )
-        ih3.grid(row=6 ,column=2)
+        ih3.grid(row=cur_row ,column=2)
+        
+        cur_row+=1
         self.var_ih4 = IntVar()
         ih4 = Checkbutton(master, text="Xlinked", variable=self.var_ih4,background=steel,fg='white',selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground='white' )
-        ih4.grid(row=7 ,column=0,columnspan=2)
+        ih4.grid(row=cur_row ,column=0,columnspan=2)
         self.var_ih5 = IntVar()
         ih5 = Checkbutton(master, text="compound", variable=self.var_ih5,background=steel,fg='white',selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground='white' )
-        ih5.grid(row=7 ,column=1,columnspan=2)
+        ih5.grid(row=cur_row ,column=1,columnspan=2)
         
         #Force and Multisample tickmarks:
-        Label(master, text="---------------------------------------------------",background=steel,fg='white').grid(row=8,column=0,columnspan=3)
+        cur_row+=1
+        Label(master, text="---------------------------------------------------",background=steel,fg='white').grid(row=cur_row,column=0,columnspan=3)
         self.var_f = IntVar()
+        
+        cur_row+=1
         self.f = Checkbutton(master, text="Force writing?", variable=self.var_f,background=steel,fg='white',selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground='white' )
-        self.f.grid(row=9,column=0,columnspan=1,sticky='W')
+        self.f.grid(row=cur_row,column=0,columnspan=1,sticky='W')
        
+        
         self.var_o = IntVar()
         self.o = Checkbutton(master, text="Multisample Input?", variable=self.var_o,background=steel,fg='white',selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground='white' )
-        self.o.grid(row=9,column=2,columnspan=1,sticky='E') 
+        self.o.grid(row=cur_row,column=2,columnspan=1,sticky='E') 
     
         #
         ##qsubname and jobname
-        Label(master, text="---------------------------------------------------",background=steel,fg='white').grid(row=10,column=0,columnspan=3)
-
+        cur_row+=1
+        Label(master, text="---------------------------------------------------",background=steel,fg='white').grid(row=cur_row,column=0,columnspan=3)
         self.qsub = Entry(master, background=cobalt,fg='white',font=(font_type, txt_dim-2))
         self.qsub.insert(0,'prioritize.sh')
         self.jname= Entry(master, background=cobalt,fg='white',font=(font_type, txt_dim-2))
         self.jname.insert(0,'prioritize_job')
-        Label(master, text="Qsub name:", background=steel,fg='white',font=(font_type, txt_dim)).grid(row=11,column=0,columnspan=1,sticky='W')
-        Label(master, text="Job name:", background=steel,fg='white',font=(font_type, txt_dim)).grid(row=12,column=0,columnspan=1,sticky='W')
-        self.qsub.grid(row=11, column=2,columnspan=2,sticky='E')
-        self.jname.grid(row=12, column=2,columnspan=2,sticky='E')
+        
+        cur_row+=1
+        Label(master, text="Qsub name:", background=steel,fg='white',font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=1,sticky='W')
+        self.qsub.grid(row=cur_row, column=2,columnspan=2,sticky='E')
+        cur_row+=1
+        Label(master, text="Job name:", background=steel,fg='white',font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=1,sticky='W')
+        self.jname.grid(row=cur_row, column=2,columnspan=2,sticky='E')
         
         #CPU label and buttons
+        cur_row+=1
         self.cpu = IntVar()
-        self.cpu.set(1)
+        self.cpu.set(3)
         self.lcpu = Label(master, textvariable = (self.cpu),width=20, background=steel,fg='white',font=(font_type, txt_dim))
         self.nlcpu = Label(master, text = 'CPU',width=20, background=steel,fg='white',font=(font_type, txt_dim-4))
-        self.lcpu.grid(row=14,column=0,columnspan=1)#,sticky='E')
-        self.nlcpu.grid(row=13,column=0,columnspan=1)#,sticky='W')
+        self.lcpu.grid(row=cur_row+1,column=0,columnspan=1)#,sticky='E')
+        self.nlcpu.grid(row=cur_row,column=0,columnspan=1)#,sticky='W')
         self.plus_cpu = Button(master,text = '+',command=lambda : self.cpu.set(self.plus1(self.cpu,self.lcpu) ) ,
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )
         self.minus_cpu = Button(master,text= '-',command=lambda : self.cpu.set(self.minus1(self.cpu,self.lcpu) ),
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )
-        self.plus_cpu.grid(row=14,column=0,sticky='E')
-        self.minus_cpu.grid(row=14,column=0,sticky='W')
+        self.plus_cpu.grid(row=cur_row+1,column=0,sticky='E')
+        self.minus_cpu.grid(row=cur_row+1,column=0,sticky='W')
 
         #MEM GB label and buttons
         self.mem = IntVar()
-        self.mem.set(12)
+        self.mem.set(20)
         self.l_mem = Label(master, textvariable = (self.mem),width=20, background=steel,fg='white',font=(font_type, txt_dim))
         self.n_mem = Label(master, text = 'GB Memory',width=20, background=steel,fg='white',font=(font_type, txt_dim-4))
-        self.l_mem.grid(row=14,column=2,columnspan=1)
-        self.n_mem.grid(row=13,column=2,columnspan=1)
+        self.l_mem.grid(row=cur_row+1,column=2,columnspan=1)
+        self.n_mem.grid(row=cur_row,column=2,columnspan=1)
         self.plus_mem = Button(master,text ='+',command=lambda : self.mem.set(self.plus1(self.mem,self.l_mem) ),
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )
         self.minus_mem = Button(master,text='-',command=lambda : self.mem.set(self.minus1(self.mem,self.l_mem) ),
                                  background=steel,fg='white',font=(font_type, txt_dim),activebackground= cobalt,activeforeground='white'  )
-        self.plus_mem.grid(row=14,column=2,sticky='E')
-        self.minus_mem.grid(row=14,column=2,sticky='W')
+        self.plus_mem.grid(row=cur_row+1,column=2,sticky='E')
+        self.minus_mem.grid(row=cur_row+1,column=2,sticky='W')
+        
         
         return self.cfg_button
     def apply(self):
@@ -742,7 +799,8 @@ class Prioritize_window(Dialog):
                 "qsubname"  :self.qsub.get(),
                 "jobname"   :self.jname.get(),
                 "inheritance":self.inheritance,
-                "qopts"     :NewWin.result+cpu_mem_params
+                "qopts"     :NewWin.result+cpu_mem_params,
+                "gex_file"  :self.gex_file.get()
                 }
 
             if len(self.config_file.get())>0and self.config_file.get()!='None' :
@@ -763,6 +821,14 @@ class Prioritize_window(Dialog):
                 raise
         except:
             tkMessageBox.showwarning("Prioritize","Please Select one Output Folder")
+            return 0
+        #valiate cfg_file
+        try:
+            infile = self.gex_file.get()
+            if not(os.path.isfile(infile)):
+                raise
+        except:
+            tkMessageBox.showwarning("Prioritize","Please Select one gene exclusion list file")
             return 0
         #check qsubname 
         if len(self.qsub.get())<1 :
@@ -907,7 +973,7 @@ class qSubDetails(Dialog):
         
         self.email = Entry(master, background=orange,fg='white',font=(font_type, txt_dim-2))
         self.email.insert(0,'xxx@crg.es')
-        Label(master, text="Mail Addresss:", background=steel,fg='white',font=(font_type, txt_dim)).grid(row=8,column=0,columnspan=1,sticky=W)
+        Label(master, text="Mail Address:", background=steel,fg='white',font=(font_type, txt_dim)).grid(row=8,column=0,columnspan=1,sticky=W)
         self.email.grid(row =8, column=1)
            
         return self.queue # initial focus   

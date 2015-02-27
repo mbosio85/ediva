@@ -319,7 +319,7 @@ def edivaPublicOmics_search(chr,pos):
         out = str(row[1])+','+str(row[0])
     cur.close()
     db.close()
-    print out
+    #print out
 
     return out
 #@@ Done

@@ -61,7 +61,7 @@ def main ():
     args = parser.parse_args()
     
     alldata = list(csv.reader(args.infile))
-    
+
     header = alldata.pop(0)
     index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
     index_genicfunction = identifycolumns(header, 'Function(Refseq)')
@@ -151,6 +151,7 @@ def binning (alldata, header, parameter):
         index_EVS    = identifycolumns(header, 'TotalEVSFrequency')
         column_1000G = list(alldata[index_1000G])
         column_EVS   = list(alldata[index_EVS])
+
         
         # clean out closet (substitute NA by 0):
         for i in range(len(column_1000G)):
@@ -158,8 +159,8 @@ def binning (alldata, header, parameter):
                 column_1000G[i] = str(0)
             if column_EVS[i] == 'NA':
                 column_EVS[i]   = str(0)
-        
-        
+
+
         array_1000G = sp.array(column_1000G, dtype=sp.float32)
         mean_1000G  = sp.mean(array_1000G)
         

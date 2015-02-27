@@ -92,6 +92,11 @@ for line in args.config:
 
     elif splitline[0] == 'EXOME':
         exome = splitline[1];
+if args.geneexclusion == None:
+    print('Warning: Using the default gene exclusion list')
+    gene_exclusion_list='$EDIVA/Resource/gene_exclusion_list.txt'
+else:
+    gene_exclusion_list=args.geneexclusion
 
 
 # read a family config file, that gives the ID, affection status, vcf location, bam location
@@ -103,6 +108,9 @@ sample_list = list()
 affection   = dict()
 no_bams_given = False
 qoptions_def  = False
+
+
+
 
 for line in args.family:    
     # find the header and skip it
@@ -220,10 +228,10 @@ if qclass:
         qoptions['-o'].append(str(args.outfolder))
         qoptions['-N'] = [job_name]
         if qoptions.get('-l',False):
-            qoptions['-l'].append("virtual_free=%dG"%mem)
+            qoptions['-l'].append("virtual_free=20G"%mem)
         else:
             qoptions['-l'] = list()
-            qoptions['-l'].append("virtual_free=%dG,h_rt=51600"%mem)
+            qoptions['-l'].append("virtual_free=20G,h_rt=51600")
         qoptions['-pe'] = list() 
     else:
         print "Automatic Logfile:%s"%logfile
@@ -279,6 +287,7 @@ rm $OUTF/combined.variants.temp.vcf
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Multisample + filtering")
     p_element.set_error("Error in multisample+filtering executions Please refer to SGE job error file")
+    p_element.set_alias("Select multisample variants")
     pipe.append(p_element)
 
 
@@ -297,6 +306,9 @@ java -jar $GATK -T CombineVariants -R $REF %s -o $OUTF/combined.variants.vcf --u
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Non multisample + vcf merging")
     p_element.set_error("Error in merging executions Please refer to SGE job error file")
+    filename = args.outfolder+'/combined.variants.vcf'
+    p_element.set_condition([filename,None])
+    p_element.set_alias("Combine variants")
     pipe.append(p_element)
 
 
@@ -320,6 +332,8 @@ cp $OUTF/combined.variants.vcf $OUTF/combined.variants.supplement.vcf
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Renaming VCF")
     p_element.set_error("Error in renaming VCF executions Please refer to SGE job error file")
+    filename = args.outfolder+'/combined.variants.supplement.vcf'
+    p_element.set_condition([filename,None])
     pipe.append(p_element)
 
 # if everything is fine, do genotyping in all family members
@@ -337,7 +351,10 @@ rm $OUTF/combined.variants.supplement.temp.vcf
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Genotyping in all family members")
     p_element.set_error("Error in Genotyping in all family members execution Please refer to SGE job error file")
+    filename = args.outfolder+'/combined.variants.supplement.vcf'
+    p_element.set_condition([filename,None])
     pipe.append(p_element)
+
 ######
 # do the annotation
 ######
@@ -354,6 +371,8 @@ text= """
 script_content += text
 p_element = pipeline_element.pipeline_element(env_var+text,"Annotation in all family members")
 p_element.set_error("Error in Annotation execution Please refer to SGE job error file")
+filename = args.outfolder+'/combined.variants.supplement.sorted.annotated'
+p_element.set_condition([filename,None])
 pipe.append(p_element)
 
 ######
@@ -369,7 +388,10 @@ text= """
 script_content += text
 p_element = pipeline_element.pipeline_element(env_var+text,"Ranking in all family members")
 p_element.set_error("Error in Ranking execution Please refer to SGE job error file")
+filename = args.outfolder+'/combined.variants.supplement.ranked'
+p_element.set_condition([filename,None])
 pipe.append(p_element)
+
 ######
 # inheritance pattern
 ######
@@ -389,12 +411,14 @@ for inhet_mode in args.inheritance:
     text ="""
     
 # run inheritance mode: %s
-%s $EDIVA/Prioritize/familySNP.py --infile $OUTF/combined.variants.supplement.ranked  --outfile $OUTF/%s/combined.variants.supplement.%s --filteredoutfile $OUTF/%s/combined.variants.supplement.filtered%s --family $OUTF/pedigree.tree --inheritance %s --familytype %s --geneexclusion $EDIVA/Resource/gene_exclusion_list.txt
+%s $EDIVA/Prioritize/familySNP.py --infile $OUTF/combined.variants.supplement.ranked  --outfile $OUTF/%s/combined.variants.supplement.%s --filteredoutfile $OUTF/%s/combined.variants.supplement.filtered%s --family $OUTF/pedigree.tree --inheritance %s --familytype %s --geneexclusion %s
     
-    """ % ((inhet_mode,python_path, inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, args.familytype))
+    """ % ((inhet_mode,python_path, inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, args.familytype,gene_exclusion_list))
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Inheritance mode %s in all family members"%inhet_mode)
     p_element.set_error("Error in Inheritance %s in all family members execution Please refer to SGE job error file"%inhet_mode)
+    filename = args.outfolder+'/%s/combined.variants.supplement.%s'%(inhet_mode,inhet_mode)
+    p_element.set_condition([filename,None])
     pipe.append(p_element)
     
 

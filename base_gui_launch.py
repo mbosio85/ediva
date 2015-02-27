@@ -32,12 +32,14 @@ def predict_win():
         commandline  = """--infolder {0[infolder]} --outfolder {0[outfolder]} --qsubname {0[qsubname]} --config  {0[config]} --max_coverage {0[max_cov]}""".format(NewWin.result)
         commandline  += """ --namestart {0[namestart]} --namelength {0[namelength]} --firstreadextension {0[read1]} --secondreadextension  {0[read2]} --indelcaller {0[indel]}""".format(NewWin.result)
         commandline += """ --cpu {0[cpu]} --mem {0[mem]} """.format(NewWin.result)
+        if NewWin.result['force']==1:
+            commandline += " --fusevariants "
         commandline +=""" --qoptions " {0[qopts]}" """.format(NewWin.result) #The space before { is key for the command line to work
         if NewWin.result.get('sample_list',False):
                commandline += " --sample_list "+NewWin.result.get('sample_list',False)
                
         commandline = python_path + ' ' + predict_script + ' ' + commandline + '&'
-        print commandline         
+        #print commandline         
         subprocess.Popen(commandline,shell=True)
         
         
@@ -68,7 +70,7 @@ def annotate_win():
             commandline += " -o"
 
         commandline = python_path + ' ' + annotate_script + ' ' + commandline + '&'
-        print commandline
+        #print commandline
         subprocess.Popen(commandline,shell=True)
         
     #Predict.config(state='normal')
@@ -90,7 +92,7 @@ def prioritize_win():
 
     NewWin = tkd.Prioritize_window(root)
     if NewWin.result != None:
-        commandline = """--outfolder {0[outfolder]} --qsubname {0[qsubname]} --jobname  {0[jobname]} --familytype {0[familytype]}""".format(NewWin.result)
+        commandline = """--outfolder {0[outfolder]} --qsubname {0[qsubname]} --jobname  {0[jobname]} --familytype {0[familytype]} --geneexclusion {0[gex_file]}""".format(NewWin.result)
         
         if NewWin.result['force']==1:
             commandline += " --force "
@@ -102,9 +104,10 @@ def prioritize_win():
             commandline += " --config %s"%NewWin.result["config"] 
         if NewWin.result.get('family'):
             commandline += " --family %s"%NewWin.result["family"]
+        
         commandline +=""" --qoptions " {0[qopts]}" """.format(NewWin.result)#The space before { is key for the command line to work
         commandline = python_path + ' ' + prioritize_script + ' ' + commandline 
-        print commandline
+        #print commandline
         subprocess.Popen(commandline,shell=True)
 
     #Predict.config(state='normal')

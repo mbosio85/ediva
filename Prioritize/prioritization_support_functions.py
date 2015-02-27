@@ -242,6 +242,7 @@ def parse_args():
     parser.add_argument('--jobname', type=str, dest='job_name', required=False, default='prioritize', help='name of the job that will be run on your cluster [default: prioritize]')
     parser.add_argument('--force', action = 'store_true', help='Enable eDiVa to overwrite old output')
     parser.add_argument('--qoptions', type=str, dest='qoptions', required=False, help='--qoptions \t qsub options with this format: -X val,-Y val,-Z, -XX value\n')
+    parser.add_argument('--geneexclusion',type=str,dest='geneexclusion',required=False,help='--geneexclusion \t a .txt file with the list of genes to be excluded from prioritization\n')
     args = parser.parse_args()
     #now we collect the variables
     if args.config ==None  :
@@ -270,7 +271,9 @@ def parse_args():
         args.job_name = raw_input("Please insert the desired job name\n>")
     if args.force == None:
         #force
-        args.force = yes_no_alternative('no',"Please write if you want to enable the -force option: 'yes' - 'no'\n")       
+        args.force = yes_no_alternative('no',"Please write if you want to enable the -force option: 'yes' - 'no'\n")
+    if args.geneexclusion == None or not(os.path.isfile(args.geneexclusion)):
+        args.geneexclusion  = None
         
     
     # does the output folder exist?

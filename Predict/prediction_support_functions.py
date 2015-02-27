@@ -491,43 +491,40 @@ def write_header(script,in_paths,in_vars):
     value_dictionary = dict(in_paths.items() + in_vars.items())
 
     header = ("""
-#!/bin/bash
-set -e
-#$ -N {0[sdir]}
-#$ -e {0[outfolder]}/{0[sdir]}
-#$ -o {0[outfolder]}/{0[sdir]}
-#$ -pe smp {0[cpu]}
-#$ -l virtual_free={0[mem]}G
-
-### source /etc/profile
-
-
-""".format(value_dictionary))
+            #!/bin/bash
+            set -e
+            #$ -N {0[qsubname]}_{0[sdir]}
+            #$ -e {0[outfolder]}/{0[sdir]}
+            #$ -o {0[outfolder]}/{0[sdir]}
+            #$ -pe smp {0[cpu]}
+            #$ -l virtual_free={0[mem]}G
+            
+            ### source /etc/profile
+            """.format(value_dictionary))
     env_var =("""
- export _JAVA_OPTIONS="-Djava.io.tmpdir=$TMPDIR $_JAVA_OPTIONS"
-
- NAME={0[sdir]}
- READ1={0[infolder]}/{0[sname]}{0[first_e]}
- READ2={0[infolder]}/{0[sname]}{0[second_e]}
- OUTF={0[outfolder]}/{0[sdir]}
-
-
-
- REF={0[ref_genome]}
- SHOREREF={0[shore_ref]}
- DBINDEL={0[dbindel]}
- DBSNP={0[dbsnp]}
- BWA={0[bwa]}
- EDIVA={0[installdir]}
- GATK={0[gatk]}
- PICARD={0[picard]}
- SAMTOOLS={0[samtools]}
- NOVOSORT={0[novosort]}
- BEDTOOLS={0[bedtools]}
- CLINDEL={0[clindel]}
- EXOME={0[exome]}
- #TMPDIR={0[outfolder]}/{0[sdir]}
-
+        export _JAVA_OPTIONS="-Djava.io.tmpdir=$TMPDIR $_JAVA_OPTIONS"
+       
+        NAME={0[sdir]}
+        READ1={0[infolder]}/{0[sname]}{0[first_e]}
+        READ2={0[infolder]}/{0[sname]}{0[second_e]}
+        OUTF={0[outfolder]}/{0[sdir]}
+       
+       
+       
+        REF={0[ref_genome]}
+        SHOREREF={0[shore_ref]}
+        DBINDEL={0[dbindel]}
+        DBSNP={0[dbsnp]}
+        BWA={0[bwa]}
+        EDIVA={0[installdir]}
+        GATK={0[gatk]}
+        PICARD={0[picard]}
+        SAMTOOLS={0[samtools]}
+        NOVOSORT={0[novosort]}
+        BEDTOOLS={0[bedtools]}
+        CLINDEL={0[clindel]}
+        EXOME={0[exome]}
+        #TMPDIR={0[outfolder]}/{0[sdir]}       
     """.format(value_dictionary))
 
     script.write(header)
@@ -551,180 +548,199 @@ def seq_pipeline(script,in_paths,in_vars):
     #   Evaluation    
     #   Annotate Enrichment    
     #   Borrow Header from GATK vcf File '''
-
-    text = ("""
-### Align reads with bwa
-$BWA mem -M -t {0[cpu]}  -R "@RG\\tID:$NAME\\tSM:$NAME" $REF $READ1 $READ2 | time $SAMTOOLS view -h -b -S -F 0x900 -  > $TMPDIR/$NAME.noChimeric.bam
-
-### check for Quality encoding and transform to 33 if 64 encoding is encountered
-OFFSET=$($SAMTOOLS view $TMPDIR/$NAME.noChimeric.bam | python $EDIVA/Predict/whichQuality_bam.py)
-if [[ $OFFSET == 64 ]];
-then
-    echo "fixing 64 quality encoding"
-    $SAMTOOLS view -h $TMPDIR/$NAME.noChimeric.bam | python $EDIVA/Predict/bam_rescale_quals.py - | $SAMTOOLS view -bS - > $TMPDIR/$NAME.transformed.bam
-    rm $TMPDIR/$NAME.noChimeric.bam
-    mv $TMPDIR/$NAME.transformed.bam $TMPDIR/$NAME.noChimeric.bam
-fi
-
-### Sort BAM file
-if [ -s $TMPDIR/$NAME.noChimeric.bam ];
-then
-    echo Sort BAM
-    $NOVOSORT --threads {0[cpu]} --tmpdir $TMPDIR --forcesort --output $TMPDIR/$NAME.sort.bam -i -m {0[mem]}G $TMPDIR/$NAME.noChimeric.bam
-    cp $TMPDIR/$NAME.sort.bam* $OUTF/
-    # clean up
-    rm $TMPDIR/$NAME.noChimeric.bam
-else
-    echo $TMPDIR/$NAME.noChimeric.bam not found >&2
-    exit 1
-fi
-
-
-### Local Re-alignment
-if [ -s $TMPDIR/$NAME.sort.bam.bai ];
-then
-   echo Local Re-alignment
-   echo -e "\\n #### doing Local Realignment: java -jar $GATK -nt {0[cpu]} -T RealignerTargetCreator -R $REF -I $TMPDIR/$NAME.sort.bam -o $OUTF/$NAME.intervals -known $DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE \\n\"
-   java -jar $GATK -nt {0[cpu]} -T RealignerTargetCreator -R $REF -I $TMPDIR/$NAME.sort.bam -o $OUTF/$NAME.intervals -known $DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE # -L $EXOME
-   java -jar $GATK -T IndelRealigner -R $REF -I $TMPDIR/$NAME.sort.bam -targetIntervals $OUTF/$NAME.intervals -o $TMPDIR/$NAME.realigned.bam -known $DBINDEL --maxReadsForRealignment 10000 --consensusDeterminationModel USE_SW --downsampling_type NONE # -L $EXOME
-else
-   echo $NAME.sort.bam.bai not found >&2
-   exit 1
-fi
-
-### Duplicate marking
-if [ -s $TMPDIR/$NAME.realigned.bam ];
-then
-   # clean up
-   rm $TMPDIR/$NAME.sort.bam*
-
-   echo Duplicate marking
-   echo -e \"\\n #### duplicate marking using: java -jar $PICARD/MarkDuplicates.jar INPUT=$TMPDIR/$NAME.realigned.bam OUTPUT=$TMPDIR/$NAME.realigned.dm.bam METRICS_FILE=$OUTF/duplication_metrics.txt ASSUME_SORTED=true VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true \\n\"
-   java -jar $PICARD/MarkDuplicates.jar INPUT=$TMPDIR/$NAME.realigned.bam OUTPUT=$TMPDIR/$NAME.realigned.dm.bam METRICS_FILE=$OUTF/duplication_metrics.txt ASSUME_SORTED=true VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true
-else
-   echo $TMPDIR/$NAME.realigned.bam not found >&2
-   exit 1
-fi
-
-
-
-### Base quality recalibration
-if [ -s $TMPDIR/$NAME.realigned.dm.bam ];
-then
-   echo -e \" \\n #### Base quality recalibration \\n \"
-   java -jar $GATK -T BaseRecalibrator -nct {0[cpu]} --default_platform illumina -cov ReadGroupCovariate -cov QualityScoreCovariate -cov CycleCovariate -cov ContextCovariate -R $REF -I $TMPDIR/$NAME.realigned.dm.bam -knownSites $DBSNP --downsampling_type NONE -o $TMPDIR/$NAME.recal_data.grp # -L $EXOME
-   java -jar $GATK -T PrintReads -R $REF -I $TMPDIR/$NAME.realigned.dm.bam -BQSR $TMPDIR/$NAME.recal_data.grp -o $OUTF/$NAME.realigned.dm.recalibrated.bam # -L $EXOME
-
-else
-   echo $NAME.realigned.dm.bam not found >&2
-   exit 1
-fi
-
-
-
-### Cleanup
-set +e
-	rm $OUTF/$NAME.realigned.bam
-	rm $OUTF/$NAME.realigned.bai
-	rm $OUTF/$NAME.realigned.dm.bam
-	rm $OUTF/$NAME.realigned.dm.bam.bai
-
-	rm $TMPDIR/$NAME.bam
-	rm $TMPDIR/$NAME.realigned.bam
-	rm $TMPDIR/$NAME.realigned.bai
-	rm $TMPDIR/$NAME.realigned.dm.bam
-	rm $TMPDIR/$NAME.realigned.dm.bam.bai
-set -e
-
-
-
-
-
-### GATK: Call SNPs and Indels with the GATK Haplotype Caller
-if [ -s $OUTF/$NAME.realigned.dm.recalibrated.bam ];
-then
-   echo -e \"\\n #### GATK: Call SNPs and Indels with the GATK Unified Genotyper \\n\"
-   #java  -jar $GATK -T UnifiedGenotyper -nt {0[cpu]} -R $REF -I $OUTF/$NAME.realigned.dm.recalibrated.bam -o $OUTF/GATK.both.raw.vcf -glm BOTH --downsampling_type NONE
-   java -jar $GATK -T HaplotypeCaller -nct 1 -R $REF --dbsnp $DBSNP -I $OUTF/$NAME.realigned.dm.recalibrated.bam -o $OUTF/GATK.both.raw.vcf -L $EXOME
-
-   echo -e \"\\n #### GATK: Split SNPs and Indels \\n\"
-   java  -jar $GATK -T SelectVariants -R $REF --variant $OUTF/GATK.both.raw.vcf -o $OUTF/GATK.snps.raw.vcf -selectType SNP
-   java  -jar $GATK -T SelectVariants -R $REF --variant $OUTF/GATK.both.raw.vcf -o $OUTF/GATK.indel.raw.vcf -selectType INDEL
-
-else
-   echo $NAME.realigned.dm.recalibrated.bam not found >&2
-   exit 1
-fi
-
-if [ ! -s $OUTF/GATK.snps.raw.vcf ];
-then
-   echo GATK.snps.raw.vcf not found
-   exit  1
-fi
-
-
-
-
-### Filter and compare SNP calls from 2 different pipelines
-# Filtering
-mkdir -p $OUTF/SNP_Intersection
-
-java -jar $GATK -T VariantFiltration -R $REF -o $OUTF/SNP_Intersection/GATK.snps.filtered.vcf --variant $OUTF/GATK.snps.raw.vcf --mask $OUTF/GATK.indel.raw.vcf --clusterWindowSize 10 --filterExpression \"MQ < 30.0 || QUAL < 25.0 \" --filterName CRG --genotypeFilterExpression \"DP < 5 || DP > {0[max_cov]} || GQ < 15\" --genotypeFilterName CRGg
-STATUS="${{?}}"
-if [ "$STATUS" -gt 0 ];
-then
-    echo Error in GATK Filtering VariantFiltration >&2
-    exit 1
-fi
-
-# isolate PASSed variants
-grep -E \'^#|PASS\' $OUTF/SNP_Intersection/GATK.snps.filtered.vcf | grep -v CRGg > $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf
-
-
-# Correct sample names in VFC files
-# sed -i -e \"s/FORMAT\\t$NAME/FORMAT\\t$NAME-GATK/\" $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf
-# sed -i -e \"s/FORMAT\\t$NAME/FORMAT\\t$NAME-SHORE/\" $OUTF/SNP_Intersection/SHORE.snps.filtered.cleaned.vcf
-
-#if [[ ! ( -s $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf && -s $OUTF/SNP_Intersection/SHORE.snps.filtered.cleaned.vcf  ]];
-#then
-#   echo GATK.snps.filtered.cleaned.vcf or SHORE.snps.filtered.cleaned.vcf not found >&2
-#   exit 1
-#fi
-
-## Intersecting
-#  java -jar $GATK -T CombineVariants -R $REF -genotypeMergeOptions PRIORITIZE -V:SHORE $OUTF/SNP_Intersection/SHORE.snps.filtered.cleaned.vcf -V:GATK $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf -priority GATK,SHORE -o $OUTF/SNP_Intersection/merged.vcf -U LENIENT_VCF_PROCESSING
-
-cp $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf $OUTF/SNP_Intersection/merged.vcf
-
-# Evaluation
-java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBSNP  -o $OUTF/SNP_Intersection/report.all.txt --eval $OUTF/SNP_Intersection/merged.vcf -l INFO # -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"GATK\"' -selectName GATK
-STATUS="${{?}}"
-if [ "$STATUS" -gt 0 ];
-then
-    echo Error in GATK VariantEval >&2
-    exit 1
-fi
-
-
-# Annotate Enrichment
-$BEDTOOLS/intersectBed -a $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf -b $EXOME > $OUTF/SNP_Intersection/merged.all.vcf
-
-# borrow header from GATK vcf file
-grep '^#' $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf > $OUTF/SNP_Intersection/merged.enriched.vcf
-cat $OUTF/SNP_Intersection/merged.all.vcf >> $OUTF/SNP_Intersection/merged.enriched.vcf
-
-java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBSNP -o $OUTF/SNP_Intersection/report.enriched.txt --eval $OUTF/SNP_Intersection/merged.enriched.vcf -l INFO # -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"GATK\"' -selectName GATK
-STATUS="${{?}}"
-echo $STATUS
-if [ "$STATUS" -gt 0 ];
-then
-    echo Error in Annotate VariantEval GATK  >&2
-    exit 1
-fi
+    textlist = list()
+    condition_list = list()
+    textlist.append("""### Align reads with bwa
+            $BWA mem -M -t {0[cpu]}  -R "@RG\\tID:$NAME\\tSM:$NAME" $REF $READ1 $READ2 | time $SAMTOOLS view -h -b -S -F 0x900 -  > $TMPDIR/$NAME.noChimeric.bam
+            
+            ### check for Quality encoding and transform to 33 if 64 encoding is encountered
+            OFFSET=$($SAMTOOLS view $TMPDIR/$NAME.noChimeric.bam | python $EDIVA/Predict/whichQuality_bam.py)
+            if [[ $OFFSET == 64 ]];
+            then
+                echo "fixing 64 quality encoding"
+                $SAMTOOLS view -h $TMPDIR/$NAME.noChimeric.bam | python $EDIVA/Predict/bam_rescale_quals.py - | $SAMTOOLS view -bS - > $TMPDIR/$NAME.transformed.bam
+                rm $TMPDIR/$NAME.noChimeric.bam
+                mv $TMPDIR/$NAME.transformed.bam $TMPDIR/$NAME.noChimeric.bam
+            fi
     """.format(in_vars))
+    condition_list.append(None)
+    
+    textlist.append("""### Sort BAM file
+            if [ -s $TMPDIR/$NAME.noChimeric.bam ];
+            then
+                echo Sort BAM
+                $NOVOSORT --threads {0[cpu]} --tmpdir $TMPDIR --forcesort --output $TMPDIR/$NAME.sort.bam -i -m {0[mem]}G $TMPDIR/$NAME.noChimeric.bam
+                cp $TMPDIR/$NAME.sort.bam* $OUTF/
+                # clean up
+                rm $TMPDIR/$NAME.noChimeric.bam
+            else
+                echo $TMPDIR/$NAME.noChimeric.bam not found >&2
+                exit 1
+            fi
+    """.format(in_vars))
+    #condition_list.append([in_vars["outfolder"]+'/'+in_vars["sdir"]+".sort.bam" ,None, in_vars["outfolder"]+'/'+in_vars["sdir"]+".sort.bam.bai" ,None])
+    condition_list.append(None)
+    
+    textlist.append("""### Local Re-alignment
+            if [ -s $TMPDIR/$NAME.sort.bam.bai ];
+            then
+               echo Local Re-alignment
+               echo -e "\\n #### doing Local Realignment: java -jar $GATK -nt {0[cpu]} -T RealignerTargetCreator -R $REF -I $TMPDIR/$NAME.sort.bam -o $OUTF/$NAME.intervals -known $DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE \\n\"
+               java -jar $GATK -nt {0[cpu]} -T RealignerTargetCreator -R $REF -I $TMPDIR/$NAME.sort.bam -o $OUTF/$NAME.intervals -known $DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE # -L $EXOME
+               java -jar $GATK -nt {0[cpu]} -T IndelRealigner -R $REF -I $TMPDIR/$NAME.sort.bam -targetIntervals $OUTF/$NAME.intervals -o $TMPDIR/$NAME.realigned.bam -known $DBINDEL --maxReadsForRealignment 10000 --consensusDeterminationModel USE_SW --downsampling_type NONE # -L $EXOME
+            else
+               echo $NAME.sort.bam.bai not found >&2
+               exit 1
+            fi
+    """.format(in_vars))
+    #condition_list.append([in_vars["outfolder"]+'/'+in_vars["sdir"]+".intervals", None, in_vars["outfolder"]+'/'+in_vars["sdir"]+".realigned.bam", None])
+    condition_list.append(None)
+    
+    textlist.append("""### Duplicate marking
+            if [ -s $TMPDIR/$NAME.realigned.bam ];
+            then
+               # clean up
+               rm $TMPDIR/$NAME.sort.bam*
+            
+               echo Duplicate marking
+               echo -e \"\\n #### duplicate marking using: java -jar $PICARD/MarkDuplicates.jar INPUT=$TMPDIR/$NAME.realigned.bam OUTPUT=$TMPDIR/$NAME.realigned.dm.bam METRICS_FILE=$OUTF/duplication_metrics.txt ASSUME_SORTED=true VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true \\n\"
+               java -jar $PICARD/MarkDuplicates.jar INPUT=$TMPDIR/$NAME.realigned.bam OUTPUT=$TMPDIR/$NAME.realigned.dm.bam METRICS_FILE=$OUTF/duplication_metrics.txt ASSUME_SORTED=true VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true
+            else
+               echo $TMPDIR/$NAME.realigned.bam not found >&2
+               exit 1
+            fi
+    """.format(in_vars))
+    #condition_list.append([ in_vars["outfolder"]+'/'+in_vars["sdir"]+".realigned.dm.bam", None])
+    condition_list.append(None)
+    
+    textlist.append("""### Base quality recalibration
+            if [ -s $TMPDIR/$NAME.realigned.dm.bam ];
+            then
+               echo -e \" \\n #### Base quality recalibration \\n \"
+               java -jar $GATK -T BaseRecalibrator -nct {0[cpu]} --default_platform illumina -cov ReadGroupCovariate -cov QualityScoreCovariate -cov CycleCovariate -cov ContextCovariate -R $REF -I $TMPDIR/$NAME.realigned.dm.bam -knownSites $DBSNP --downsampling_type NONE -o $TMPDIR/$NAME.recal_data.grp # -L $EXOME
+               java -jar $GATK -T PrintReads -R $REF -I $TMPDIR/$NAME.realigned.dm.bam -BQSR $TMPDIR/$NAME.recal_data.grp -o $OUTF/$NAME.realigned.dm.recalibrated.bam # -L $EXOME
+            
+            else
+               echo $NAME.realigned.dm.bam not found >&2
+               exit 1
+            fi
+            
+            ### Cleanup
+            set +e
+                   ## rm $OUTF/$NAME.realigned.bam
+                   ## rm $OUTF/$NAME.realigned.bai
+                   ## rm $OUTF/$NAME.realigned.dm.bam
+                   ## rm $OUTF/$NAME.realigned.dm.bam.bai
+            
+                    rm $TMPDIR/$NAME.bam
+                    rm $TMPDIR/$NAME.realigned.bam
+                    rm $TMPDIR/$NAME.realigned.bai
+                    rm $TMPDIR/$NAME.realigned.dm.bam
+                    rm $TMPDIR/$NAME.realigned.dm.bam.bai
+            set -e
+            
+    """.format(in_vars))
+    #condition_list.append([ in_vars["outfolder"]+'/'+in_vars["sdir"]+".realigned.dm.recalibrated.bam", None])
+    condition_list.append(None)
+    
+    textlist.append("""### GATK: Call SNPs and Indels with the GATK Haplotype Caller
+            if [ -s $OUTF/$NAME.realigned.dm.recalibrated.bam ];
+            then
+               echo -e \"\\n #### GATK: Call SNPs and Indels with the GATK Unified Genotyper \\n\"
+               #java  -jar $GATK -T UnifiedGenotyper -nt {0[cpu]} -R $REF -I $OUTF/$NAME.realigned.dm.recalibrated.bam -o $OUTF/GATK.both.raw.vcf -glm BOTH --downsampling_type NONE
+               java -jar $GATK -T HaplotypeCaller -nct 1 -R $REF --dbsnp $DBSNP -I $OUTF/$NAME.realigned.dm.recalibrated.bam -o $OUTF/GATK.both.raw.vcf -L $EXOME
+            
+               echo -e \"\\n #### GATK: Split SNPs and Indels \\n\"
+               java  -jar $GATK -T SelectVariants -R $REF --variant $OUTF/GATK.both.raw.vcf -o $OUTF/GATK.snps.raw.vcf -selectType SNP
+               java  -jar $GATK -T SelectVariants -R $REF --variant $OUTF/GATK.both.raw.vcf -o $OUTF/GATK.indel.raw.vcf -selectType INDEL
+            
+            else
+               echo $NAME.realigned.dm.recalibrated.bam not found >&2
+               exit 1
+            fi
+            
+            if [ ! -s $OUTF/GATK.snps.raw.vcf ];
+            then
+               echo GATK.snps.raw.vcf not found
+               exit  1
+            fi
+            
+    """.format(in_vars))
+    condition_list.append(None)
+    
+    textlist.append("""### Filter and compare SNP calls from 2 different pipelines
+            # Filtering
+            mkdir -p $OUTF/SNP_Intersection
+            
+            java -jar $GATK -T VariantFiltration -R $REF -o $OUTF/SNP_Intersection/GATK.snps.filtered.vcf --variant $OUTF/GATK.snps.raw.vcf --mask $OUTF/GATK.indel.raw.vcf --clusterWindowSize 10 --filterExpression \"MQ < 30.0 || QUAL < 25.0 \" --filterName CRG --genotypeFilterExpression \"DP < 5 || DP > {0[max_cov]} || GQ < 15\" --genotypeFilterName CRGg
+            STATUS="${{?}}"
+            if [ "$STATUS" -gt 0 ];
+            then
+                echo Error in GATK Filtering VariantFiltration >&2
+                exit 1
+            fi
 
+    """.format(in_vars))
+    condition_list.append(None)
+    
+    textlist.append(
+        """ ## isolate PASSed variants
+        grep -E \'^#|PASS\' $OUTF/SNP_Intersection/GATK.snps.filtered.vcf | grep -v CRGg > $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf
+            # Correct sample names in VFC files
+            # sed -i -e \"s/FORMAT\\t$NAME/FORMAT\\t$NAME-GATK/\" $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf
+            # sed -i -e \"s/FORMAT\\t$NAME/FORMAT\\t$NAME-SHORE/\" $OUTF/SNP_Intersection/SHORE.snps.filtered.cleaned.vcf
+            
+            #if [[ ! ( -s $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf && -s $OUTF/SNP_Intersection/SHORE.snps.filtered.cleaned.vcf  ]];
+            #then
+            #   echo GATK.snps.filtered.cleaned.vcf or SHORE.snps.filtered.cleaned.vcf not found >&2
+            #   exit 1
+            #fi
+            
+    """.format(in_vars))
+    condition_list.append(None)
+    
+    textlist.append("""## Intersecting
+            #  java -jar $GATK -T CombineVariants -R $REF -genotypeMergeOptions PRIORITIZE -V:SHORE $OUTF/SNP_Intersection/SHORE.snps.filtered.cleaned.vcf -V:GATK $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf -priority GATK,SHORE -o $OUTF/SNP_Intersection/merged.vcf -U LENIENT_VCF_PROCESSING
+            
+            cp $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf $OUTF/SNP_Intersection/merged.vcf
+            
+            # Evaluation
+            java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBSNP  -o $OUTF/SNP_Intersection/report.all.txt --eval $OUTF/SNP_Intersection/merged.vcf -l INFO # -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"GATK\"' -selectName GATK
+            STATUS="${{?}}"
+            if [ "$STATUS" -gt 0 ];
+            then
+                echo Error in GATK VariantEval >&2
+                exit 1
+            fi
+            
+    """.format(in_vars))
+    condition_list.append(None)
+    
+    textlist.append("""
+            
+            # Annotate Enrichment
+            $BEDTOOLS/intersectBed -a $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf -b $EXOME > $OUTF/SNP_Intersection/merged.all.vcf
+            
+            # borrow header from GATK vcf file
+            grep '^#' $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf > $OUTF/SNP_Intersection/merged.enriched.vcf
+            cat $OUTF/SNP_Intersection/merged.all.vcf >> $OUTF/SNP_Intersection/merged.enriched.vcf
+            
+            java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBSNP -o $OUTF/SNP_Intersection/report.enriched.txt --eval $OUTF/SNP_Intersection/merged.enriched.vcf -l INFO # -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"GATK\"' -selectName GATK
+            STATUS="${{?}}"
+            echo $STATUS
+            if [ "$STATUS" -gt 0 ];
+            then
+                echo Error in Annotate VariantEval GATK  >&2
+                exit 1
+            fi
+    """.format(in_vars))
+    condition_list.append(None)
+    
+    
+    text = '\n'.join(textlist)
     script.write(text)
-    return text
+    
+    return (textlist,condition_list)
 def indel_caller_pipelne(script,in_paths,in_vars):
     text = str()
 
@@ -734,209 +750,206 @@ def indel_caller_pipelne(script,in_paths,in_vars):
 
 
         text =( """
-### SHORE: Prepare format map.list
-mkdir -p $OUTF/shore
-$CLINDEL convert --sort -r $REF -n 6 -g 2 -e 100 Alignment2Maplist $OUTF/$NAME.realigned.dm.recalibrated.bam $OUTF/shore/map.list.gz
-
-if [ ! -s $OUTF/shore/map.list.gz ];
-then
-   echo shore/map.list.gz not found >&2
-   exit 1
-fi
-
-### Clindel call indels
-$CLINDEL qIndel -n $NAME -f $SHOREREF -o $OUTF/shore/indels -i $OUTF/shore/map.list.gz -k $DBINDEL -c 3 -d 3 -C 400 -r 0.3 -a 0.20 -b 5
-if [ ! -s $OUTF/shore/indels ];
-then
-   echo shore/indels is empty >&2
-   exit 1
-fi
-
-### Clean up
-set +e
-
-rm -r $OUTF/shore/Variants/ConsensusAnalysis/supplementary_data
-rm $OUTF/shore/Variants/ConsensusAnalysis/reference.shore
-rm $OUTF/shore/map.list.gz
-
-set -e
-
-mkdir -p $OUTF/Indel_Intersection
-
-
-# select PASSed variants
-grep -E \"^#|PASS\" $OUTF/shore/indels/indels.vcf > $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf
-
-
-# check for success of the preceeding steps
-if [[ ! -s $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf ]];
-then
-   echo CLINDEL.indel.filtered.cleaned.vcf not found >&2
-   exit 1
-fi 
-
-# Evaluation
-java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBINDEL -select 'set==\"CLINDEL\"' -selectName CLINDEL -o $OUTF/Indel_Intersection/report.all.txt --eval $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf -l INFO
-STATUS="${{?}}"
-if [ "$STATUS" -gt 0 ];
-then
-    echo Error in GATK Evaluation >&2
-    exit 1
-fi
-# filter Indels for enriched regions
-$BEDTOOLS/intersectBed -a $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf -b $EXOME > $OUTF/Indel_Intersection/merged.all.vcf
-
-# borrow header from GATK file
-grep '^#' $OUTF/GATK.indel.raw.vcf > $OUTF/Indel_Intersection/merged.enriched.vcf
-cat $OUTF/Indel_Intersection/merged.all.vcf >> $OUTF/Indel_Intersection/merged.enriched.vcf
-
-java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBINDEL -select 'set==\"CLINDEL\"' -selectName CLINDEL -o $OUTF/Indel_Intersection/report.enriched.txt --eval $OUTF/Indel_Intersection/merged.enriched.vcf -l INFO
-STATUS="${{?}}"
-if [ "$STATUS" -gt 0 ];
-then
-    echo Error in filter Indels for enriched regions >&2
-    exit 1
-fi
-
-                """.format(in_vars))
-
-
+            ### SHORE: Prepare format map.list
+            mkdir -p $OUTF/shore
+            $CLINDEL convert --sort -r $REF -n 6 -g 2 -e 100 Alignment2Maplist $OUTF/$NAME.realigned.dm.recalibrated.bam $OUTF/shore/map.list.gz
+            
+            if [ ! -s $OUTF/shore/map.list.gz ];
+            then
+               echo shore/map.list.gz not found >&2
+               exit 1
+            fi
+            
+            ### Clindel call indels
+            $CLINDEL qIndel -n $NAME -f $SHOREREF -o $OUTF/shore/indels -i $OUTF/shore/map.list.gz -k $DBINDEL -c 3 -d 3 -C 400 -r 0.3 -a 0.20 -b 5
+            if [ ! -s $OUTF/shore/indels ];
+            then
+               echo shore/indels is empty >&2
+               exit 1
+            fi
+            
+            ### Clean up
+            set +e
+            
+            rm -r $OUTF/shore/Variants/ConsensusAnalysis/supplementary_data
+            rm $OUTF/shore/Variants/ConsensusAnalysis/reference.shore
+            rm $OUTF/shore/map.list.gz
+            
+            set -e
+            
+            mkdir -p $OUTF/Indel_Intersection
+            
+            
+            # select PASSed variants
+            grep -E \"^#|PASS\" $OUTF/shore/indels/indels.vcf > $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf
+            
+            
+            # check for success of the preceeding steps
+            if [[ ! -s $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf ]];
+            then
+               echo CLINDEL.indel.filtered.cleaned.vcf not found >&2
+               exit 1
+            fi 
+            
+            # Evaluation
+            java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBINDEL -select 'set==\"CLINDEL\"' -selectName CLINDEL -o $OUTF/Indel_Intersection/report.all.txt --eval $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf -l INFO
+            STATUS="${{?}}"
+            if [ "$STATUS" -gt 0 ];
+            then
+                echo Error in GATK Evaluation >&2
+                exit 1
+            fi
+            # filter Indels for enriched regions
+            $BEDTOOLS/intersectBed -a $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf -b $EXOME > $OUTF/Indel_Intersection/merged.all.vcf
+            
+            # borrow header from GATK file
+            grep '^#' $OUTF/GATK.indel.raw.vcf > $OUTF/Indel_Intersection/merged.enriched.vcf
+            cat $OUTF/Indel_Intersection/merged.all.vcf >> $OUTF/Indel_Intersection/merged.enriched.vcf
+            
+            java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBINDEL -select 'set==\"CLINDEL\"' -selectName CLINDEL -o $OUTF/Indel_Intersection/report.enriched.txt --eval $OUTF/Indel_Intersection/merged.enriched.vcf -l INFO
+            STATUS="${{?}}"
+            if [ "$STATUS" -gt 0 ];
+            then
+                echo Error in filter Indels for enriched regions >&2
+                exit 1
+            fi
+        """.format(in_vars))
+ 
     elif in_vars["indel"] == "gatk":
 
 
         text = ("""
-mkdir -p $OUTF/Indel_Intersection
-
-java -jar -Xmx4g $GATK -T VariantFiltration -R $REF -o $OUTF/Indel_Intersection/GATK.indel.filtered.vcf --variant $OUTF/GATK.indel.raw.vcf --filterExpression \"QD < 2.0 || FS > 200.0 || ReadPosRankSum < -20\" --filterName CRG --genotypeFilterExpression \"DP < 5 || DP > {0[max_cov]} || GQ < 15\" --genotypeFilterName LOWQ
-STATUS="${{?}}"
-if [ "$STATUS" -gt 0 ];
-then
-    echo Error in GATK VariantFiltration  >&2
-    exit 1
-fi
-# select PASSed variants
-grep -v \"CRG\" $OUTF/Indel_Intersection/GATK.indel.filtered.vcf > $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf
-
-# check for success of the preceeding steps
-if [[ ! -s $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf ]];
-then
-   echo GATK.indel.filtered.cleaned.vcf not found >&2
-   exit 1
-fi
-
-# filter Indels for enriched regions
-$BEDTOOLS/intersectBed -a $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf -b $EXOME > $OUTF/Indel_Intersection/merged.all.vcf
-
-grep '^#' $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf > $OUTF/Indel_Intersection/merged.enriched.vcf
-cat $OUTF/Indel_Intersection/merged.all.vcf >> $OUTF/Indel_Intersection/merged.enriched.vcf
-
-java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBINDEL -select 'set==\"GATK\"' -selectName GATK -o $OUTF/Indel_Intersection/report.enriched.txt --eval $OUTF/Indel_Intersection/merged.enriched.vcf -l INFO
-STATUS="${{?}}"
-if [ "$STATUS" -gt 0 ];
-then
-    echo Error in filter Indels for enriched regions >&2
-    exit 1
-fi
+            mkdir -p $OUTF/Indel_Intersection
+            
+            java -jar -Xmx4g $GATK -T VariantFiltration -R $REF -o $OUTF/Indel_Intersection/GATK.indel.filtered.vcf --variant $OUTF/GATK.indel.raw.vcf --filterExpression \"QD < 2.0 || FS > 200.0 || ReadPosRankSum < -20\" --filterName CRG --genotypeFilterExpression \"DP < 5 || DP > {0[max_cov]} || GQ < 15\" --genotypeFilterName LOWQ
+            STATUS="${{?}}"
+            if [ "$STATUS" -gt 0 ];
+            then
+                echo Error in GATK VariantFiltration  >&2
+                exit 1
+            fi
+            # select PASSed variants
+            grep -v \"CRG\" $OUTF/Indel_Intersection/GATK.indel.filtered.vcf > $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf
+            
+            # check for success of the preceeding steps
+            if [[ ! -s $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf ]];
+            then
+               echo GATK.indel.filtered.cleaned.vcf not found >&2
+               exit 1
+            fi
+            
+            # filter Indels for enriched regions
+            $BEDTOOLS/intersectBed -a $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf -b $EXOME > $OUTF/Indel_Intersection/merged.all.vcf
+            
+            grep '^#' $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf > $OUTF/Indel_Intersection/merged.enriched.vcf
+            cat $OUTF/Indel_Intersection/merged.all.vcf >> $OUTF/Indel_Intersection/merged.enriched.vcf
+            
+            java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBINDEL -select 'set==\"GATK\"' -selectName GATK -o $OUTF/Indel_Intersection/report.enriched.txt --eval $OUTF/Indel_Intersection/merged.enriched.vcf -l INFO
+            STATUS="${{?}}"
+            if [ "$STATUS" -gt 0 ];
+            then
+                echo Error in filter Indels for enriched regions >&2
+                exit 1
+            fi
         """.format(in_vars))
 
 
 
     elif in_vars["indel"] == "both":
         text =("""
-### SHORE: Prepare format map.list
-mkdir -p $OUTF/shore
-echo $CLINDEL convert --sort -r $REF -n 6 -g 2 -e 100 Alignment2Maplist $OUTF/$NAME.realigned.dm.recalibrated.bam $OUTF/shore/map.list.gz
-$CLINDEL convert --sort -r $REF -n 6 -g 2 -e 100 Alignment2Maplist $OUTF/$NAME.realigned.dm.recalibrated.bam $OUTF/shore/map.list.gz
-
-if [ ! -s $OUTF/shore/map.list.gz ];
-then
-   echo shore/map.list.gz not found >&2
-   exit 1
-fi
-
-### Clindel call indels
-$CLINDEL qIndel -n $NAME -f $SHOREREF -o $OUTF/shore/indels -i $OUTF/shore/map.list.gz -k $DBINDEL -c 3 -d 3 -C 400 -r 0.3 -a 0.20 -b 5
-
-if [ ! -s $OUTF/shore/indels ];
-then
-   echo shore/indels is empty >&2
-   exit 1
-fi
-
-### Clean up
-set +e
-
-rm -r $OUTF/shore/Variants/ConsensusAnalysis/supplementary_data
-rm $OUTF/shore/Variants/ConsensusAnalysis/reference.shore
-rm $OUTF/shore/map.list.gz
-
-set -e
-
-
-
-mkdir -p $OUTF/Indel_Intersection
-
-# filter GATK variants (Clindel variants are produced pre-filtered)
-java -jar -Xmx4g $GATK -T VariantFiltration -R $REF -o $OUTF/Indel_Intersection/GATK.indel.filtered.vcf --variant $OUTF/GATK.indel.raw.vcf --filterExpression \"QD < 2.0 || FS > 200.0 || ReadPosRankSum < -20\" --filterName CRG --genotypeFilterExpression \"DP < 5 || DP > {0[max_cov]} || GQ < 15\" --genotypeFilterName LOWQ
-STATUS="${{?}}"
-echo Clindel variants produced pre-filtered $STATUS
-if [ "$STATUS" -gt 0 ];
-then
-    echo Error in GATK filter GATK variants Clindel variants are produced pre-filtered >&2
-    exit 1
-fi
-# select PASSed variants
-grep -v \"CRG\" $OUTF/Indel_Intersection/GATK.indel.filtered.vcf > $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf
-
-grep -E \"^#|PASS\" $OUTF/shore/indels/indels.vcf > $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf
-
-
-
-# Correct sample names in VFC files --- not necessary for tool switching
-sed -i -e "s/FORMAT\t$NAME/FORMAT\t$NAME-GATK/" $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf
-sed -i -e "s/FORMAT\t$NAME/FORMAT\t$NAME-CLINDEL/" $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf
-sed -i -e "s/##FORMAT=<ID=GQ,Number=1,Type=String,Description=/##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=/" $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf
-
-# check for success of the preceeding steps
-if [[ ! ( -s $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf && -s $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf ) ]];
-then
-   echo GATK.indel.filtered.cleaned.vcf or CLINDEL.indel.filtered.cleaned.vcf not found >&2
-   exit 1
-fi
- 
-# Intersecting
-java -Xmx5g -jar $GATK -T CombineVariants -R $REF -genotypeMergeOptions PRIORITIZE -V:GATK $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf -V:CLINDEL $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf -priority GATK,CLINDEL -o $OUTF/Indel_Intersection/merged.vcf -U LENIENT_VCF_PROCESSING
-STATUS="${{?}}"
-echo GATK intersecting :  $STATUS
-if [ "$STATUS" -gt 0 ];
-then
-    echo GATK Intersecting >&2
-    exit 1
-fi
-# Evaluation
-java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBINDEL -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"CLINDEL\"' -selectName CLINDEL -select 'set==\"GATK\"'  -selectName GATK_CLINDEL -o $OUTF/Indel_Intersection/report.all.txt --eval $OUTF/Indel_Intersection/merged.vcf -l INFO
-STATUS="${{?}}"
-echo GATK Evaluation : $STATUS
-if [ "$STATUS" -gt 0 ];
-then
-    echo Error in GATK Evaluation >&2
-    exit 1
-fi
-# filter Indels for enriched regions
-$BEDTOOLS/intersectBed -a $OUTF/Indel_Intersection/merged.vcf -b $EXOME > $OUTF/Indel_Intersection/merged.all.vcf
-
-grep '^#' $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf > $OUTF/Indel_Intersection/merged.enriched.vcf
-cat $OUTF/Indel_Intersection/merged.all.vcf >> $OUTF/Indel_Intersection/merged.enriched.vcf
-
-java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBINDEL -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"CLINDEL\"' -selectName CLINDEL -select 'set==\"GATK\"' -selectName GATK -o $OUTF/Indel_Intersection/report.enriched.txt --eval $OUTF/Indel_Intersection/merged.enriched.vcf -l INFO
-STATUS="${{?}}"
-echo GATK  filter indels $STATUS
-if [ "$STATUS" -gt 0 ];
-then
-    echo Error in GATK filter Indels for enriched regions >&2
-    exit 1
-fi
-
+            ### SHORE: Prepare format map.list
+            mkdir -p $OUTF/shore
+            echo $CLINDEL convert --sort -r $REF -n 6 -g 2 -e 100 Alignment2Maplist $OUTF/$NAME.realigned.dm.recalibrated.bam $OUTF/shore/map.list.gz
+            $CLINDEL convert --sort -r $REF -n 6 -g 2 -e 100 Alignment2Maplist $OUTF/$NAME.realigned.dm.recalibrated.bam $OUTF/shore/map.list.gz
+            
+            if [ ! -s $OUTF/shore/map.list.gz ];
+            then
+               echo shore/map.list.gz not found >&2
+               exit 1
+            fi
+            
+            ### Clindel call indels
+            $CLINDEL qIndel -n $NAME -f $SHOREREF -o $OUTF/shore/indels -i $OUTF/shore/map.list.gz -k $DBINDEL -c 3 -d 3 -C 400 -r 0.3 -a 0.20 -b 5
+            
+            if [ ! -s $OUTF/shore/indels ];
+            then
+               echo shore/indels is empty >&2
+               exit 1
+            fi
+            
+            ### Clean up
+            set +e
+            
+            rm -r $OUTF/shore/Variants/ConsensusAnalysis/supplementary_data
+            rm $OUTF/shore/Variants/ConsensusAnalysis/reference.shore
+            rm $OUTF/shore/map.list.gz
+            
+            set -e
+            
+            
+            
+            mkdir -p $OUTF/Indel_Intersection
+            
+            # filter GATK variants (Clindel variants are produced pre-filtered)
+            java -jar -Xmx4g $GATK -T VariantFiltration -R $REF -o $OUTF/Indel_Intersection/GATK.indel.filtered.vcf --variant $OUTF/GATK.indel.raw.vcf --filterExpression \"QD < 2.0 || FS > 200.0 || ReadPosRankSum < -20\" --filterName CRG --genotypeFilterExpression \"DP < 5 || DP > {0[max_cov]} || GQ < 15\" --genotypeFilterName LOWQ
+            STATUS="${{?}}"
+            echo Clindel variants produced pre-filtered $STATUS
+            if [ "$STATUS" -gt 0 ];
+            then
+                echo Error in GATK filter GATK variants Clindel variants are produced pre-filtered >&2
+                exit 1
+            fi
+            # select PASSed variants
+            grep -v \"CRG\" $OUTF/Indel_Intersection/GATK.indel.filtered.vcf > $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf
+            
+            grep -E \"^#|PASS\" $OUTF/shore/indels/indels.vcf > $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf
+            
+            
+            
+            # Correct sample names in VFC files --- not necessary for tool switching
+            sed -i -e "s/FORMAT\t$NAME/FORMAT\t$NAME-GATK/" $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf
+            sed -i -e "s/FORMAT\t$NAME/FORMAT\t$NAME-CLINDEL/" $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf
+            sed -i -e "s/##FORMAT=<ID=GQ,Number=1,Type=String,Description=/##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=/" $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf
+            
+            # check for success of the preceeding steps
+            if [[ ! ( -s $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf && -s $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf ) ]];
+            then
+               echo GATK.indel.filtered.cleaned.vcf or CLINDEL.indel.filtered.cleaned.vcf not found >&2
+               exit 1
+            fi
+             
+            # Intersecting
+            java -Xmx5g -jar $GATK -T CombineVariants -R $REF -genotypeMergeOptions PRIORITIZE -V:GATK $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf -V:CLINDEL $OUTF/Indel_Intersection/CLINDEL.indel.filtered.cleaned.vcf -priority GATK,CLINDEL -o $OUTF/Indel_Intersection/merged.vcf -U LENIENT_VCF_PROCESSING
+            STATUS="${{?}}"
+            echo GATK intersecting :  $STATUS
+            if [ "$STATUS" -gt 0 ];
+            then
+                echo GATK Intersecting >&2
+                exit 1
+            fi
+            # Evaluation
+            java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBINDEL -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"CLINDEL\"' -selectName CLINDEL -select 'set==\"GATK\"'  -selectName GATK_CLINDEL -o $OUTF/Indel_Intersection/report.all.txt --eval $OUTF/Indel_Intersection/merged.vcf -l INFO
+            STATUS="${{?}}"
+            echo GATK Evaluation : $STATUS
+            if [ "$STATUS" -gt 0 ];
+            then
+                echo Error in GATK Evaluation >&2
+                exit 1
+            fi
+            # filter Indels for enriched regions
+            $BEDTOOLS/intersectBed -a $OUTF/Indel_Intersection/merged.vcf -b $EXOME > $OUTF/Indel_Intersection/merged.all.vcf
+            
+            grep '^#' $OUTF/Indel_Intersection/GATK.indel.filtered.cleaned.vcf > $OUTF/Indel_Intersection/merged.enriched.vcf
+            cat $OUTF/Indel_Intersection/merged.all.vcf >> $OUTF/Indel_Intersection/merged.enriched.vcf
+            
+            java -Xmx5g -jar $GATK -T VariantEval -R $REF --dbsnp $DBINDEL -select 'set==\"Intersection\"' -selectName Intersection -select 'set==\"CLINDEL\"' -selectName CLINDEL -select 'set==\"GATK\"' -selectName GATK -o $OUTF/Indel_Intersection/report.enriched.txt --eval $OUTF/Indel_Intersection/merged.enriched.vcf -l INFO
+            STATUS="${{?}}"
+            echo GATK  filter indels $STATUS
+            if [ "$STATUS" -gt 0 ];
+            then
+                echo Error in GATK filter Indels for enriched regions >&2
+                exit 1
+            fi
         """.format(in_vars))
     else:
         print("The indel caller is not recognized: should be gatk - clindel - both")
@@ -946,15 +959,15 @@ fi
 
 def fusevariants_pipelne(script,in_paths,in_vars):
     text="""    
-# fuse indel and snp calls into one file
-java -Xmx5g -jar $GATK -T CombineVariants -R $REF --variant $OUTF/SNP_Intersection/merged.enriched.vcf --variant $OUTF/Indel_Intersection/merged.enriched.vcf -o $OUTF/all_variants.vcf -U LENIENT_VCF_PROCESSING
-STATUS="${{?}}"
-if [ "$STATUS" -gt 0 ];
-then
-    echo Error in fusevariants >&2
-    exit 1
-fi
-    """
+        # fuse indel and snp calls into one file
+        java -Xmx5g -jar $GATK -T CombineVariants -R $REF --variant $OUTF/SNP_Intersection/merged.enriched.vcf --variant $OUTF/Indel_Intersection/merged.enriched.vcf -o $OUTF/all_variants.vcf -U LENIENT_VCF_PROCESSING
+        STATUS="${{?}}"
+        if [ "$STATUS" -gt 0 ];
+        then
+            echo Error in fusevariants >&2
+            exit 1
+        fi
+    """.format(in_vars)
     script.write(text)
     return text
 

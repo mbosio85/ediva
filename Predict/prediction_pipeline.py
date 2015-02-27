@@ -177,8 +177,15 @@ for full_sample in samples:
                     qoptions['-l'].append("virtual_free=%dG,h_rt=51600"%mem)
                 qoptions['-pe'] = list()
                 qoptions['-pe'].append("smp %d"%cpu)
-            command_pipe = python_path +' '+ pipe_script+ ' ' + script_name+'.pipe ' + logfile
             #print command_pipe
+            else:
+                qoptions['-e'] = list()
+                qoptions['-e'].append(outfolder+'/'+sample+'/')
+                qoptions['-o'] = list()
+                qoptions['-o'].append(outfolder+'/'+sample+'/')
+                print qoptions
+   
+            command_pipe = python_path +' '+ pipe_script+ ' ' + script_name+'.pipe ' + logfile
             qlist.append(qsubclass.qsubCall(command_pipe,qoptions,list(),logfile))
             
         ## Here now is where the pipeline is written in the "script" file        
@@ -187,10 +194,14 @@ for full_sample in samples:
         p_element.set_error("Error in header executions Please refer to SGE job error file")
         pipe.append(p_element)
         
-        text = prediction_support_functions.seq_pipeline(script,parsed_config,sample_info)
-        p_element = pipeline_element.pipeline_element(env_var + text,"Alignment etc ")
-        p_element.set_error("Error in main body Please refer to SGE job error file")
-        pipe.append(p_element)
+        (text,conditions) = prediction_support_functions.seq_pipeline(script,parsed_config,sample_info)
+
+        for i in range(len(text)):            
+            #p_element = pipeline_element.pipeline_element(env_var + text,"Alignment etc ")
+            p_element = pipeline_element.pipeline_element(env_var + text[i],text[i].split('\n')[0])
+            p_element.set_error("Error in main body, %s Please refer to SGE job error file"%(text[i].split('\n')[0]))
+            p_element.set_condition(conditions[i])
+            pipe.append(p_element)
         
         text = prediction_support_functions.indel_caller_pipelne(script,parsed_config,sample_info)
         p_element = pipeline_element.pipeline_element(env_var+ text,"Indel caller")
