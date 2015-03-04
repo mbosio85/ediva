@@ -1112,3 +1112,215 @@ class Sample_list_window(Dialog):
         self.cancel()
         return self.result
     
+    
+    
+    
+    
+    
+class Resume_window(Dialog):
+    '''
+    Window to gather the needed Annotate.py values : the output is a dictionary with variables to launch the command.
+    '''
+    def file_search(self):
+        str_default='Config. File'
+        self.file = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('Job_queue files','*.qlist'), ('Single pipeline files','*.pipe')],title='Choose the file to run')
+        if self.file != None:
+            self.file =abs_path = os.path.abspath(self.file.name)
+            self.filename_string.set(str_default + ' [...%s]'%self.file[-15:])
+        else:
+            self.file = None
+        
+        #return abs_path
+        
+    def plus1(self,var,l):
+        var.set(int(var.get())+1)
+        l.textvariable = var
+        return var.get()
+    
+    def minus1(self,var,l):
+        var.set(max(1,int(var.get())-1))
+        l.textvariable = var
+        return var.get()    
+    
+    def body(self, master):
+        #Title
+        cur_row=0
+        self.configure(background =steel)
+        self.resizable(0,0)
+        Label(master, text="\nRelaunch job:\n",background=emerald,fg='white',font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
+        
+        
+        #Config file selection button
+        cur_row+=1
+        self.filename_string = StringVar()
+        self.filename_string.set('Select file to run')
+        self.filename = Button(master,textvariable=self.filename_string,command=self.file_search,width=50,background=steel,fg='white',
+                               font=(font_type, txt_dim),activebackground= emerald,activeforeground='white'  )        
+        self.filename.grid(row=cur_row,column=0,columnspan=3)
+    
+
+        #CPU label and buttons
+        cur_row+=1
+        self.cpu = IntVar()
+        self.cpu.set(4)
+        self.lcpu = Label(master, textvariable = (self.cpu),width=20, background=steel,fg='white',font=(font_type, txt_dim))
+        self.nlcpu = Label(master, text = 'CPU',width=20, background=steel,fg='white',font=(font_type, txt_dim-4))
+        self.lcpu.grid(row=cur_row+1,column=0,columnspan=1)#,sticky='E')
+        self.nlcpu.grid(row=cur_row,column=0,columnspan=1)#,sticky='W')
+        self.plus_cpu = Button(master,text = '+',command=lambda : self.cpu.set(self.plus1(self.cpu,self.lcpu) ) ,
+                                 background=steel,fg='white',font=(font_type, txt_dim),activebackground= emerald,activeforeground='white'  )
+        self.minus_cpu = Button(master,text= '-',command=lambda : self.cpu.set(self.minus1(self.cpu,self.lcpu) ),
+                                 background=steel,fg='white',font=(font_type, txt_dim),activebackground= emerald,activeforeground='white'  )
+        self.plus_cpu.grid(row=cur_row+1,column=0,sticky='E')
+        self.minus_cpu.grid(row=cur_row+1,column=0,sticky='W')
+
+        #MEM GB label and buttons
+        self.mem = IntVar()
+        self.mem.set(12)
+        self.l_mem = Label(master, textvariable = (self.mem),width=20, background=steel,fg='white',font=(font_type, txt_dim))
+        self.n_mem = Label(master, text = 'GB Memory',width=20, background=steel,fg='white',font=(font_type, txt_dim-4))
+        self.l_mem.grid(row=cur_row+1,column=2,columnspan=1)
+        self.n_mem.grid(row=cur_row,column=2,columnspan=1)
+        self.plus_mem = Button(master,text ='+',command=lambda : self.mem.set(self.plus1(self.mem,self.l_mem) ),
+                                 background=steel,fg='white',font=(font_type, txt_dim),activebackground= emerald,activeforeground='white'  )
+        self.minus_mem = Button(master,text='-',command=lambda : self.mem.set(self.minus1(self.mem,self.l_mem) ),
+                                 background=steel,fg='white',font=(font_type, txt_dim),activebackground= emerald,activeforeground='white'  )
+        self.plus_mem.grid(row=cur_row+1,column=2,sticky='E')
+        self.minus_mem.grid(row=cur_row+1,column=2,sticky='W')
+        
+        return self.filename # initial focus
+    
+    
+    def buttonbox(self):
+        # add standard button box. override if you don't want the
+        # standard buttons
+        box = Frame(self,background = steel)
+        w = Button(box, text="Run", width=10, command=self.ok,fg='white',font=(font_type, txt_dim)
+                ,highlightbackground= steel,background=  steel,activebackground= emerald ,activeforeground='white'        )
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Back", width=10, command=self.cancel,fg='white',font=(font_type, txt_dim)
+                ,highlightbackground= steel,background=  steel,activebackground= emerald,activeforeground='white'       )
+        w.pack(side=LEFT, padx=5, pady=5)
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+        box.pack()
+        
+    def ok(self, event=None):
+        if not self.validate():
+            self.initial_focus.focus_set() # put focus back
+            return'whit'
+        #
+        self.update_idletasks()
+        self.apply()
+        if self.result != None:
+            self.cancel()
+            #self.withdraw()
+            return self.result
+        else:
+            return None
+        
+    def apply(self):
+        NewWin = qSubDetails(self.master)
+        cpu_mem_params = ',-pe smp %d,-l virtual_free=%dG '%(self.cpu.get(),self.mem.get())
+        if NewWin.result != None:
+            self.result = {
+                "mem"       :self.mem.get(),
+                "cpu"       :self.cpu.get(),
+                "filename"  :self.file,
+                "qopts"     :NewWin.result+cpu_mem_params
+                
+                }
+            #print self.result
+        else :
+            self.result = None
+        
+      
+    def validate(self):
+        #valiate file
+        try:
+            infile = self.file
+            if not(os.path.isfile(infile)):
+                raise
+        except:
+            tkMessageBox.showwarning("Predict","Please Select one Input File")
+            return 0
+        return 1    
+
+
+    
+class Kill_window(Dialog):
+    '''
+    
+    '''
+    def file_search(self):
+        str_default='Job to be killed '
+        self.file = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('Job_queue files','*.qlist')],title='Choose the jobs to stop')
+        if self.file != None:
+            self.file =abs_path = os.path.abspath(self.file.name)
+            self.filename_string.set(str_default + ' [...%s]'%self.file[-15:])
+        else:
+            self.file = None
+        
+        #return abs_path
+      
+    def body(self, master):
+        #Title
+        cur_row=0
+        self.configure(background =steel)
+        self.resizable(0,0)
+        Label(master, text="\nRelaunch job:\n",background=emerald,fg='white',font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
+        
+        #Config file selection button
+        cur_row+=1
+        self.filename_string = StringVar()
+        self.filename_string.set('Select job-queue to stop')
+        self.filename = Button(master,textvariable=self.filename_string,command=self.file_search,width=50,background=steel,fg='white',
+                               font=(font_type, txt_dim),activebackground= emerald,activeforeground='white'  )        
+        self.filename.grid(row=cur_row,column=0,columnspan=3)
+        return self.filename # initial focus
+    
+    
+    def buttonbox(self):
+        # add standard button box. override if you don't want the
+        # standard buttons
+        box = Frame(self,background = steel)
+        w = Button(box, text="Stop", width=10, command=self.ok,fg='white',font=(font_type, txt_dim)
+                ,highlightbackground= steel,background=  steel,activebackground= emerald ,activeforeground='white'        )
+        w.pack(side=LEFT, padx=5, pady=5)
+        w = Button(box, text="Back", width=10, command=self.cancel,fg='white',font=(font_type, txt_dim)
+                ,highlightbackground= steel,background=  steel,activebackground= emerald,activeforeground='white'       )
+        w.pack(side=LEFT, padx=5, pady=5)
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+        box.pack()
+        
+    def ok(self, event=None):
+        if not self.validate():
+            self.initial_focus.focus_set() # put focus back
+            return'whit'
+        #
+        self.update_idletasks()
+        self.apply()
+        if self.result != None:
+            self.cancel()
+            #self.withdraw()
+            return self.result
+        else:
+            return None
+        
+    def apply(self):
+        self.result = {
+            "filename" :self.file
+            }
+        return None
+      
+    def validate(self):
+        #valiate file
+        try:
+            infile = self.file
+            if not(os.path.isfile(infile)):
+                raise
+        except:
+            tkMessageBox.showwarning("Predict","Please Select one Input File")
+            return 0
+        return 1    

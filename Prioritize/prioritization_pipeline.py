@@ -234,9 +234,9 @@ if qclass:
             qoptions['-l'].append("virtual_free=20G,h_rt=51600")
         qoptions['-pe'] = list() 
     else:
-        print "Automatic Logfile:%s"%logfile
+        #print "Automatic Logfile:%s"%logfile
         qoptions = qsubclass.parse_command_options(args.qoptions,args.outfolder,args.qsub_name)
-    print qoptions
+    #print qoptions
     pipe = list()
     
 ##########################
@@ -427,7 +427,7 @@ try:
     if os.path.isdir( os.path.dirname(args.qsub_name) ):
         script_location = os.path.expanduser(args.qsub_name)
     else:
-        script_location = args.outfolder + '/' + args.qsub_name
+        script_location = args.outfolder + '/' + args.job_name
     SCRIPT = open( script_location, 'w')
 except Exception,e:
     print "Could not open script file for writing."
@@ -446,7 +446,7 @@ pipeline_element.save_pipeline(pipe,script_location+'.pipe')
 if qclass:
     command = "%s %s %s %s"%(python_path,pipe_script,script_location+'.pipe','log.log')
     qlist.append(qsubclass.qsubCall(command,qoptions,list(),logfile))
-    print qoptions
+    #print qoptions
     print "\n\ncommand\n"
     command = str.replace(command,'//','/')
     print command
@@ -456,8 +456,8 @@ if qclass:
  
 if qclass:
     try:
-        print "Now I'm saving the queue list in %s file"%(logfile+'.qlist')
-        with open(logfile +'.qlist','wb') as outfile:
+        print "Now I'm saving the queue list in %s file"%(script_location+'.qlist')
+        with open(script_location +'.qlist','wb') as outfile:
             pickle.dump(qlist, outfile)
     except :
         print('error saving pipeline list to file')
@@ -478,5 +478,9 @@ if qclass:
     
     
     """    
-    qsubclass.run_qlist(logfile+'.qlist')
+    qsubclass.run_qlist(script_location+'.qlist')
+    try:
+        subprocess.call('rm %s',logfile)
+    except:
+        pass
     print "Finished, have a nice day :)"

@@ -13,6 +13,9 @@ python_path  = '/software/so/el6.3/PythonPackages-2.7.6/bin/python'
 annotate_script = os.path.abspath(curpath+'Annotate/annotate.py')
 predict_script = os.path.abspath(curpath+'Predict/prediction_pipeline.py')
 prioritize_script = os.path.abspath(curpath+'Prioritize/prioritization_pipeline.py')
+relaunch_script = os.path.abspath(curpath+'pipeline_control/qsubclass.py')
+pipe_element_script = os.path.abspath(curpath+'pipeline_control/pipeline_element.py')
+kill_script  = os.path.abspath(curpath+'pipeline_control/kill_jobs.py')
 
 font_type ="Helvetica"
 
@@ -114,6 +117,39 @@ def prioritize_win():
     #Annotate.config(state='normal')
     #Prioritize.config(state='normal')
     #Quit.config(state='normal')
+    
+    
+def Resume_window():
+    '''
+    Re-launch a qsub or pipe job in case it crashed or to re-launch it
+    It supports a resume option fully operational for the prioritize phase
+    Less complete for the predict phase (just checks the step state without checking the needed outputs)
+    '''
+    NewWin = tkd.Resume_window(root)
+    
+    if NewWin.result != None:
+        #print NewWin.result
+        commandline =""" {0[filename]} "{0[qopts]}" """.format(NewWin.result) #The space before { is key for the command line to work
+        commandline = python_path + ' ' + relaunch_script + ' ' + commandline + '&'
+        #print commandline
+        
+        subprocess.Popen(commandline,shell=True)
+        
+
+def Kill_window():
+    '''
+    Browse for a .qsub file which  hosts running jobs and kill them all
+    '''
+    NewWin = tkd.Kill_window(root)
+    
+    if NewWin.result != None:
+        #print NewWin.result
+        commandline =""" {0[filename]}  """.format(NewWin.result) #The space before { is key for the command line to work
+        commandline = python_path + ' ' + kill_script + ' ' + commandline + '&'
+        #print commandline
+        subprocess.Popen(commandline,shell=True)
+        #print commandline
+        
 ##############################
 #### MAIN
 ##############################
@@ -130,7 +166,7 @@ azzurro = '#1ba1f2'
 root = tk.Tk()
 w = root.winfo_screenwidth()
 h = root.winfo_screenheight()
-wh=500 #Window height
+wh=700 #Window height
 ww=500 #Window width
 bw =15 #Button width
 bh=4
@@ -150,11 +186,17 @@ Prioritize  = tk.Button(root,text='Prioritize', command=prioritize_win,width=bw,
                 ,highlightbackground= cobalt,relief='flat',background=  cobalt,activebackground= azzurro       )
 Quit        = tk.Button(root,text='Quit', command=root.destroy,width=bw,height=bh,fg='white',font=(font_type,txt_dim)
                 ,highlightbackground= steel,relief='flat',background=  steel,activebackground='#76608a'       )
+Rerun       = tk.Button(root,text='Rerun', command=Resume_window,width=bw,height=bh,fg='white',font=(font_type,txt_dim)
+                ,highlightbackground= '#2C4566',relief='flat',background=  '#2C4566',activebackground='#76608a'       )
+Kill        = tk.Button(root,text='Stop', command=Kill_window,width=bw,height=bh,fg='white',font=(font_type,txt_dim)
+                ,highlightbackground= '#2c3e50',relief='flat',background=  '#2c3e50',activebackground='#76608a'       )
 w.grid(row=0,rowspan=3,columnspan=4,sticky='W'+'E'+'S'+'N')
-Annotate.grid(row=4,column=1,sticky='E')
-Predict.grid(row=3,column=1,sticky='E')
-Prioritize.grid(row=3,column=2,sticky='W')
-Quit.grid(row=4,column=2,sticky='W')
+Annotate.grid(row=4,column=1,sticky='EW')
+Predict.grid(row=3,column=1,sticky='EW')
+Prioritize.grid(row=3,column=2,sticky='WE')
+Quit.grid(row=4,column=2,sticky='WE')
+Rerun.grid(row=5,column=1,sticky='EW')
+Kill.grid(row=5,column=2,sticky='WE')
 
 root.mainloop()
 

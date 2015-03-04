@@ -142,12 +142,13 @@ qclass = True
 
 if qclass:
     qlist =list()
-    logfile = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "qsub_log.log"
+    logfile = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "qsub.log"
     if qoptions_def == False:
         qoptions_def,logfile = qsubclass.getOptions()
     else:
-        print "Automatic Logfile:%s"%logfile
-    print qoptions_def
+        pass
+        #print "Automatic Logfile:%s"%logfile
+    #print qoptions_def
 
 #for i in range(3,4):
 for full_sample in samples:
@@ -183,7 +184,7 @@ for full_sample in samples:
                 qoptions['-e'].append(outfolder+'/'+sample+'/')
                 qoptions['-o'] = list()
                 qoptions['-o'].append(outfolder+'/'+sample+'/')
-                print qoptions
+                #print qoptions
    
             command_pipe = python_path +' '+ pipe_script+ ' ' + script_name+'.pipe ' + logfile
             qlist.append(qsubclass.qsubCall(command_pipe,qoptions,list(),logfile))
@@ -218,9 +219,10 @@ for full_sample in samples:
         pipeline_element.save_pipeline(pipe,script_name+'.pipe')
  
 if qclass:
+    out_name=outfolder+sample+'/'+ qsub_name +'.qlist'
     try:
-        print "Now I'm saving the queue list in %s file"%(logfile+'.qlist')
-        with open(logfile +'.qlist','wb') as outfile:
+        print "Now I'm saving the queue list in %s file"%(out_name)
+        with open(out_name,'wb') as outfile:
             pickle.dump(qlist, outfile)
     except :
         print('error saving pipeline list to file')
@@ -241,11 +243,15 @@ if qclass:
     
     
     """
-    nohup_script = ("""import imp;import os;os.environ['DRMAA_LIBRARY_PATH'] = '/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0';"""+
-    "qsubclass = imp.load_source('qsubclass','%s');qsubclass.run_qlist('%s.qlist') "%(qsub_script,logfile))
-   # print nohup_script
+   # nohup_script = ("""import imp;import os;os.environ['DRMAA_LIBRARY_PATH'] = '/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0';"""+
+   # "qsubclass = imp.load_source('qsubclass','%s');qsubclass.run_qlist('%s.qlist') "%(qsub_script,logfile))
+   ## print nohup_script
     #os.system('nohup '+ python_path+' -c '+ '"'+nohup_script+'" ')
-    qsubclass.run_qlist(logfile+'.qlist')
+    qsubclass.run_qlist(out_name)
+    try:
+        subprocess.call('rm %s',logfile)
+    except:
+        pass
     print "Finished, have a nice day :)"
 
     

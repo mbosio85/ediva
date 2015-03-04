@@ -12,7 +12,7 @@ try:
     writeXLS = True
 except:
     writeXLS = False
-    print 'No XlS riter'
+    print 'No XlS writer'
 
 # Note header:
 #[   'Chr',
@@ -646,7 +646,6 @@ def main (args):
         cur.close()
         db.close()
         
-            
         #check if already exist
         try:
             print "Updating the existing file with the already existing sheets"
@@ -831,25 +830,25 @@ def compoundizer(variantlist, family, index_sample):
     for member in family.keys():
         if family[member] == '0':
             ticker_dict[member] = list()
-    
+    #Parents names    
     name1 = ticker_dict.keys()[0]
     name2 = ticker_dict.keys()[1]
+
     
     judgement = 0
     
     # check line by line, if this variant could support a compound het
     for variantline in variantlist:
         # produce a list with all the sample data
-        sampledata = variantline[index_sample].split(';')
-        
+        sampledata = variantline[index_sample].split(';')    
         # produce a dictionary to save the zygosities
         zygosities = dict()
         
-        if not len(sampledata) == 3:
-            print 'Something went wrong. The samples provided did not contain a trio case?'
-            judgement = 0
-            break
-        
+        #if not len(sampledata) == 3:
+        #    print 'Something went wrong. The samples provided did not contain a trio case?'
+        #    judgement = 0
+        #    break
+        #
         for sam in sampledata:
             features = sam.split('>')
             name        = features[0]
