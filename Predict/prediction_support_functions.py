@@ -493,7 +493,7 @@ def write_header(script,in_paths,in_vars):
     header = ("""
             #!/bin/bash
             set -e
-            #$ -N {0[qsubname]}_{0[sdir]}
+            #$ -N {0[sdir]}_{0[qsubname]}
             #$ -e {0[outfolder]}/{0[sdir]}
             #$ -o {0[outfolder]}/{0[sdir]}
             #$ -pe smp {0[cpu]}

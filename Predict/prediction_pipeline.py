@@ -154,7 +154,7 @@ if qclass:
 for full_sample in samples:
     qoptions = qoptions_def
  #   full_sample = samples[i]
-    sample = full_sample[nameStart-1:nameLength]
+    sample = full_sample[nameStart-1:nameStart+nameLength-1]
     #mkdir
     prediction_support_functions.make_dirs(outfolder,sample)
     #buildpipe
@@ -170,7 +170,7 @@ for full_sample in samples:
                 qoptions['-e'].append(outfolder+'/'+sample+'/')
                 qoptions['-o'] = list()
                 qoptions['-o'].append(outfolder+'/'+sample+'/')
-                qoptions['-N'] = [qsub_name]
+                qoptions['-N'] = [sample+'_'+qsub_name]
                 if qoptions.get('-l',False):
                     qoptions['-l'].append("virtual_free=%dG"%mem)
                 else:
@@ -184,8 +184,8 @@ for full_sample in samples:
                 qoptions['-e'].append(outfolder+'/'+sample+'/')
                 qoptions['-o'] = list()
                 qoptions['-o'].append(outfolder+'/'+sample+'/')
+                qoptions['-N'] = [sample+'_'+qsub_name]
                 #print qoptions
-   
             command_pipe = python_path +' '+ pipe_script+ ' ' + script_name+'.pipe ' + logfile
             qlist.append(qsubclass.qsubCall(command_pipe,qoptions,list(),logfile))
             
@@ -219,7 +219,7 @@ for full_sample in samples:
         pipeline_element.save_pipeline(pipe,script_name+'.pipe')
  
 if qclass:
-    out_name=outfolder+sample+'/'+ qsub_name +'.qlist'
+    out_name=outfolder+'/'+ qsub_name +'.qlist'
     try:
         print "Now I'm saving the queue list in %s file"%(out_name)
         with open(out_name,'wb') as outfile:

@@ -3,6 +3,7 @@ import Tkinter as tk
 import tkSimpleDialog as tkd
 import os
 import subprocess
+import ToolTip
 
 curpath= os.path.realpath(__file__)
 curpath = curpath.split('/')
@@ -157,11 +158,12 @@ def Kill_window():
 back_color = "#7e3878"#aa00ff"
 emerald ='#008a00'
 mango ='#da532c'#e8980e'#'#fa6800'
-cobalt ='#0050ef'
+cobalt ='#2d89ef'#'#0050ef'
 steel ="#1d1d1d"#647687'
 green ='#60a917'
 orange = '#fa6800'#'#cd3700''#f09609'
 azzurro = '#1ba1f2'
+text_color='white'#'#ffffff'
 
 root = tk.Tk()
 w = root.winfo_screenwidth()
@@ -176,27 +178,35 @@ root.geometry('%dx%d+%d+%d'%(ww,wh,w/2 - ww/2,h/2 -wh/2))
 root.resizable(0,0)
 root.configure(background=back_color)
 ##Buttons
-w           = tk.Label(root, text="\t\n\tWhat do you want to do?  \t\n",background=back_color,fg='white',font=(font_type, txt_dim)
-                       )
-Predict     = tk.Button(root,text='Predict', command=predict_win,width=bw,height=bh,fg='white',font=(font_type, txt_dim)
+w           = tk.Label(root, text="\neDiVa\nWhat do you want to do?\n",background=back_color,fg=text_color,font=(font_type, txt_dim),
+                      )
+Predict     = tk.Button(root,text='Predict', command=predict_win,width=bw,height=bh,fg=text_color,font=(font_type, txt_dim)
                 ,highlightbackground= emerald,relief='flat',background= emerald,activebackground= green     )
-Annotate    = tk.Button(root,text='Annotate', command=annotate_win,width=bw,height=bh,fg='white',font=(font_type, txt_dim)
+Annotate    = tk.Button(root,text='Annotate', command=annotate_win,width=bw,height=bh,fg=text_color,font=(font_type, txt_dim)
                 ,highlightbackground= mango,relief='flat',background=mango,activebackground=  orange      )
-Prioritize  = tk.Button(root,text='Prioritize', command=prioritize_win,width=bw,height=bh,fg='white',font=(font_type, txt_dim)
-                ,highlightbackground= cobalt,relief='flat',background=  cobalt,activebackground= azzurro       )
-Quit        = tk.Button(root,text='Quit', command=root.destroy,width=bw,height=bh,fg='white',font=(font_type,txt_dim)
+Prioritize  = tk.Button(root,text='Prioritize', command=prioritize_win,width=bw,height=bh,fg=text_color,font=(font_type, txt_dim)
+                ,highlightbackground=cobalt,relief='flat',background=cobalt,activebackground= azzurro       )
+Quit        = tk.Button(root,text='Quit', command=root.destroy,width=bw,height=bh,fg=text_color,font=(font_type,txt_dim)
                 ,highlightbackground= steel,relief='flat',background=  steel,activebackground='#76608a'       )
-Rerun       = tk.Button(root,text='Rerun', command=Resume_window,width=bw,height=bh,fg='white',font=(font_type,txt_dim)
+Rerun       = tk.Button(root,text='Rerun', command=Resume_window,width=bw,height=bh,fg=text_color,font=(font_type,txt_dim)
                 ,highlightbackground= '#2C4566',relief='flat',background=  '#2C4566',activebackground='#76608a'       )
-Kill        = tk.Button(root,text='Stop', command=Kill_window,width=bw,height=bh,fg='white',font=(font_type,txt_dim)
+Kill        = tk.Button(root,text='Stop', command=Kill_window,width=bw,height=bh,fg=text_color,font=(font_type,txt_dim)
                 ,highlightbackground= '#2c3e50',relief='flat',background=  '#2c3e50',activebackground='#76608a'       )
-w.grid(row=0,rowspan=3,columnspan=4,sticky='W'+'E'+'S'+'N')
+w.grid(row=0,rowspan=3,columnspan=3,sticky='W'+'E'+'S'+'N')
 Annotate.grid(row=4,column=1,sticky='EW')
 Predict.grid(row=3,column=1,sticky='EW')
 Prioritize.grid(row=3,column=2,sticky='WE')
 Quit.grid(row=4,column=2,sticky='WE')
 Rerun.grid(row=5,column=1,sticky='EW')
 Kill.grid(row=5,column=2,sticky='WE')
+
+ToolTip.ToolTip(Predict, follow_mouse=1, text="eDiVa Varitant Prediction pipeline for sample-wise variant calling.")
+ToolTip.ToolTip(Prioritize, follow_mouse=1, text="eDiVa Varitant filtering and ranking pipeline for trios-families.")
+ToolTip.ToolTip(Annotate, follow_mouse=1, text="eDiVa Annotation for VCF files.")
+ToolTip.ToolTip(Rerun, follow_mouse=1, text="Rerun a previously defined pipeline with new computing parameters.")
+ToolTip.ToolTip(Kill, follow_mouse=1, text="Kill multiple jobs depending on a single pipeline.")
+
+
 
 root.mainloop()
 

@@ -246,24 +246,24 @@ script_content = str()
 
 # bash script header
 script_content = ("""
-#!/bin/bash
+    #!/bin/bash
+    
+    #$ -N %s
+    #$ -e %s
+    #$ -o %s
+    
+    source /etc/profile
+    export _JAVA_OPTIONS=\"-Djava.io.tmpdir=$TMPDIR $_JAVA_OPTIONS\"
+    
+    export OUTF=%s
+    export GATK=%s
+    export EDIVA=%s
+    export SAMTOOLS=%s
+    export REF=%s
+    
+    DBSNP=%s
 
-#$ -N %s
-#$ -e %s
-#$ -o %s
-
-source /etc/profile
-export _JAVA_OPTIONS=\"-Djava.io.tmpdir=$TMPDIR $_JAVA_OPTIONS\"
-
-export OUTF=%s
-export GATK=%s
-export EDIVA=%s
-export SAMTOOLS=%s
-export REF=%s
-
-DBSNP=%s
-
-""" % (job_name, args.outfolder, args.outfolder, args.outfolder, gatk, ediva, samtools, ref, dbsnp))
+    """ % (job_name, args.outfolder, args.outfolder, args.outfolder, gatk, ediva, samtools, ref, dbsnp))
 env_var = script_content
 ######
 # if a multisample call was given...
@@ -273,17 +273,17 @@ env_var = script_content
 
 if args.multisample:
     text= """
-
-# select samples from multisample call file
-java -Xmx2g -jar $GATK -R $REF -T SelectVariants --variant %s -o $OUTF/combined.variants.temp.vcf %s -env -ef
-
-# filter out variants, where no sample has more support than 5 reads
-%s $EDIVA/Prioritize/post_gatkms_filter.py --infile $OUTF/combined.variants.temp.vcf --outfile $OUTF/combined.variants.vcf
-
-# clean up
-rm $OUTF/combined.variants.temp.vcf
-
-""" % (vcf_list[0], sample_joint_string,python_path)
+        
+        # select samples from multisample call file
+        java -Xmx2g -jar $GATK -R $REF -T SelectVariants --variant %s -o $OUTF/combined.variants.temp.vcf %s -env -ef
+        
+        # filter out variants, where no sample has more support than 5 reads
+        %s $EDIVA/Prioritize/post_gatkms_filter.py --infile $OUTF/combined.variants.temp.vcf --outfile $OUTF/combined.variants.vcf
+        
+        # clean up
+        rm $OUTF/combined.variants.temp.vcf
+        
+        """ % (vcf_list[0], sample_joint_string,python_path)
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Multisample + filtering")
     p_element.set_error("Error in multisample+filtering executions Please refer to SGE job error file")
@@ -299,9 +299,9 @@ else:
     # produces a line like this:
     # java -Xmx4g -jar /users/GD/tools/GATK/GenomeAnalysisTK-2.8-1-g932cd3a/GenomeAnalysisTK.jar -T CombineVariants -R /users/GD/resource/human/hg19/hg19.fasta --variant:40ACVi 40ACVi_indel.vcf --variant:40ACVm 40ACVm_indel.vcf --variant:40ACVp 40ACVp_indel.vcf -o 40ACV/combined.variants.indel.vcf --unsafe LENIENT_VCF_PROCESSING
     text = ("""
-# merge vcf files
-java -jar $GATK -T CombineVariants -R $REF %s -o $OUTF/combined.variants.vcf --unsafe LENIENT_VCF_PROCESSING
-    
+        # merge vcf files
+        java -jar $GATK -T CombineVariants -R $REF %s -o $OUTF/combined.variants.vcf --unsafe LENIENT_VCF_PROCESSING
+            
     """ % (variant_joint_string))
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Non multisample + vcf merging")
@@ -324,11 +324,10 @@ if ( len(bam_list) == 0 or not len(bam_list) == len(vcf_list) ):
     Just creating a merge vcf script.
     """
     text =  """
-
-# only renaming combined.vcf to supplemented vcf, because supplementing will not be done
-cp $OUTF/combined.variants.vcf $OUTF/combined.variants.supplement.vcf
-
-    """
+        
+        # only renaming combined.vcf to supplemented vcf, because supplementing will not be done
+        cp $OUTF/combined.variants.vcf $OUTF/combined.variants.supplement.vcf
+        """
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Renaming VCF")
     p_element.set_error("Error in renaming VCF executions Please refer to SGE job error file")
@@ -340,14 +339,14 @@ cp $OUTF/combined.variants.vcf $OUTF/combined.variants.supplement.vcf
 elif len(bam_list) == len(vcf_list):
     text= """
 
-# do Genotyping in all family members
-java -jar $GATK -T UnifiedGenotyper -R $REF -I %s --dbsnp $DBSNP -o $OUTF/combined.variants.supplement.temp.vcf -alleles $OUTF/combined.variants.vcf --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -glm BOTH
-
-%s $EDIVA/Prioritize/vcf_filter.py --infile $OUTF/combined.variants.supplement.temp.vcf --outfile $OUTF/combined.variants.supplement.vcf
-
-rm $OUTF/combined.variants.supplement.temp.vcf
-
-""" % (list_file,python_path)
+        # do Genotyping in all family members
+        java -jar $GATK -T UnifiedGenotyper -R $REF -I %s --dbsnp $DBSNP -o $OUTF/combined.variants.supplement.temp.vcf -alleles $OUTF/combined.variants.vcf --output_mode EMIT_ALL_SITES --genotyping_mode GENOTYPE_GIVEN_ALLELES -glm BOTH
+        
+        %s $EDIVA/Prioritize/vcf_filter.py --infile $OUTF/combined.variants.supplement.temp.vcf --outfile $OUTF/combined.variants.supplement.vcf
+        
+        rm $OUTF/combined.variants.supplement.temp.vcf
+        
+        """ % (list_file,python_path)
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Genotyping in all family members")
     p_element.set_error("Error in Genotyping in all family members execution Please refer to SGE job error file")
@@ -360,14 +359,14 @@ rm $OUTF/combined.variants.supplement.temp.vcf
 ######
 
 text= """
-
-
-# annotation
-#perl $EDIVA/Annotate/annotate.pl --input $OUTF/combined.variants.supplement.vcf --sampleGenotypeMode complete -f
-%s $EDIVA/Annotate/annotate.py --input $OUTF/combined.variants.supplement.vcf --sampleGenotypeMode complete -f
-
-
-"""%(python_path)
+    
+    
+    # annotation
+    #perl $EDIVA/Annotate/annotate.pl --input $OUTF/combined.variants.supplement.vcf --sampleGenotypeMode complete -f
+    %s $EDIVA/Annotate/annotate.py --input $OUTF/combined.variants.supplement.vcf --sampleGenotypeMode complete -f
+    
+    
+    """%(python_path)
 script_content += text
 p_element = pipeline_element.pipeline_element(env_var+text,"Annotation in all family members")
 p_element.set_error("Error in Annotation execution Please refer to SGE job error file")
@@ -380,11 +379,11 @@ pipe.append(p_element)
 ######
 
 text= """
-
-# rank the variants given
-%s $EDIVA/Prioritize/rankSNP.py --infile $OUTF/combined.variants.supplement.sorted.annotated --outfile $OUTF/combined.variants.supplement.ranked
-
-"""%(python_path)
+    
+    # rank the variants given
+    %s $EDIVA/Prioritize/rankSNP.py --infile $OUTF/combined.variants.supplement.sorted.annotated --outfile $OUTF/combined.variants.supplement.ranked
+    
+    """%(python_path)
 script_content += text
 p_element = pipeline_element.pipeline_element(env_var+text,"Ranking in all family members")
 p_element.set_error("Error in Ranking execution Please refer to SGE job error file")
