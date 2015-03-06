@@ -122,7 +122,6 @@ for line in args.family:
     
     line = line.rstrip('\n')
     splitline = line.split('\t')
-    
     sample = splitline[0]
     affect = splitline[1]
     vcf    = splitline[2]
@@ -136,7 +135,15 @@ for line in args.family:
     sample_list.append(sample)
     # collect samples in a string, that can be used to select samples from multi sample calls
     sample_string.append( "-sn %s" % (sample) )
-    # save all vcf names
+    #Process to check if the input files are GVCF
+    #try:
+    #    subprocess.call("""java -jar $GATK -T GenotypeGVCFs \
+    #-R $REF \
+    #--dbsnp $DBSNP \
+    #--variant %s --out $OUTF/%s.vcf """%(vcf,vcf))
+    #    vcf_list.append(vcf+'.vcf')
+    #except :
+        # save all vcf names
     vcf_list.append(vcf)
     # collect elements for a string, that can be used to merge the vcf files
     variant_string.append("--variant:%s %s" % (sample, vcf))
