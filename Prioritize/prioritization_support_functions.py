@@ -287,3 +287,32 @@ def parse_args():
     
     return args
 
+def check_gvcf(vcf):
+    #Reads the file and looks for GVCF hints
+    gvcf = False
+    name = vcf
+    out_str = "\n"
+    count = 0
+    thresh = 10000
+    tmp = open(vcf,'r')
+    magic_number = tmp.read(2)
+    tmp.close()
+    with open(vcf) if magic_number!='\x1f\x8b'else bgzf.open(vcf) as rf:        
+        for line in rf:
+            count+=1
+            if '<NON_REF>' in line:
+                gvcf = True
+                break
+            if count >= thresh:
+                break
+    if gvcf:
+        name = vcf+'.vcf'
+        out_str=("""
+                        java -jar $GATK -T GenotypeGVCFs -R $REF --dbsnp $DBSNP --variant %s --out %s.vcf
+                        """%(vcf,vcf))
+        
+    return(name,out_str)
+        
+        
+        
+    

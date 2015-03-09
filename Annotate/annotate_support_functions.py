@@ -10,6 +10,8 @@ import ntpath
 import struct
 import hashlib
 import argparse
+from Bio import bgzf
+
 
 
 ######################################
@@ -886,7 +888,11 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
     headers = []
     if qlookup == 'NA':#  [later indent the  whole block if needed [depends if the lookup mode is
         # used or not
-        with open(infile) as INFILE:
+	tmp = open(infile,'r')
+	magic_number = tmp.read(2)
+	print 'MESSAGE:: BGZIP file  : %s'%(magic_number=='\x1f\x8b')
+	tmp.close()
+        with open(infile) if magic_number!='\x1f\x8b'else bgzf.open(infile) as INFILE:
             for line in INFILE:
                 if line.startswith('##'):
                     comment+=1
@@ -901,7 +907,9 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                     if (len(headers) < 9 and not(gtMode ==  "none")):
                             print "ERROR:: No Genptype format column and no sample genotype information column present in the VCF. Please run the tool with the --sampleGenotypeMode parameter set to \"none\" \n";
                             raise IOError
-                else: ## data lines
+                elif 'END=' in line:
+		    pass #this are gvcf lines including not relevant annotations
+		else: ## data lines
                         var_counter +=1
                         myline = line.rstrip('\n').split('\t')
                         ## check for malformed VCF file and take action
@@ -912,6 +920,9 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                         position    = myline[1]
                         ref         = myline[3]
                         alt         = myline[4]
+			alt_tmp = alt.split(',')
+			while '<NON_REF>' in alt_tmp: alt_tmp.remove('<NON_REF>')
+			alt = ','.join(alt_tmp)
                         infos       = myline[7].split(';')
                         AF          = "."
                         gtindex     = "NF"
@@ -927,7 +938,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                         if chr_col == "25":
                             chr_col='MT'
                         keywords = ['M','T','m','t']
-                        keywords_alt = ['A','T','G','C','-']
+                        keywords_alt = ['A','T','G','C','-',',']
                         keychars = ['n','N']
                         if not chr_col in allowed_chr:
                             skipped_chr.append(chr_col)
@@ -944,7 +955,8 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                                     break
                             ## confirm AF extraction from the info tags
                             if AF == ".":
-                                print "WARNING:: AF tag not found in the INFO column at chromosome chr_col and position $position. AF will be set to \".\" for this variant \n"
+                                print "WARNING:: AF tag not found in the INFO column at chromosome %s and position %s. AF will be set to \".\" for this variant"%(chr_col,position)
+				print "WARNING:: Info field: %s\n"%infos
                             ## always test for complete genotype format field consistency in the VCF; if abnormal report for that variant
                             if gtMode != "none":
                                 if len(myline) > 8 and ':' in myline[8] :
@@ -968,10 +980,14 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
 			    if ',' in alt : ## section for all sites other than bi-allelic
 				alts = alt.split(',')
 				afs = AF.split(',')
+				if len(afs)<len(alts):
+				    afs=['.']*len(alts)
+				    
 				## process each alteration allele
 				for j in range(0,len(alts)):
 					al = alts[j]
 					alfr = afs[j]
+					 
 					## decide for variant type
 					lenref = len(ref)
 					lenalt = len(al)
@@ -981,15 +997,23 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
 					    ## make indelID
 					    ## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
 					    if not(any(k in ref for k in keychars)) and not(any(k in al for k in keychars)): #($ref !~ m/[Nn]/ and $al !~ m/[Nn]/)
+					    #try:
 						hash_ref = hashlib.md5(str(ref).encode())
 						hash_al = hashlib.md5(str(al).encode())
-						token_ref = str(struct.unpack('<L', hash_ref.digest[:4])[0])
-						token_obs = str(struct.unpack('<L', hash_al.digest[:4])[0]) ## hope it's what's supposed to do unpack('L', md5($ref));
+						token_ref = str(struct.unpack('<L', hash_ref.digest()[:4])[0])
+						token_obs = str(struct.unpack('<L', hash_al.digest()[:4])[0]) ## hope it's what's supposed to do unpack('L', md5($ref));
+						#except:
+						#    print myline
+						#    #print hash_ref
+						#    print ref
+						#    print alt
+						#    print hash_ref.digest()
+						#    hash_ref = hashlib.md5(str(ref).encode())
+						#    raise
 					    if type_in == 'INDEL' or type_in == 'all':
 						   ## we are only going to report the first alternate allele in the cases where the site is more than bi-allelic
 						   # e.g A,C in the alternate column in VCF will report only A in the main annotation file
 						   ## we are doing this because we want to keep the annotation main file consistent
-						    print('indel')
 						    if j == 0 and token_ref != "NA" and token_obs != "NA":   #HERE WE FILL THE VARIANTS DICTIONARY
 							variants[ chr_col+';'+position+';'+token_ref+';'+token_obs] = chr_col+';'+position+';'+ref+';'+al+';'+alfr
 						    else:
@@ -1090,7 +1114,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                     var = line.rstrip('\n').split(':')
                     ## check for quick lookup data field consistency
                     if len(var) != 4:
-                        print "ERROR :: Not a valid format. Correct format is chr:position:reference:alteration "
+                        print "ERROR :: Not a valid format. Correct format is chr:position:reference:alternate "
                         raise IOError
                     else:
                         ## check for simple checking of the quick loookup data fields
@@ -1129,6 +1153,9 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                                 #elif not(any( k in alt for k in keywords_alt)):
                             elif not(all(k in keywords_alt for k in alt)):
 				print( "WARNING:: Unknown alternate allele detected at %s and %s. This variant line will be skipped in the final annotation output " %( chr_col,pos))
+				print 'line : 1151'
+				print alt
+				raise
                             else:
                             ## decide for variant type
 				lenref = len(ref)
@@ -1193,6 +1220,9 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
 		    #elif not(any( k in alt for k in keywords_alt)):
                     elif not(all(k in keywords_alt for k in alt)):
 			print( "WARNING:: Unknown alternate allele detected at %s and $position. This variant line will be skipped in the final annotation output \n" %( chr_col))
+			print 'line 1218'
+			print alt
+			raise
 		    else:
 			lenref = len(ref)
 			lenalt = len(alt)

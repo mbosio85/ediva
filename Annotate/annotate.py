@@ -185,13 +185,15 @@ if qlookup == "NA":
             (chr_col,position,ref,alt,aftoprint) = value.split(';')
             edivaannotationtoprint = ediva.get(key)
             samplewiseinfortoprint = samples.get(key)
-            edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)))
-            ## write annotation to file 
+            edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
+            ## write annotation to fileprint
             write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+aftoprint+sep+
             annovarannotationtoprint+sep+edivaannotationtoprint+sep+
-            edivapublicanntoprint+sep+samplewiseinfortoprint)
+            edivapublicanntoprint+sep+samplewiseinfortoprint)              
             write_str.replace('\n','')
             ANNINS.write(write_str+'\n')
+
+            
     ## sort the file
     srtCmm = "sort -k1,1 -n -k2,2 --field-separator=, %s > %s " %(outFile,SortedoutFile)
     subprocess.call(srtCmm,shell=True)

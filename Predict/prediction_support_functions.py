@@ -649,6 +649,8 @@ def seq_pipeline(script,in_paths,in_vars):
                echo -e \"\\n #### GATK: Call SNPs and Indels with the GATK Unified Genotyper \\n\"
                #java  -jar $GATK -T UnifiedGenotyper -nt {0[cpu]} -R $REF -I $OUTF/$NAME.realigned.dm.recalibrated.bam -o $OUTF/GATK.both.raw.vcf -glm BOTH --downsampling_type NONE
                java -jar $GATK -T HaplotypeCaller -nct 1 -R $REF --dbsnp $DBSNP -I $OUTF/$NAME.realigned.dm.recalibrated.bam -o $OUTF/GATK.both.raw.vcf -L $EXOME
+               #java -jar $GATK -T HaplotypeCaller -nct 1 -R $REF --dbsnp $DBSNP --emitRefConfidence GVCF  -variant_index_type LINEAR -variant_index_parameter 128000 -I $OUTF/$NAME.realigned.dm.recalibrated.bam -o $OUTF/GATK.both.raw.g.vcf -L $EXOME
+               #java -jar $GATK -T GenotypeGVCFs -R $REF --dbsnp $DBSNP --variant $OUTF/GATK.both.raw.g.vcf --out $OUTF/GATK.GATK.both.raw.vcf
             
                echo -e \"\\n #### GATK: Split SNPs and Indels \\n\"
                java  -jar $GATK -T SelectVariants -R $REF --variant $OUTF/GATK.both.raw.vcf -o $OUTF/GATK.snps.raw.vcf -selectType SNP

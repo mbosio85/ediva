@@ -109,7 +109,7 @@ affection   = dict()
 no_bams_given = False
 qoptions_def  = False
 
-
+gvcf_adapt   = ""
 
 
 for line in args.family:    
@@ -135,15 +135,9 @@ for line in args.family:
     sample_list.append(sample)
     # collect samples in a string, that can be used to select samples from multi sample calls
     sample_string.append( "-sn %s" % (sample) )
-    #Process to check if the input files are GVCF
-    #try:
-    #    subprocess.call("""java -jar $GATK -T GenotypeGVCFs \
-    #-R $REF \
-    #--dbsnp $DBSNP \
-    #--variant %s --out $OUTF/%s.vcf """%(vcf,vcf))
-    #    vcf_list.append(vcf+'.vcf')
-    #except :
         # save all vcf names
+    (vcf , conversion_string) = prioritization_support_functions.check_gvcf(vcf)
+    gvcf_adapt+=conversion_string
     vcf_list.append(vcf)
     # collect elements for a string, that can be used to merge the vcf files
     variant_string.append("--variant:%s %s" % (sample, vcf))
@@ -279,7 +273,7 @@ env_var = script_content
 #  extract information from the multi sample call file and save to combined.variants.supplement.vcf
 
 if args.multisample:
-    text= """
+    text= gvcf_adapt+ """
         
         # select samples from multisample call file
         java -Xmx2g -jar $GATK -R $REF -T SelectVariants --variant %s -o $OUTF/combined.variants.temp.vcf %s -env -ef
@@ -305,7 +299,7 @@ else:
 
     # produces a line like this:
     # java -Xmx4g -jar /users/GD/tools/GATK/GenomeAnalysisTK-2.8-1-g932cd3a/GenomeAnalysisTK.jar -T CombineVariants -R /users/GD/resource/human/hg19/hg19.fasta --variant:40ACVi 40ACVi_indel.vcf --variant:40ACVm 40ACVm_indel.vcf --variant:40ACVp 40ACVp_indel.vcf -o 40ACV/combined.variants.indel.vcf --unsafe LENIENT_VCF_PROCESSING
-    text = ("""
+    text = gvcf_adapt+ ("""
         # merge vcf files
         java -jar $GATK -T CombineVariants -R $REF %s -o $OUTF/combined.variants.vcf --unsafe LENIENT_VCF_PROCESSING
             

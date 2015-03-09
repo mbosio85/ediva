@@ -834,7 +834,7 @@ def compoundizer(variantlist, family, index_sample):
     name1 = ticker_dict.keys()[0]
     name2 = ticker_dict.keys()[1]
 
-    
+
     judgement = 0
     
     # check line by line, if this variant could support a compound het
