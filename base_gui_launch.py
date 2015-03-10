@@ -108,10 +108,11 @@ def prioritize_win():
             commandline += " --config %s"%NewWin.result["config"] 
         if NewWin.result.get('family'):
             commandline += " --family %s"%NewWin.result["family"]
-        
+        if NewWin.result.get('white_list'):
+            commandline += " --white_list %s"%NewWin.result["white_list"]
         commandline +=""" --qoptions " {0[qopts]}" """.format(NewWin.result)#The space before { is key for the command line to work
         commandline = python_path + ' ' + prioritize_script + ' ' + commandline 
-        #print commandline
+        print commandline
         subprocess.Popen(commandline,shell=True)
 
     #Predict.config(state='normal')

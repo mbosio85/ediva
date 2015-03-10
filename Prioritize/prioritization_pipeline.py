@@ -97,6 +97,12 @@ if args.geneexclusion == None:
     gene_exclusion_list='$EDIVA/Resource/gene_exclusion_list.txt'
 else:
     gene_exclusion_list=args.geneexclusion
+    
+if args.white_list == None:
+    print('Warning: no white list selected')
+    white_list='None'
+else:
+    white_list=args.white_list
 
 
 # read a family config file, that gives the ID, affection status, vcf location, bam location
@@ -411,9 +417,9 @@ for inhet_mode in args.inheritance:
     text ="""
     
 # run inheritance mode: %s
-%s $EDIVA/Prioritize/familySNP.py --infile $OUTF/combined.variants.supplement.ranked  --outfile $OUTF/%s/combined.variants.supplement.%s --filteredoutfile $OUTF/%s/combined.variants.supplement.filtered%s --family $OUTF/pedigree.tree --inheritance %s --familytype %s --geneexclusion %s
+%s $EDIVA/Prioritize/familySNP.py --infile $OUTF/combined.variants.supplement.ranked  --outfile $OUTF/%s/combined.variants.supplement.%s --filteredoutfile $OUTF/%s/combined.variants.supplement.filtered%s --family $OUTF/pedigree.tree --inheritance %s --familytype %s --geneexclusion %s --white_list %s
     
-    """ % ((inhet_mode,python_path, inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, args.familytype,gene_exclusion_list))
+    """ % ((inhet_mode,python_path, inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, args.familytype,gene_exclusion_list,white_list))
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Inheritance mode %s in all family members"%inhet_mode)
     p_element.set_error("Error in Inheritance %s in all family members execution Please refer to SGE job error file"%inhet_mode)

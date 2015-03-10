@@ -30,6 +30,8 @@ Each sample is analyzed and an output vcf file is produced.
 Parameters are needed to locate the input folder and the output folder,
 as well as the required computing resources.
 """
+
+
 explain_attempt= "Namestart and Namelength define how to generate subfolders.\nFor each input-file a subfolder is produced from the sample name, startng from 'namestart' position for 'namelength' characters"
 explain_attempt+="""
 
@@ -41,6 +43,14 @@ For example:
         
 All samples with the same Subfolder will be grouped.
         """
+prioritize_header="""
+Variant annotation, filtering and prioritzation for trios
+or families analyzed jointly.
+
+Please deifne an output folder and the inheritance modes
+for the filtering phase to run the tool.
+"""
+
 
 font_type ="Helvetica"
 
@@ -671,7 +681,19 @@ class Prioritize_window(Dialog):
         else:
             pass
         
-        #return abs_path
+    def white_list_search(self):
+        str_default='White list file'
+        file_ = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('txt files','*.txt')],
+                title='Choose the  white list file')#,
+                #initialdir='/users/GD/tools/ediva/Resource/')
+        if file_ != None and file != 'None':
+            file_ =abs_path = os.path.abspath(file_.name)
+            self.white_file.set(file_)
+            self.white_str.set(str_default+ '[...%s]'%self.white_file.get()[-15:])
+            return None
+        else:
+            pass
+        
     
     def ok(self, event=None):
         if not self.validate():
@@ -692,8 +714,12 @@ class Prioritize_window(Dialog):
         self.resizable(0,0)
         cur_row =0 
         #Title
-        Label(master, text="\nPrioritize Options:\n",background=cobalt,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
-        
+        Label(master, text="eDiVa variant prioritization",background=cobalt,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
+        cur_row+=1
+        Label(master, text=prioritize_header,background=cobalt,fg=text_color,font=(font_type, txt_dim-6)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
+        cur_row+=1
+        Label(master, text="\n",background=steel,fg=text_color,font=(font_type, txt_dim-6)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
+        cur_row+=1
         
         #Config file selection button
         cur_row+=1
@@ -703,6 +729,7 @@ class Prioritize_window(Dialog):
         self.cfg_button = Button(master,textvariable=self.cfg_str,command=self.config_file_search,width=50,
                                  background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=cobalt,activeforeground=text_color  )       
         self.cfg_button.grid(row=cur_row,column=0,columnspan=3)
+        ToolTip.ToolTip(self.cfg_button, follow_mouse=1, text="Select the global configuration file is stored. It contains the paths to all tools used by eDiVa.")
         
         #Config file selection button
         cur_row+=1
@@ -712,6 +739,7 @@ class Prioritize_window(Dialog):
         fam_button = Button(master,textvariable = self.family_str,command= self.family_file_search ,width=50,
                                  background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )       
         fam_button.grid(row=cur_row,column=0,columnspan=3)
+        ToolTip.ToolTip(fam_button, follow_mouse=1, text="Select the family description file with the vcf location for each sample.")
        
         #Outfolder selection button
         cur_row+=1
@@ -720,6 +748,8 @@ class Prioritize_window(Dialog):
         self.outfolder_ = Button(master,textvariable=self.outfolder_string,command=self.outfolder_search,width=50,
                                  background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )        
         self.outfolder_.grid(row=cur_row,column=0,columnspan=3)
+        ToolTip.ToolTip(self.outfolder_, follow_mouse=1, text="Define here the output folder.")
+
         
         #Gene_exclusion_list file
         cur_row+=1
@@ -729,11 +759,23 @@ class Prioritize_window(Dialog):
         self.gex_button = Button(master,textvariable=self.gex_str,command=self.gex_file_search,width=50,
                                  background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )       
         self.gex_button.grid(row=cur_row,column=0,columnspan=3)
+        ToolTip.ToolTip(self.gex_button, follow_mouse=1, text="Select a .txt file with a list of genes which are surely not related with the case. a eDiVa default file is provided.")
+
+        #White list  file
+        cur_row+=1
+        self.white_file = StringVar()
+        self.white_str = StringVar()
+        self.white_str.set('White  list file')
+        self.white_button = Button(master,textvariable=self.white_str,command=self.white_list_search,width=50,
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )       
+        self.white_button.grid(row=cur_row,column=0,columnspan=3)
+        ToolTip.ToolTip(self.white_button, follow_mouse=1, text="Select a .txt file with a list of genes which are known to be related with the case. This field can be empty")
+
         
         
         cur_row+=1
-        Label(master, text="---------------------------------------------------",background=steel,fg=text_color).grid(row=cur_row,column=0,columnspan=3)
-        
+        Label(master, text="\n",background=steel,fg=text_color,font=(font_type, txt_dim-8)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
+        cur_row+=1
                 #Family Type [trio - family]
         cur_row+=1
         Label(master, text="Select the Family type:",background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=1,sticky=W)
@@ -745,8 +787,8 @@ class Prioritize_window(Dialog):
         fam_type.grid(row=cur_row,column=2,sticky='W')
         
         cur_row+=1
-        Label(master, text="---------------------------------------------------",background=steel,fg=text_color).grid(row=cur_row,column=0,columnspan=3)
-        
+        Label(master, text="\n",background=steel,fg=text_color,font=(font_type, txt_dim-8)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
+        cur_row+=1
         #Inheritance
         cur_row+=1
         Label(master, text="Select Inheritance mode/s:",background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3)
@@ -780,16 +822,18 @@ class Prioritize_window(Dialog):
         self.var_f = IntVar()
         
         cur_row+=1
-        self.f = Checkbutton(master, text="Force writing?", variable=self.var_f,background=steel,fg=text_color,selectcolor=steel
+        self.f = Checkbutton(master, text="Force writing", variable=self.var_f,background=steel,fg=text_color,selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground=text_color )
         self.f.grid(row=cur_row,column=0,columnspan=1,sticky='W')
-       
+        ToolTip.ToolTip(self.f, follow_mouse=1, text="Select this to force overwriting in case of some output files are already present.")
+
         
         self.var_o = IntVar()
-        self.o = Checkbutton(master, text="Multisample Input?", variable=self.var_o,background=steel,fg=text_color,selectcolor=steel
+        self.o = Checkbutton(master, text="Multisample Input", variable=self.var_o,background=steel,fg=text_color,selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground=text_color )
         self.o.grid(row=cur_row,column=2,columnspan=1,sticky='E') 
-    
+        ToolTip.ToolTip(self.o , follow_mouse=1, text="Select this if the input vcf files have already been merged in a multisample vcf file.")
+
         #
         ##qsubname and jobname
         cur_row+=1
@@ -850,7 +894,8 @@ class Prioritize_window(Dialog):
                 "jobname"   :self.jname.get(),
                 "inheritance":self.inheritance,
                 "qopts"     :NewWin.result+cpu_mem_params,
-                "gex_file"  :self.gex_file.get()
+                "gex_file"  :self.gex_file.get(),
+                "white_list":self.white_file.get()
                 }
 
             if len(self.config_file.get())>0and self.config_file.get()!='None' :

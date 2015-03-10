@@ -75,6 +75,8 @@ compound: detect compound heterozygous recessive variants
 """)
 parser.add_argument('--familytype', choices=['trio', 'family'], dest='familytype', required=True, help="choose if the data you provide is a trio or a larger family")
 parser.add_argument('--geneexclusion',  type=argparse.FileType('r'), dest='geneexclusion', required=False, help='[Analysis of DNA sequence variants detected by high-throughput sequencing; DOI: 10.1002/humu.22035]. [required]')
+parser.add_argument('--white_list',type=str,dest='white_list',required=False,help='--white_list \t a .txt file with the list of genes known to be relevant for the disease\n')
+
 
 args = parser.parse_args()
 
@@ -88,7 +90,17 @@ def main (args):
         for gene in args.geneexclusion:
             gene = gene.rstrip()
             genes2exclude.add(gene)
-    
+    if os.path.isfile(args.white_list):
+        with open(args.white_list,'r') as w:
+            for line in w:
+                line = line.rstrip('\n')
+                if line in genes2exclude:
+                    genes2exclude.remove(line)
+                    print 'Removing %s from black list'%line
+        pass
+    else:
+        print args.white_list
+        raise
     # read family relationships
     family = dict()
     for line in args.famfile:

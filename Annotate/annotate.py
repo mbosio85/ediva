@@ -164,7 +164,7 @@ if qlookup == "NA":
             annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
             edivaannotationtoprint = ediva.get(key,"NA")
             #print edivaannotationtoprint
-            annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*2+"NA")
+            annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA")
             samplewiseinfortoprint = samples.get(key,"NA")
             edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
             # write annotation to file

@@ -243,7 +243,10 @@ def parse_args():
     parser.add_argument('--force', action = 'store_true', help='Enable eDiVa to overwrite old output')
     parser.add_argument('--qoptions', type=str, dest='qoptions', required=False, help='--qoptions \t qsub options with this format: -X val,-Y val,-Z, -XX value\n')
     parser.add_argument('--geneexclusion',type=str,dest='geneexclusion',required=False,help='--geneexclusion \t a .txt file with the list of genes to be excluded from prioritization\n')
+    parser.add_argument('--white_list',type=str,dest='white_list',required=False,help='--white_list \t a .txt file with the list of genes known to be relevant for the disease\n')
     args = parser.parse_args()
+    
+
     #now we collect the variables
     if args.config ==None  :
         #config
@@ -274,7 +277,8 @@ def parse_args():
         args.force = yes_no_alternative('no',"Please write if you want to enable the -force option: 'yes' - 'no'\n")
     if args.geneexclusion == None or not(os.path.isfile(args.geneexclusion)):
         args.geneexclusion  = None
-        
+    if args.white_list == None or not(os.path.isfile(args.white_list)):
+        args.white_list  = None
     
     # does the output folder exist?
     if not os.path.exists(args.outfolder):
