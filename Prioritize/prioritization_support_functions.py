@@ -5,6 +5,7 @@ import os.path
 import re
 import readline
 import subprocess
+from Bio import bgzf
 curpath= os.path.realpath(__file__)
 curpath = curpath.split('/')
 predictpath = '/'.join(curpath[:-2])

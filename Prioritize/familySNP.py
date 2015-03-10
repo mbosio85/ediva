@@ -91,16 +91,15 @@ def main (args):
             gene = gene.rstrip()
             genes2exclude.add(gene)
     if os.path.isfile(args.white_list):
+        
         with open(args.white_list,'r') as w:
             for line in w:
                 line = line.rstrip('\n')
                 if line in genes2exclude:
                     genes2exclude.remove(line)
                     print 'Removing %s from black list'%line
-        pass
-    else:
-        print args.white_list
-        raise
+
+        
     # read family relationships
     family = dict()
     for line in args.famfile:

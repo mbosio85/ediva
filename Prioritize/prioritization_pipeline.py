@@ -10,6 +10,7 @@ import pickle
 import subprocess
 import imp
 import datetime
+from Bio import bgzf
 
 curpath= os.path.realpath(__file__)
 curpath = curpath.split('/')
