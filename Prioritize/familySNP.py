@@ -5,6 +5,8 @@ import re
 from scipy.stats import poisson
 import os
 import MySQLdb
+import shutil
+
 
 try:
     import xlsxwriter
@@ -663,7 +665,7 @@ def main (args):
             row_xls += 1
         cur.close()
         db.close()
-        
+        shutil.copyfile(tmp_name,inheritance_file)
         #check if already exist
         try:
             print "Updating the existing file with the already existing sheets"
@@ -689,8 +691,11 @@ def main (args):
             pass
         fh.close()
         xls.close()
+        #print excel_name
+        #print inheritance_file
+        #print tmp_name
         
-        os.rename(excel_name,inheritance_file)
+        
         os.rename(tmp_name, excel_name)
     
     exit(0)
