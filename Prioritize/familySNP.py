@@ -90,6 +90,11 @@ def main (args):
         for gene in args.geneexclusion:
             gene = gene.rstrip()
             genes2exclude.add(gene)
+
+    if args.white_list == None:
+        args.white_list = 'None'
+    else:
+        pass
     if os.path.isfile(args.white_list):
         
         with open(args.white_list,'r') as w:
@@ -583,12 +588,14 @@ def main (args):
         # open output file for re-reading
         
         excel_name = '/variant_prioritization_report.xlsx'#args.filteredfile.name + ".xlsx"
+        inheritance_file=args.filteredfile.name + ".xlsx"
         tmp_name = 'tmp.xlsx'
 
         excel_path  =  os.path.dirname(args.outfile.name).split('/')
         excel_path  = '/'.join(excel_path[:-1])
         excel_name = excel_path+excel_name
         
+
         
         # open xls file for writing
         print "Printing the Excel file:"
@@ -677,11 +684,13 @@ def main (args):
                             #print row
                 except:
                     print "There was a problem in processing %s sheet. \nIt may be because the sheet was already there before"%(worksheet_name)
-            os.remove(excel_name)
+            #os.remove(excel_name)
         except:
             pass
         fh.close()
         xls.close()
+        
+        os.rename(excel_name,inheritance_file)
         os.rename(tmp_name, excel_name)
     
     exit(0)

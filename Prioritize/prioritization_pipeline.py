@@ -99,9 +99,8 @@ if args.geneexclusion == None:
 else:
     gene_exclusion_list=args.geneexclusion
     
-if args.white_list == None:
+if args.white_list:
     print('Warning: no white list selected')
-    white_list='None'
 else:
     white_list=args.white_list
 
