@@ -665,6 +665,9 @@ def main (args):
             row_xls += 1
         cur.close()
         db.close()
+
+        xls.close()
+        xls = xlsxwriter.Workbook(tmp_name)
         shutil.copyfile(tmp_name,inheritance_file)
         #check if already exist
         try:
