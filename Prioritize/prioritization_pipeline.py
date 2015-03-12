@@ -100,9 +100,10 @@ else:
     gene_exclusion_list=args.geneexclusion
     
 if args.white_list:
-    print('Warning: no white list selected')
-else:
     white_list=args.white_list
+else:
+    print('Warning: no white list selected')
+    
 
 
 # read a family config file, that gives the ID, affection status, vcf location, bam location

@@ -452,7 +452,8 @@ def find_samples(infolder, namestart,namelength,first_e, second_e,sample_list):
 def make_dirs(outfolder,sample):
     print outfolder +'/'+ sample
     try:
-        os.makedirs(outfolder+sample)
+        os.makedirs(outfolder+'/'+sample)
+        os.makedirs(outfolder+'/'+sample+'/intermediate_files/')
     except OSError as exx:
         if exx.errno != os.errno.EEXIST:
             raise
@@ -718,9 +719,7 @@ def seq_pipeline(script,in_paths,in_vars):
     """.format(in_vars))
     condition_list.append(None)
     
-    textlist.append("""
-            
-            # Annotate Enrichment
+    textlist.append("""## Annotate Enrichment
             $BEDTOOLS/intersectBed -a $OUTF/SNP_Intersection/GATK.snps.filtered.cleaned.vcf -b $EXOME > $OUTF/SNP_Intersection/merged.all.vcf
             
             # borrow header from GATK vcf file
@@ -751,7 +750,7 @@ def indel_caller_pipelne(script,in_paths,in_vars):
     if in_vars["indel"] == "clindel":
 
 
-        text =( """
+        text =( """### SHORE: Prepare format map.list
             ### SHORE: Prepare format map.list
             mkdir -p $OUTF/shore
             $CLINDEL convert --sort -r $REF -n 6 -g 2 -e 100 Alignment2Maplist $OUTF/$NAME.realigned.dm.recalibrated.bam $OUTF/shore/map.list.gz
@@ -820,7 +819,7 @@ def indel_caller_pipelne(script,in_paths,in_vars):
     elif in_vars["indel"] == "gatk":
 
 
-        text = ("""
+        text = ("""###GATK Indel preparation
             mkdir -p $OUTF/Indel_Intersection
             
             java -jar -Xmx4g $GATK -T VariantFiltration -R $REF -o $OUTF/Indel_Intersection/GATK.indel.filtered.vcf --variant $OUTF/GATK.indel.raw.vcf --filterExpression \"QD < 2.0 || FS > 200.0 || ReadPosRankSum < -20\" --filterName CRG --genotypeFilterExpression \"DP < 5 || DP > {0[max_cov]} || GQ < 15\" --genotypeFilterName LOWQ
@@ -858,7 +857,7 @@ def indel_caller_pipelne(script,in_paths,in_vars):
 
 
     elif in_vars["indel"] == "both":
-        text =("""
+        text =("""##BOTH indel routine
             ### SHORE: Prepare format map.list
             mkdir -p $OUTF/shore
             echo $CLINDEL convert --sort -r $REF -n 6 -g 2 -e 100 Alignment2Maplist $OUTF/$NAME.realigned.dm.recalibrated.bam $OUTF/shore/map.list.gz
@@ -889,7 +888,7 @@ def indel_caller_pipelne(script,in_paths,in_vars):
             set -e
             
             
-            
+            ##GATK indel section
             mkdir -p $OUTF/Indel_Intersection
             
             # filter GATK variants (Clindel variants are produced pre-filtered)
