@@ -98,16 +98,20 @@ class pipeline_element :
             if self.status>=0:
                 try:
                     #print(self.command)
-                    #print self.command
                     
                     #a = subprocess.check_output(self.command,shell=True,stderr=er)
                     #a = subprocess.check_output(self.command,shell=True)
-                    subprocess.call(self.command,shell =True,stdout=ou,stderr=er)
+                    a = subprocess.call(self.command,shell =True,stdout=ou,stderr=er)
                     #If success:
-                    a = '1'
-                    #print a
-                    ou.write(a)
-                    self.status = -1
+                    
+                    
+                    if a ==0:
+                        self.status = -1
+                    else:
+                        print self.command
+                        print 'error : status %d'%a
+                        self.status+=1
+                        raise
                 except:
                     self.status = 1
                     self.err_msg = str(datetime.now()) + " "  + self.alias + " ended with : " + self.err_msg
@@ -170,6 +174,7 @@ def run_pipeline(pipe,logf):
                     print("\t> Success for "+p_el.alias+'\n')
                     save_pipeline(pipe,filename)
                 else:
+                    print p_el.status
                     logfile.write(p_el.err_msg +'\n')
                     i = len(pipe)+1                    
                     sys.stderr.write(p_el.err_msg +'\n')

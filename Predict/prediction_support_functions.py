@@ -453,6 +453,10 @@ def make_dirs(outfolder,sample):
     print outfolder +'/'+ sample
     try:
         os.makedirs(outfolder+'/'+sample)
+    except OSError as exx:
+        if exx.errno != os.errno.EEXIST:
+            raise
+    try:
         os.makedirs(outfolder+'/'+sample+'/intermediate_files/')
     except OSError as exx:
         if exx.errno != os.errno.EEXIST:
@@ -563,10 +567,18 @@ def seq_pipeline(script,in_paths,in_vars):
                 rm $TMPDIR/$NAME.noChimeric.bam
                 mv $TMPDIR/$NAME.transformed.bam $TMPDIR/$NAME.noChimeric.bam
             fi
+            
+            cp $TMPDIR/$NAME.noChimeric.bam $OUTF/intermediate_files/$NAME.noChimeric.bam ##
     """.format(in_vars))
     condition_list.append(None)
     
     textlist.append("""### Sort BAM file
+            if ! [ -s $TMPDIR/$NAME.noChimeric.bam ] && [ -s $OUTF/intermediate_files/$NAME.noChimeric.bam ];
+            then
+                #copy from intermediate folder
+                cp $OUTF/intermediate_files/$NAME.noChimeric.bam $TMPDIR/$NAME.noChimeric.bam
+            fi
+                    
             if [ -s $TMPDIR/$NAME.noChimeric.bam ];
             then
                 echo Sort BAM
@@ -583,7 +595,18 @@ def seq_pipeline(script,in_paths,in_vars):
     condition_list.append(None)
     
     textlist.append("""### Local Re-alignment
-            if [ -s $TMPDIR/$NAME.sort.bam.bai ];
+            if ! [ -s  $TMPDIR/$NAME.sort.bam.bai ] && [ -s $OUTF/intermediate_files/$NAME.sort.bam.bai ];
+                then
+                    cp   $OUTF/intermediate_files/$NAME.sort.bam.bai $TMPDIR/$NAME.sort.bam.bai
+            fi
+            
+            if ! [ -s  $TMPDIR/$NAME.sort.bam ] && [ -s $OUTF/intermediate_files/$NAME.sort.bam ];
+                then
+                    cp   $OUTF/intermediate_files/$NAME.sort.bam $TMPDIR/$NAME.sort.bam
+            fi
+            
+            
+            if [ -s $TMPDIR/$NAME.sort.bam.bai ] && [ -s $TMPDIR/$NAME.sort.bam ] ;
             then
                echo Local Re-alignment
                echo -e "\\n #### doing Local Realignment: java -jar $GATK -nt {0[cpu]} -T RealignerTargetCreator -R $REF -I $TMPDIR/$NAME.sort.bam -o $OUTF/$NAME.intervals -known $DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE \\n\"
@@ -593,11 +616,18 @@ def seq_pipeline(script,in_paths,in_vars):
                echo $NAME.sort.bam.bai not found >&2
                exit 1
             fi
+            
+            cp $TMPDIR/$NAME.realigned.bam  $OUTF/intermediate_files/$NAME.realigned.bam
     """.format(in_vars))
     #condition_list.append([in_vars["outfolder"]+'/'+in_vars["sdir"]+".intervals", None, in_vars["outfolder"]+'/'+in_vars["sdir"]+".realigned.bam", None])
     condition_list.append(None)
     
     textlist.append("""### Duplicate marking
+            if ! [ -s $TMPDIR/$NAME.realigned.bam ] && [-s $OUTF/intermediate_files/$NAME.realigned.bam ];
+            then
+                cp $OUTF/intermediate_files/$NAME.realigned.bam $TMPDIR/$NAME.realigned.bam
+            fi
+                    
             if [ -s $TMPDIR/$NAME.realigned.bam ];
             then
                # clean up
@@ -606,15 +636,23 @@ def seq_pipeline(script,in_paths,in_vars):
                echo Duplicate marking
                echo -e \"\\n #### duplicate marking using: java -jar $PICARD/MarkDuplicates.jar INPUT=$TMPDIR/$NAME.realigned.bam OUTPUT=$TMPDIR/$NAME.realigned.dm.bam METRICS_FILE=$OUTF/duplication_metrics.txt ASSUME_SORTED=true VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true \\n\"
                java -jar $PICARD/MarkDuplicates.jar INPUT=$TMPDIR/$NAME.realigned.bam OUTPUT=$TMPDIR/$NAME.realigned.dm.bam METRICS_FILE=$OUTF/duplication_metrics.txt ASSUME_SORTED=true VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true
+               cp $TMPDIR/$NAME.realigned.dm.bam $OUTF/intermediate_files/
             else
                echo $TMPDIR/$NAME.realigned.bam not found >&2
                exit 1
             fi
+            
+            
     """.format(in_vars))
     #condition_list.append([ in_vars["outfolder"]+'/'+in_vars["sdir"]+".realigned.dm.bam", None])
     condition_list.append(None)
     
     textlist.append("""### Base quality recalibration
+            if ! [ -s $TMPDIR/$NAME.realigned.dm.bam ] && [ -s $OUTF/intermediate_files/$NAME.realigned.dm.bam ];
+            then
+                cp $OUTF/intermediate_files/$NAME.realigned.dm.bam $TMPDIR/$NAME.realigned.dm.bam
+            fi
+                    
             if [ -s $TMPDIR/$NAME.realigned.dm.bam ];
             then
                echo -e \" \\n #### Base quality recalibration \\n \"
@@ -959,7 +997,7 @@ def indel_caller_pipelne(script,in_paths,in_vars):
     return text
 
 def fusevariants_pipelne(script,in_paths,in_vars):
-    text="""    
+    text="""#FUSEVARIANTS    
         # fuse indel and snp calls into one file
         java -Xmx5g -jar $GATK -T CombineVariants -R $REF --variant $OUTF/SNP_Intersection/merged.enriched.vcf --variant $OUTF/Indel_Intersection/merged.enriched.vcf -o $OUTF/all_variants.vcf -U LENIENT_VCF_PROCESSING
         STATUS="${{?}}"
@@ -969,6 +1007,14 @@ def fusevariants_pipelne(script,in_paths,in_vars):
             exit 1
         fi
     """.format(in_vars)
+    script.write(text)
+    return text
+
+
+def cleanup(script,in_paths,in_vars):
+    text="""CLEANUP
+        rm -r $OUTF/intermediate_files/*
+        """
     script.write(text)
     return text
 

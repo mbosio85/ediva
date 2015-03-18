@@ -103,6 +103,7 @@ if args.white_list:
     white_list=args.white_list
 else:
     print('Warning: no white list selected')
+    white_list='None'
     
 
 

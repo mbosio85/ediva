@@ -987,7 +987,7 @@ class qSubDetails(Dialog):
         self.configure(background=steel)
         self.resizable(0,0)
         #Title
-        Label(master, text="\nQsub Options:\n",background=orange,fg=text_color,font=(font_type, txt_dim)).grid(row=0,column=0,columnspan=3,sticky='W'+'E')
+        Label(master, text="\nQsub Options:\n",background=UI_blue,fg=text_color,font=(font_type, txt_dim)).grid(row=0,column=0,columnspan=3,sticky='W'+'E')
         
         #Select Queue
         Label(master, text="Select the qsub queue:",background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=2,column=0,columnspan=1,sticky=W+E)
@@ -1009,9 +1009,9 @@ class qSubDetails(Dialog):
         self.l_hh.grid(row=7,column=0,columnspan=1)
         n_hh.grid(row=6,column=0,columnspan=1)
         self.plus_hh = Button(master,text ='+',command=lambda : self.hh.set(self.plus1(self.hh,self.l_hh) ),
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= orange,activeforeground=text_color  )
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )
         self.minus_hh = Button(master,text='-',command=lambda : self.hh.set(self.minus1(self.hh,self.l_hh) ),
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=orange,activeforeground=text_color  )
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=UI_blue,activeforeground=text_color  )
         self.plus_hh.grid(row=7,column=0,sticky='E')
         self.minus_hh.grid(row=7,column=0,sticky='W')
         
@@ -1022,9 +1022,9 @@ class qSubDetails(Dialog):
         self.l_mm.grid(row=7,column=1,columnspan=1)
         n_mm.grid(row=6,column=1,columnspan=1)
         self.plus_mm = Button(master,text ='+',command=lambda : self.mm.set(self.plus1(self.mm,self.l_mm) ),
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= orange,activeforeground=text_color  )
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )
         self.minus_mm = Button(master,text='-',command=lambda : self.mm.set(self.minus1(self.mm,self.l_mm) ),
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=orange,activeforeground=text_color  )
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=UI_blue,activeforeground=text_color  )
         self.plus_mm.grid(row=7,column=1,sticky='E')
         self.minus_mm.grid(row=7,column=1,sticky='W')
         
@@ -1035,9 +1035,9 @@ class qSubDetails(Dialog):
         self.l_ss.grid(row=7,column=2,columnspan=1)
         n_ss.grid(row=6,column=2,columnspan=1)
         self.plus_ss = Button(master,text ='+',command=lambda : self.ss.set(self.plus1(self.ss,self.l_ss) ),
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= orange,activeforeground=text_color  )
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )
         self.minus_ss = Button(master,text='-',command=lambda : self.ss.set(self.minus1(self.ss,self.l_ss) ),
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=orange,activeforeground=text_color  )
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=UI_blue,activeforeground=text_color  )
         self.plus_ss.grid(row=7,column=2,sticky='E')
         self.minus_ss.grid(row=7,column=2,sticky='W')
         
@@ -1045,28 +1045,28 @@ class qSubDetails(Dialog):
         self.var_a= IntVar()
         self.var_a.set(1)
         self.a = Checkbutton(master, text="Abort", variable=self.var_a,background=steel,fg=text_color,selectcolor=steel
-                             ,highlightthickness=0,font=(font_type, txt_dim),activebackground= orange ,activeforeground=text_color    )
+                             ,highlightthickness=0,font=(font_type, txt_dim),activebackground= UI_blue ,activeforeground=text_color    )
         self.a.grid(row=5,column=0,columnspan=1,sticky=W)
        
         self.var_b = IntVar()
         self.var_b.set(1)
         self.b = Checkbutton(master, text="Begin", variable=self.var_b,background=steel,fg=text_color,selectcolor=steel,
-                             highlightthickness=0,font=(font_type, txt_dim),activebackground= orange,activeforeground=text_color     )
+                             highlightthickness=0,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color     )
         self.b.grid(row=5,column=1,columnspan=1) 
         
         self.var_e = IntVar()
         self.var_e.set(1)
         self.e = Checkbutton(master, text="End", variable=self.var_e,background=steel,fg=text_color,selectcolor=steel,
-                             highlightthickness=0,font=(font_type, txt_dim),activebackground= orange,activeforeground=text_color     )
+                             highlightthickness=0,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color     )
         self.e.grid(row=5,column=2,columnspan=1,sticky=E)
         
         self.var_custom = IntVar()
         self.var_custom.set(1)
         self.custom = Checkbutton(master, text="Custom Mail annotation", variable=self.var_custom ,background=steel,fg=text_color,selectcolor=steel,
-                             highlightthickness=0,font=(font_type, txt_dim),activebackground= orange,activeforeground=text_color     )
+                             highlightthickness=0,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color     )
         self.custom .grid(row=4,column=1,columnspan=1,sticky=E)
         
-        self.email = Entry(master, background=orange,fg=text_color,font=(font_type, txt_dim-2))
+        self.email = Entry(master, background=UI_blue,fg=text_color,font=(font_type, txt_dim-2))
         self.email.insert(0,'xxx@crg.es')
         Label(master, text="Mail Address:", background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=8,column=0,columnspan=1,sticky=W)
         self.email.grid(row =8, column=1)
@@ -1109,10 +1109,10 @@ class qSubDetails(Dialog):
         # standard buttons
         box = Frame(self,background = steel)
         w = Button(box, text="Run", width=10, command=self.ok,fg=text_color,font=(font_type, txt_dim)
-                ,highlightbackground= steel,background=  steel,activebackground= orange,activeforeground=text_color)
+                ,highlightbackground= steel,background=  steel,activebackground= UI_blue,activeforeground=text_color)
         w.pack(side=LEFT, padx=5, pady=5)
         w = Button(box, text="Back", width=10, command=self.cancel,fg=text_color,font=(font_type, txt_dim)
-                ,highlightbackground= steel,background=  steel,activebackground= orange,activeforeground=text_color)
+                ,highlightbackground= steel,background=  steel,activebackground= UI_blue,activeforeground=text_color)
         w.pack(side=LEFT, padx=5, pady=5)
         self.bind("<Return>", self.ok)
         #self.bind("<Escape>", self.cancel)
@@ -1146,7 +1146,7 @@ class Sample_list_window(Dialog):
         
         samples = self.master.sample_list
         
-        self.queue =Label(master, text="\nSamples to process:\n",background=orange,fg=text_color,font=(font_type, txt_dim)).grid(row=0,column=0,columnspan=3,sticky='W'+'E')
+        self.queue =Label(master, text="\nSamples to process:\n",background=UI_blue,fg=text_color,font=(font_type, txt_dim)).grid(row=0,column=1,columnspan=3,sticky='W'+'E')
         
         #From list to dictionary:
         self.sample_list = dict()
@@ -1160,7 +1160,7 @@ class Sample_list_window(Dialog):
             self.sample_list[sample] = IntVar()
             self.sample_list[sample].set(1)
             l = Checkbutton(master, text=sample, variable=self.sample_list[sample] ,background=steel,fg=text_color,selectcolor=steel,
-                 highlightthickness=0,font=(font_type, txt_dim),activebackground= orange,activeforeground=text_color     )
+                 highlightthickness=0,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color     )
             l.grid(row=i,columnspan=3,sticky='W')
         return self.queue# initial focus
     
@@ -1187,10 +1187,10 @@ class Sample_list_window(Dialog):
         # standard buttons
         box = Frame(self,background = steel)
         w = Button(box, text="Ok", width=10, command=self.ok,fg=text_color,font=(font_type, txt_dim)
-                ,highlightbackground= steel,background=  steel,activebackground= orange,activeforeground=text_color)
+                ,highlightbackground= steel,background=  steel,activebackground= UI_blue,activeforeground=text_color)
         w.pack(side=LEFT, padx=5, pady=5)
         w = Button(box, text="Back", width=10, command=self.cancel,fg=text_color,font=(font_type, txt_dim)
-                ,highlightbackground= steel,background=  steel,activebackground= orange,activeforeground=text_color)
+                ,highlightbackground= steel,background=  steel,activebackground= UI_blue,activeforeground=text_color)
         w.pack(side=LEFT, padx=5, pady=5)
         self.bind("<Return>", self.ok)
         #self.bind("<Escape>", self.cancel)
@@ -1242,7 +1242,7 @@ class Resume_window(Dialog):
         cur_row=0
         self.configure(background =steel)
         self.resizable(0,0)
-        Label(master, text="\nRelaunch job:\n",background=emerald,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
+        Label(master, text="\nRelaunch job:\n",background=UI_blue,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
         
         
         #Config file selection button
@@ -1250,7 +1250,7 @@ class Resume_window(Dialog):
         self.filename_string = StringVar()
         self.filename_string.set('Select file to run')
         self.filename = Button(master,textvariable=self.filename_string,command=self.file_search,width=50,background=steel,fg=text_color,
-                               font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )        
+                               font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )        
         self.filename.grid(row=cur_row,column=0,columnspan=3)
     
 
@@ -1263,9 +1263,9 @@ class Resume_window(Dialog):
         self.lcpu.grid(row=cur_row+1,column=0,columnspan=1)#,sticky='E')
         self.nlcpu.grid(row=cur_row,column=0,columnspan=1)#,sticky='W')
         self.plus_cpu = Button(master,text = '+',command=lambda : self.cpu.set(self.plus1(self.cpu,self.lcpu) ) ,
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )
         self.minus_cpu = Button(master,text= '-',command=lambda : self.cpu.set(self.minus1(self.cpu,self.lcpu) ),
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )
         self.plus_cpu.grid(row=cur_row+1,column=0,sticky='E')
         self.minus_cpu.grid(row=cur_row+1,column=0,sticky='W')
 
@@ -1277,9 +1277,9 @@ class Resume_window(Dialog):
         self.l_mem.grid(row=cur_row+1,column=2,columnspan=1)
         self.n_mem.grid(row=cur_row,column=2,columnspan=1)
         self.plus_mem = Button(master,text ='+',command=lambda : self.mem.set(self.plus1(self.mem,self.l_mem) ),
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )
         self.minus_mem = Button(master,text='-',command=lambda : self.mem.set(self.minus1(self.mem,self.l_mem) ),
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )
         self.plus_mem.grid(row=cur_row+1,column=2,sticky='E')
         self.minus_mem.grid(row=cur_row+1,column=2,sticky='W')
         
@@ -1291,10 +1291,10 @@ class Resume_window(Dialog):
         # standard buttons
         box = Frame(self,background = steel)
         w = Button(box, text="Run", width=10, command=self.ok,fg=text_color,font=(font_type, txt_dim)
-                ,highlightbackground= steel,background=  steel,activebackground= emerald ,activeforeground=text_color        )
+                ,highlightbackground= steel,background=  steel,activebackground= UI_blue ,activeforeground=text_color        )
         w.pack(side=LEFT, padx=5, pady=5)
         w = Button(box, text="Back", width=10, command=self.cancel,fg=text_color,font=(font_type, txt_dim)
-                ,highlightbackground= steel,background=  steel,activebackground= emerald,activeforeground=text_color       )
+                ,highlightbackground= steel,background=  steel,activebackground= UI_blue,activeforeground=text_color       )
         w.pack(side=LEFT, padx=5, pady=5)
         self.bind("<Return>", self.ok)
         self.bind("<Escape>", self.cancel)
@@ -1363,14 +1363,14 @@ class Kill_window(Dialog):
         cur_row=0
         self.configure(background =steel)
         self.resizable(0,0)
-        Label(master, text="\nRelaunch job:\n",background=emerald,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
+        Label(master, text="\nRelaunch job:\n",background=UI_blue,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
         
         #Config file selection button
         cur_row+=1
         self.filename_string = StringVar()
         self.filename_string.set('Select job-queue to stop')
         self.filename = Button(master,textvariable=self.filename_string,command=self.file_search,width=50,background=steel,fg=text_color,
-                               font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )        
+                               font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )        
         self.filename.grid(row=cur_row,column=0,columnspan=3)
         return self.filename # initial focus
     
@@ -1380,10 +1380,10 @@ class Kill_window(Dialog):
         # standard buttons
         box = Frame(self,background = steel)
         w = Button(box, text="Stop", width=10, command=self.ok,fg=text_color,font=(font_type, txt_dim)
-                ,highlightbackground= steel,background=  steel,activebackground= emerald ,activeforeground=text_color        )
+                ,highlightbackground= steel,background=  steel,activebackground= UI_blue ,activeforeground=text_color        )
         w.pack(side=LEFT, padx=5, pady=5)
         w = Button(box, text="Back", width=10, command=self.cancel,fg=text_color,font=(font_type, txt_dim)
-                ,highlightbackground= steel,background=  steel,activebackground= emerald,activeforeground=text_color       )
+                ,highlightbackground= steel,background=  steel,activebackground= UI_blue,activeforeground=text_color       )
         w.pack(side=LEFT, padx=5, pady=5)
         self.bind("<Return>", self.ok)
         self.bind("<Escape>", self.cancel)

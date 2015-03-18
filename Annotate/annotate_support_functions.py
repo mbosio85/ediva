@@ -1031,7 +1031,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
 					    ## we are only going to report the first alternate allele in the cases where the site is more than bi-allelic
 					    ## e.g A,C in the alternate column in VCF will report only A in the main annotation file
 					    ## we are doing this because we want to keep the annotation main file consistent
-					    print 'snp : %s ' % type_in
+					    #print 'snp : %s ' % type_in
 					    if type_in == 'SNP' or type_in == 'all':
 						## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
 						if j == 0 and  not(any(k in ref for k in keychars)) and not(any(k in al for k in keychars) ):
@@ -1155,7 +1155,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
 				print( "WARNING:: Unknown alternate allele detected at %s and %s. This variant line will be skipped in the final annotation output " %( chr_col,pos))
 				print 'line : 1151'
 				print alt
-				raise
+				#raise
                             else:
                             ## decide for variant type
 				lenref = len(ref)

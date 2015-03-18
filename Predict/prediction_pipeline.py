@@ -217,7 +217,12 @@ for full_sample in samples:
             p_element.set_error("Error in fusevariant executions Please refer to SGE job error file")
             pipe.append(p_element)
         pipeline_element.save_pipeline(pipe,script_name+'.pipe')
- 
+        
+        text = prediction_support_functions.cleanup(script,parsed_config,sample_info)
+        p_element = pipeline_element.pipeline_element(env_var+ text,"Cleanup intermediate files")
+        p_element.set_error("Error in cleanup phase, reefer to SGE job error file")
+        pipe.append(p_element)
+        
 if qclass:
     out_name=outfolder+'/'+ qsub_name +'.qlist'
     try:
