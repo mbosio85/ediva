@@ -183,8 +183,8 @@ if qlookup == "NA":
             edivaannotationtoprint,annovarannotationtoprint,samplewiseinfortoprint = ("NA","NA","NA")
             edivapublicanntoprint = "NA,NA"
             (chr_col,position,ref,alt,aftoprint) = value.split(';')
-            edivaannotationtoprint = ediva.get(key)
-            samplewiseinfortoprint = samples.get(key)
+            edivaannotationtoprint = ediva.get(key,"NA")
+            samplewiseinfortoprint = samples.get(key,"NA")
             edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
             ## write annotation to fileprint
             write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+aftoprint+sep+
