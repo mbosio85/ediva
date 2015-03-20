@@ -118,8 +118,8 @@ with open(args.config,'w+') as config_file:
                 readline.set_completer_delims(' \t\n;')
                 bam    = raw_input("\tPlease enter the location of the respective bam file. \n\t: ")
                 if bam == '':
-                    print("\tField empty. Quitting...")
-                    break
+                    pass#print("\tField empty. Quitting...")
+                    #break
                 line_list.append('\t'.join([name, affect, vcf, bam]))
                 #config_file.write('\t'.join([name, affect, vcf, bam]))
                 #config_file.write('\n')
