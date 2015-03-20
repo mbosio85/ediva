@@ -617,7 +617,7 @@ def seq_pipeline(script,in_paths,in_vars):
                exit 1
             fi
             
-            cp $TMPDIR/$NAME.realigned.bam  $OUTF/intermediate_files/$NAME.realigned.bam
+            cp $TMPDIR/$NAME.realigned.bam*  $OUTF/intermediate_files/
     """.format(in_vars))
     #condition_list.append([in_vars["outfolder"]+'/'+in_vars["sdir"]+".intervals", None, in_vars["outfolder"]+'/'+in_vars["sdir"]+".realigned.bam", None])
     condition_list.append(None)
@@ -627,6 +627,12 @@ def seq_pipeline(script,in_paths,in_vars):
             then
                 cp $OUTF/intermediate_files/$NAME.realigned.bam $TMPDIR/$NAME.realigned.bam
             fi
+            
+            if ! [ -s $TMPDIR/$NAME.realigned.bam.bai ] && [-s $OUTF/intermediate_files/$NAME.realigned.bam.bai ];
+            then
+                cp $OUTF/intermediate_files/$NAME.realigned.bam.bai $TMPDIR/$NAME.realigned.bam.bai
+            fi
+            
                     
             if [ -s $TMPDIR/$NAME.realigned.bam ];
             then
@@ -636,7 +642,7 @@ def seq_pipeline(script,in_paths,in_vars):
                echo Duplicate marking
                echo -e \"\\n #### duplicate marking using: java -jar $PICARD/MarkDuplicates.jar INPUT=$TMPDIR/$NAME.realigned.bam OUTPUT=$TMPDIR/$NAME.realigned.dm.bam METRICS_FILE=$OUTF/duplication_metrics.txt ASSUME_SORTED=true VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true \\n\"
                java -jar $PICARD/MarkDuplicates.jar INPUT=$TMPDIR/$NAME.realigned.bam OUTPUT=$TMPDIR/$NAME.realigned.dm.bam METRICS_FILE=$OUTF/duplication_metrics.txt ASSUME_SORTED=true VALIDATION_STRINGENCY=LENIENT CREATE_INDEX=true
-               cp $TMPDIR/$NAME.realigned.dm.bam $OUTF/intermediate_files/
+               cp $TMPDIR/$NAME.realigned.dm.* $OUTF/intermediate_files/
             else
                echo $TMPDIR/$NAME.realigned.bam not found >&2
                exit 1
@@ -650,7 +656,7 @@ def seq_pipeline(script,in_paths,in_vars):
     textlist.append("""### Base quality recalibration
             if ! [ -s $TMPDIR/$NAME.realigned.dm.bam ] && [ -s $OUTF/intermediate_files/$NAME.realigned.dm.bam ];
             then
-                cp $OUTF/intermediate_files/$NAME.realigned.dm.bam $TMPDIR/$NAME.realigned.dm.bam
+                cp $OUTF/intermediate_files/$NAME.realigned.dm* $TMPDIR/
             fi
                     
             if [ -s $TMPDIR/$NAME.realigned.dm.bam ];

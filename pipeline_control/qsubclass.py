@@ -15,11 +15,11 @@ import datetime
 import pickle
 import time
 import readline
-#if not os.environ.get('DRMAA_LIBRARY_PATH'):
-#    os.environ['DRMAA_LIBRARY_PATH'] = "/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0"
-#    import drmaa
-#else:
-import drmaa
+if not os.environ.get('DRMAA_LIBRARY_PATH'):
+    os.environ['DRMAA_LIBRARY_PATH'] = "/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0"
+    import drmaa
+else:
+    import drmaa
 import datetime    
 #try :
 #    import drmaa
@@ -385,6 +385,8 @@ if __name__=='__main__':
         os.environ['DRMAA_LIBRARY_PATH'] = "/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0"
         import drmaa
     else:
+        os.environ['DRMAA_LIBRARY_PATH'] = "/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0"
+        print "/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0"
         import drmaa
         
     #Idea is to load a file in argv[1] and run it:

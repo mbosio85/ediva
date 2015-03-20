@@ -162,7 +162,7 @@ def run_pipeline(pipe,logf):
             #p_el.status=0
             logfile.write("Run " + p_el.alias +'\n')
             print("\n\n> Run " + p_el.alias )
-            #print ('status = %d'% p_el.status)
+            print ('status = %d'% p_el.status)
             p_el.check_condition()
             print ('\t> Step status = %d  \n\t\t[-1 = Successfully executed | 0 = to be run | 1+ = number of consecutive failed attempt]'% p_el.status)
             if p_el.status >=0:

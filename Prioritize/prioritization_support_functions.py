@@ -31,7 +31,7 @@ def parse_config_file(msg):
             while token:
                 readline.parse_and_bind("tab: complete")
                 readline.set_completer_delims(' \t\n;')
-                text = raw_input("please insert the full path to your new %s config file\n >"%msg)
+                text = raw_input("please insert the full path to your new %s config file: including the filename\n >"%msg)
                 if len(text)>0:
                     if text[0] =='~':
                         text = os.path.expanduser("~") + "/"+ text[1:] 
@@ -51,9 +51,10 @@ def parse_config_file(msg):
                 stdout,stderr = p.communicate()
                 p.wait()
                 #setup.main(True,text)
-                token = 0
+                if p.returncode ==0:
+                    token = 0
     token =1
-    prompt_0 = "Please insert the %s config file \n >"%msg
+    prompt_0 = "OPlease insert the %s config file \n >"%msg
     prompt = prompt_0
     while token : 
         #outputs a prompt, parse it to a full path and  checks that it works

@@ -133,7 +133,7 @@ def Resume_window():
         #print NewWin.result
         commandline =""" {0[filename]} "{0[qopts]}" """.format(NewWin.result) #The space before { is key for the command line to work
         commandline = python_path + ' ' + relaunch_script + ' ' + commandline + '&'
-        #print commandline
+        print commandline
         
         subprocess.Popen(commandline,shell=True)
         
