@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+# This class builds all the windows for the GUI
+# Each window has its own class with different layouts
+
 
 from Tkinter import *
 import ttk

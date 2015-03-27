@@ -4,7 +4,6 @@ import argparse
 import os
 import re
 if not os.environ.get('DRMAA_LIBRARY_PATH'):
-    print "Adding the DRMAA library path to the environment"
     os.environ['DRMAA_LIBRARY_PATH'] = "/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0"
 import pickle
 import subprocess
@@ -103,7 +102,6 @@ if args.white_list:
     white_list=args.white_list
 else:
     print('Warning: no white list selected')
-    white_list='None'
     
 
 
@@ -116,7 +114,6 @@ sample_list = list()
 affection   = dict()
 no_bams_given = False
 qoptions_def  = False
-
 gvcf_adapt   = ""
 
 
@@ -223,36 +220,33 @@ else:
 ##########################
 #qclass = qsubclass.disclaimer()
 qclass = True
-
-if qclass:
-    qlist =list()
-    logfile = os.path.abspath(args.outfolder) + '/'+ datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "qsub_log.log"
-    if args.qoptions ==None:
-        qoptions,logfile = qsubclass.getOptions()
-        qoptions = dict()
-        qoptions,logfile = qsubclass.getOptions()
-        qoptions['-e'] = list()
-        qoptions['-e'].append(str(args.outfolder))
-        qoptions['-o'] = list()
-        qoptions['-o'].append(str(args.outfolder))
-        qoptions['-N'] = [job_name]
-        if qoptions.get('-l',False):
-            qoptions['-l'].append("virtual_free=20G"%mem)
-        else:
-            qoptions['-l'] = list()
-            qoptions['-l'].append("virtual_free=20G,h_rt=51600")
-        qoptions['-pe'] = list() 
+qlist =list()
+logfile = os.path.abspath(args.outfolder) + '/'+ datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "qsub_log.log"
+if args.qoptions ==None:
+    qoptions,logfile = qsubclass.getOptions()
+    qoptions = dict()
+    qoptions,logfile = qsubclass.getOptions()
+    qoptions['-e'] = list()
+    qoptions['-e'].append(str(args.outfolder))
+    qoptions['-o'] = list()
+    qoptions['-o'].append(str(args.outfolder))
+    qoptions['-N'] = [job_name]
+    if qoptions.get('-l',False):
+        qoptions['-l'].append("virtual_free=20G"%mem)
     else:
-        #print "Automatic Logfile:%s"%logfile
-        qoptions = qsubclass.parse_command_options(args.qoptions,args.outfolder,args.qsub_name)
-    #print qoptions
-    pipe = list()
+        qoptions['-l'] = list()
+        qoptions['-l'].append("virtual_free=20G,h_rt=51600")
+    qoptions['-pe'] = list() 
+else:
+    #print "Automatic Logfile:%s"%logfile
+    qoptions = qsubclass.parse_command_options(args.qoptions,args.outfolder,args.qsub_name)
+#print qoptions
+pipe = list()
     
 ##########################
 
 # create a qsub script, that:
 script_content = str()
-
 # bash script header
 script_content = ("""
     #!/bin/bash
@@ -277,7 +271,6 @@ env_var = script_content
 ######
 # if a multisample call was given...
 ######
-
 #  extract information from the multi sample call file and save to combined.variants.supplement.vcf
 
 if args.multisample:
@@ -451,44 +444,22 @@ SCRIPT.close()
 
 pipeline_element.save_pipeline(pipe,script_location+'.pipe')
 
-if qclass:
-    command = "%s %s %s %s"%(python_path,pipe_script,script_location+'.pipe','log.log')
-    qlist.append(qsubclass.qsubCall(command,qoptions,list(),logfile))
-    #print qoptions
-    print "\n\ncommand\n"
-    command = str.replace(command,'//','/')
-    print command
-    
-    
-    
- 
-if qclass:
-    try:
-        print "Now I'm saving the queue list in %s file"%(script_location+'.qlist')
-        with open(script_location +'.qlist','wb') as outfile:
-            pickle.dump(qlist, outfile)
-    except :
-        print('error saving pipeline list to file')
-    print """
-    
-    Now I'm running the pipeline files:
-    
-    ############################################################################
-    Please remind that the terminal should not be closed for a correct execution
-    ############################################################################
-        UNLESS:
-    If you want to simply let me run in background follow the proposed instructions:
-    
-        >Ctrl+Z
-        >bg
-        >disown -h %jid # Where jid is the currend job id. Usually it is 1 but
-                        # Please check it before placing a wrong number
-    
-    
-    """    
-    qsubclass.run_qlist(script_location+'.qlist')
-    try:
-        subprocess.call('rm %s',logfile)
-    except:
-        pass
-    print "Finished, have a nice day :)"
+command = "%s %s %s %s"%(python_path,pipe_script,script_location+'.pipe','log.log')
+qlist.append(qsubclass.qsubCall(command,qoptions,list(),logfile))
+#print qoptions
+print "\n\ncommand\n"
+command = str.replace(command,'//','/')
+print command
+
+try:
+    print "Now I'm saving the queue list in %s file"%(script_location+'.qlist')
+    with open(script_location +'.qlist','wb') as outfile:
+        pickle.dump(qlist, outfile)
+except :
+    print('error saving pipeline list to file')
+qsubclass.run_qlist(script_location+'.qlist')
+try:
+    subprocess.call('rm %s',logfile)
+except:
+    pass
+print "Finished, have a nice day :)"

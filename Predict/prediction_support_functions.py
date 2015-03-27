@@ -36,6 +36,7 @@ def usage() :
     
     
 def parse_commandline():
+    ''' Takes the command line as input and prepares the arguments for further processing'''
     parser_ = dict()
     commandLine = True
     try:
@@ -129,6 +130,7 @@ def parse_commandline():
 
 
 def process_config_file(text):
+    ''' scans and parses the path configuration files'''
     installdir =""
     ref_genome=""
     shore_ref=""
@@ -191,6 +193,7 @@ def process_config_file(text):
 
 
 def parse_config_file():
+    ''' Routine to search for the existing configuration file or generate it from scratch'''
     token =1
     while token:
         answer = raw_input("Do you already have a config file ? please print 'y' or 'n'\n")
@@ -206,10 +209,7 @@ def parse_config_file():
                         text = os.path.expanduser("~") + "/"+ text[1:] 
                     else :
                         pass                                            
-                #if (os.path.isfile(text)):
-                #cmd =  ("python ./setup.py --newconfig %s"%text)
                 cmd =  ("%s %s/setup.py --newconfig %s"%(python_path,predictpath,text))
-                #print cmd
                 p=subprocess.call(cmd,shell=True)
                 stdout,stderr = p.communicate()
                 p.wait()
@@ -309,11 +309,13 @@ def parse_input(prompt,min_v, max_v,def_v):
 ## MANAGES THE INDEL CHOICE
 
 def complete_indel(text,state):
+    ''' stdin completion help '''
     possibilities = ["gatk", "clindel", "both"]
     results = [x for x in possibilities if x.startswith(text)]
     return results[state]
 
 def indel_parser(def_value):
+    ''' stdin completion help '''
     possibilities = ["gatk", "clindel", "both"]
     readline.parse_and_bind("tab: complete")
     readline.set_completer(complete_indel)
@@ -332,6 +334,7 @@ def indel_parser(def_value):
 ## MANAGES THE FUSEPARSER CHOICE
 
 def complete_fusevariants(text,state):
+    ''' stdin completion help '''
     possibilities = ["yes", "no"]
     results = [x for x in possibilities if x.startswith(text)]
     return results[state]
@@ -492,7 +495,7 @@ def make_dirs(outfolder,sample):
 
 
 def write_header(script,in_paths,in_vars):
-    '''    # Header and references ^^^^^   '''
+    '''    # Header and references for the shell script^^^^^   '''
     value_dictionary = dict(in_paths.items() + in_vars.items())
 
     header = ("""

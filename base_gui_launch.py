@@ -25,10 +25,6 @@ def predict_win():
     '''
     Opens the Prediction dialog box
     '''
-    #Predict.config(state='disable')
-    #Annotate.config(state='disable')
-    #Prioritize.config(state='disable')
-    #Quit.config(state='disable')
 
     NewWin = tkd.Predict_window(root)
     
@@ -45,25 +41,11 @@ def predict_win():
         commandline = python_path + ' ' + predict_script + ' ' + commandline + '&'
         #print commandline         
         subprocess.Popen(commandline,shell=True)
-        
-        
-    #Predict.config(state='normal')
-    #Annotate.config(state='normal')
-    #Prioritize.config(state='normal')
-    #Quit.config(state='normal')
-    #
-    #
-
 
 def annotate_win():
     '''
     Opens the Annotation dialog box
     '''
-    #Predict.config(state='disable')
-    #Annotate.config(state='disable')
-    #Prioritize.config(state='disable')
-    #Quit.config(state='disable')
-
     NewWin= tkd.Annotate_window(root)
     if NewWin.result != None:
         commandline = """-i {0[infile]} --variantType {0[vartype]} --sampleGenotypeMode  {0[gtype]} --geneDef {0[gdef]}""".format(NewWin.result)
@@ -76,24 +58,11 @@ def annotate_win():
         commandline = python_path + ' ' + annotate_script + ' ' + commandline + '&'
         #print commandline
         subprocess.Popen(commandline,shell=True)
-        
-    #Predict.config(state='normal')
-    #Annotate.config(state='normal')
-    #Prioritize.config(state='normal')
-    #Quit.config(state='normal')
-
 
 def prioritize_win():
     '''
     Opens the Prioritization dialog box
     '''
-    #
-    #Predict.config(state='disable')
-    #Annotate.config(state='disable')
-    #Prioritize.config(state='disable')
-    #Quit.config(state='disable')
-
-
     NewWin = tkd.Prioritize_window(root)
     if NewWin.result != None:
         commandline = """--outfolder {0[outfolder]} --qsubname {0[qsubname]} --jobname  {0[jobname]} --familytype {0[familytype]} --geneexclusion {0[gex_file]}""".format(NewWin.result)
@@ -114,11 +83,6 @@ def prioritize_win():
         commandline = python_path + ' ' + prioritize_script + ' ' + commandline 
         print commandline
         subprocess.Popen(commandline,shell=True)
-
-    #Predict.config(state='normal')
-    #Annotate.config(state='normal')
-    #Prioritize.config(state='normal')
-    #Quit.config(state='normal')
     
     
 def Resume_window():
@@ -211,40 +175,3 @@ ToolTip.ToolTip(Kill, follow_mouse=1, text="Kill multiple jobs depending on a si
 
 root.mainloop()
 
-# http://msdn.microsoft.com/library/windows/apps/ff402557(v=vs.105).aspx
-
-#PURPLE
-#RGB 162 0 255
-#A200FF
-#
-#MAGENTA
-#RGB 255 0 151
-#FF0097
-#
-#TEAL
-#RGB 0 171 169
-#00ABA9
-#
-#LIME
-#RGB 140 191 38
-#8CBF26
-#
-#BROWN
-#RGB 160 80 0
-#A05000
-#
-#PINK
-#RGB 230 113 184
-#E671B8
-#
-#ORANGE
-#RGB 240 150 9
-#F09609
-#
-#BLUE
-#RGB 27 161 226
-#1BA1E2
-#
-#RED
-#RGB 229 20 0
-#E51400

@@ -22,6 +22,7 @@ from Bio import bgzf
 #	Extra outfile => text file (csv) without genic annotation with sample wise information for variants that are not bi-allelic (e.g tri-allelic) 
 #
 #######################################
+
 i_str = 'VCF file containing the variants to annoate'
 q_str = ('Option : Command line variant argument. Variant format => chr\:position\:reference\:alteration \n ' + 
 		'\t\t\t Option : File containing variants (one variant per each line). '+
@@ -52,6 +53,7 @@ def usage():
 ## COMMAND LINE OPTIONS done- to be tested
 ##############################################################################################
 def input_parse(defaults):
+    ''' Parses the input arguments for further processing'''
     parser_ = defaults
         ## grab command line options
     parser = argparse.ArgumentParser(description = 'Setup ')
@@ -131,6 +133,7 @@ def input_parse(defaults):
 ## CONFIGURATION VARIFY "done"
 ##############################################################################################
 def annovar_check(ANNOVAR):
+    ''' Checks for Annovar settings'''
     ### check of annovar settings
     vcftoAnn = ANNOVAR+"/convert2annovar.pl"
     genicAnn = ANNOVAR+"/ediva_summarize_annovar.pl"
@@ -151,6 +154,7 @@ def annovar_check(ANNOVAR):
 ## OUTPUT FILE(s) "done"
 ##############################################################################################
 def out_file_generate(infile,qlookup,templocation,forceDel,tempfile):
+    ''' Generates the output files for annotation'''
     outFile         = ''
     sortedOutFile   = ''
     outFileIns      = ''
@@ -238,7 +242,7 @@ def unknownArguments():
 
 ## subroutine for finalizing annotation process @@
 def finalize(templocation,fileSuffix):
-    ## clear the tmp directory for this session
+    ''' clear the tmp directory for this session'''
     clearCmm = "rm -r " + templocation + "/*"+fileSuffix +"*"
     #print(clearCmm)
     subprocess.call(clearCmm,shell = True)
@@ -246,6 +250,7 @@ def finalize(templocation,fileSuffix):
 
 ## sub for preparing missing db annotation @@
 def preparemissdb(sep):
+    '''sub for preparing missing db annotation  '''
     missandb            = 'NA'
     missandb_coordinate = '0'
     missanndbindel       = 'NA'
@@ -259,18 +264,20 @@ def preparemissdb(sep):
 #@@ should be done: check it a couple of times with examples
 ## sub for replacing commas inside double qoutes for annovar genic annotation lines
 def replaceCommainQoute(in_str):
+    '''sub for replacing commas inside double qoutes for annovar genic annotation lines'''
     split_str = in_str.split('"');
     tmplist =[]
     token = 1
-    #if in_str.startswith('"'):
-    #    token=0
+
     for s in split_str[token:-1:2]:
         tmplist.append(s.replace(',',';'))
     split_str[token:-1:2] = tmplist
     return('"'.join(split_str))
+
 #@@Done
 ## subroutine for ediva public omics data fetch
 def edivaPublicOmics():
+    ''' subroutine for ediva public omics data fetch'''
     edivaStr = dict()
     ## DB parameters
     username    = "edivacrg"
@@ -285,7 +292,7 @@ def edivaPublicOmics():
     
     cur = db.cursor()
     sql = "select chr,pos,lengthofrepeat,region from eDiVa_public_omics.Table_simpleRepeat;"
-        #sql = "select chr,pos,lengthofrepeat,copyNum,region from ediva_public_omics.Table_simpleRepeat;"
+    
 
     cur.execute(sql)
     print('\t ediva public omics start')
@@ -300,21 +307,20 @@ def edivaPublicOmics():
     return edivaStr
 
 
-def edivaPublicOmics_search(chr,pos):
+def edivaPublicOmics_search(chr_,pos):
     out = 'NA,NA'
     username    = "edivacrg"
     database    = "eDiVa_public_omics"
     dbhost      = "mysqlsrv-ediva.linux.crg.es"
     passw       = "FD5KrT3q"
 
-    db = MySQLdb.connect(host=dbhost, # your host, usually localhost
+    db = MySQLdb.connect(host=dbhost, # your host
     user=username, # your username
     passwd=passw, # your password
     db=database) # name of the data base
 
     cur = db.cursor()
-    sql = "select lengthofrepeat,region from eDiVa_public_omics.Table_simpleRepeat where chr =%s and pos = %s limit 1"%(chr,pos)
-        #sql = "select chr,pos,lengthofrepeat,copyNum,region from ediva_public_omics.Table_simpleRepeat;"
+    sql = "select lengthofrepeat,region from eDiVa_public_omics.Table_simpleRepeat where chr =%s and pos = %s limit 1"%(chr_,pos)
     cur.execute(sql)
 
     for row in cur:
@@ -326,6 +332,7 @@ def edivaPublicOmics_search(chr,pos):
     return out
 #@@ Done
 def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel):
+    ''' Processes the database entry, fetching values and output the annotated line'''
     if res is None:
         res = list()
     if res2 is None:
@@ -382,7 +389,9 @@ def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel):
         ## add NAs for damage potential scores for indels
         ediva[k] +=((sep+ "NA")*6)
     return ediva
+
 def ediva_reselement(ediva,k,res,sep):
+    '''Populate the ediva annotation dictionary '''
     for reselement in res:
         if ediva.get(k,False):
             ediva[k] += sep+str(reselement)
@@ -404,7 +413,6 @@ def edivaAnnotation(variants,not_biallelic_variants,sep,missanndb,missanndb_coor
     passw       = "FD5KrT3q"
     
     ## open DB connection
-#    my $dbh = DBI->connect('dbi:mysql:'.$database.';host='.$dbhost.'',$username,$pass) or die "Connection Error!!\n";
     db = MySQLdb.connect(host=dbhost, # your host, usually localhost
     user=username, # your username
     passwd=passw, # your password
@@ -452,7 +460,6 @@ def edivaAnnotation(variants,not_biallelic_variants,sep,missanndb,missanndb_coor
             sql = ""
             stmt= ""
             res = list()
-            #$sql = "select annotateSNPGermline('chr_col',$pos,'$ref','$alt');";					
             sql = """select ifnull(dbsnpid,'NA'),ifnull(EurEVSFreq,'0'),ifnull(AfrEVSFreq,'0'),ifnull(TotalEVSFreq,'0'),ifnull(EurAFKG,'0'),ifnull(AfrAFKG,'0'),
 			ifnull(AsaAFKG,'0'),ifnull(AmrAFKG,'0'),ifnull(AFKG,'0'),ifnull(SDSnp,'0'),ifnull(`placentalMammal.phyloP`,'NA'),ifnull(`primates.phyloP`,'NA'),ifnull(`vertebrates.phyloP`,'NA'),
 			ifnull(`placentalMammal.phastCons`,'NA'),ifnull(`primates.phastCons`,'NA'),ifnull(`vertebrates.phastCons`,'NA'),ifnull(gerp1,'NA'),ifnull(gerp2,'NA'),
@@ -637,12 +644,14 @@ def edivaAnnotation(variants,not_biallelic_variants,sep,missanndb,missanndb_coor
     db.close()
 
     return ediva
+
+
 #@@ Check all input and output variables: evaluate if it's better to pass dictionaries
 #@@ rather than variables.
-#@@ There is much room for improvement in the factorization of code 
 ## subroutine for Annovar annotation
 
 def fill_annovar(FILE,Annovar, geneDef, comparison):
+    '''Run Annovar for annotate variants and fill the data dictionary'''
     with open(FILE) as FILE_pointer:
         for line in FILE_pointer:
             if not(line.startswith("Func")):
@@ -731,7 +740,7 @@ def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar):
         Annovar = fill_annovar(annFianlAnnK,Annovar, geneDef, "knownGene")
     return Annovar
 
-#@@?Almost done, there is to check the substitution value at the end of the routine
+
 ## subroutnine por providing header to the main annotation output file
 def getHeader(onlygenic,geneDef):
     stringTOreturn=""
@@ -790,7 +799,7 @@ def getHeader(onlygenic,geneDef):
     return stringTOreturn
 
 
-#@@ done, same as before: match the /usr/bin/perl expression at the end
+
 ## subroutnine por providing header to the inconsistent annotation output file
 def getHeaderIns():
     stringTOreturn = ("Chr,Position,Reference,Alteration,AlleleFrequency,GenicAnnotation,dbsnpIdentifier,EurEVSFrequecy,AfrEVSFrequecy,"+
@@ -823,6 +832,7 @@ def getHeaderQlookup():
 ## VCF PROCESSING
 ##############################################################################################
 def process_line(myline,i,adindex,gtindex):
+    ''' process vcf input file line by line'''
     gts = list()
     if ':' in myline[i]:
         gts = myline[i].split(':')
@@ -873,6 +883,7 @@ def samples_fill(samples,gtMode,s_key,s_val,genotype):
     return samples
 
 def vcf_processing(infile,qlookup,gtMode,type_in):
+    ''' vcf file processing '''
     allowed_chr = list()
     for i in range(23):
 	allowed_chr.append(str(i+1))

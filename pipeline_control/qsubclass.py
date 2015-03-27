@@ -31,6 +31,7 @@ qsub_options = ['-q','-m','-M','-l','-v','-e','-o','-N','-b','-shell','-pe']
 qsub_flags   = ['-hard','-cwd']
 
 def disclaimer():
+    ''' beta test disclaimer - now not used'''
     qclass = False
     possibilities =['yes','no']
     token = 1
@@ -79,7 +80,7 @@ def getOptions(outfolder = "",qsub_name =""):
     Please help me and don't add any spaces before or after or I'll fail...
     
     An example could be:
-    -m abe,-M mattia.bosio@crg.es,-hard !,-q so-el6,-v CUSTOM_EMAIL=yes
+    -m abe,-M name.surname@crg.es,-hard !,-q so-el6,-v CUSTOM_EMAIL=yes
     
     Ah btw, you can leave this empty and will run with default SGE options
     """
@@ -95,7 +96,7 @@ def getOptions(outfolder = "",qsub_name =""):
                 opts = dict()
                 token = 0
         except:
-            print"Ops, there is an error, try to change the string format please or leave it empty"
+            print"There is an error, try to change the string format or leave it empty"
     
     return opts,logfile
 
@@ -282,9 +283,6 @@ class qsubCall :
                         jt.joinFiles=False
                         jt.nativeSpecification  =optionline
                         jobid = s.runJob(jt)
-
-                        #retval = s.wait(jobid, drmaa.Session.TIMEOUT_WAIT_FOREVER)
-                        #print('Job: {0} finished with status {1} and app status {2}'.format(retval.jobId, retval.hasExited,retval.exitStatus))
                         s.deleteJobTemplate(jt)
                         s.exit()
                         if retval.hasExited and retval.exitStatus ==0 :
@@ -310,7 +308,6 @@ class qsubCall :
                     logfile.write(str(datetime.datetime.now()))
                     logfile.write("  Completed\n")
                     break
-        #logfile.close()
         return self.status
     #!/usr/bin/env python
     def just_launch(self,s):
@@ -329,9 +326,7 @@ class qsubCall :
                 jt.remoteCommand = self.command
                 jt.joinFiles=False
                 jt.nativeSpecification=optionline
-                #print optionline
                 self.jobid = s.runJob(jt)
-                #print self.jobid
                 
         return(s,jt,self.jobid)
     
@@ -361,18 +356,7 @@ class qsubCall :
         return None
     
 
-#    
-#
-#
-#qlist = list()
-### mini test script
-#try:
-#    with open(".log.log",'rb') as infile:
-#        qlist = pickle.load(infile)
-#except:
-#    qlist.append(qsubCall("predict.sh",{'-q':"el-15",'-m':"abe"},["gino.rm","bino.gm"],"log.log"))
-#    qlist.append(qsubCall("predict.sh",{'-q':"el-16",'-m':"abe"},["ginro.rm","bfinfo.gm"],"log.log"))
-#
+
 if __name__=='__main__':
     import subprocess
     import os

@@ -591,10 +591,11 @@ def main (args):
         
         excel_name = '/variant_prioritization_report.xlsx'#args.filteredfile.name + ".xlsx"
         inheritance_file=args.filteredfile.name + ".xlsx"
-        tmp_name = 'tmp.xlsx'
+        
 
         excel_path  =  os.path.dirname(args.outfile.name).split('/')
         excel_path  = '/'.join(excel_path[:-1])
+        tmp_name = excel_path+'/tmp.xlsx'
         excel_name = excel_path+excel_name
         
 
@@ -697,9 +698,9 @@ def main (args):
         #print excel_name
         #print inheritance_file
         #print tmp_name
-        
-        
-        os.rename(tmp_name, excel_name)
+        cmd='mv %s %s'%(tmp_name,excel_name)
+        os.system(cmd)
+        #os.rename(tmp_name, excel_name)
     
     exit(0)
 

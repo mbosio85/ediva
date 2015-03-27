@@ -119,14 +119,6 @@ else:
 #--------------------------------------------------------
 # Now start the pipeline text file for real
 #--------------------------------------------------------
-
-
-#Run a scan in the input folder to find for all the samples
-# A Sample is each pair of XXX.firstreadextension and XXX.secondreadextension
-# Failing to meet that criteria will result in nothing
-# For each sample it builds a XXX directory inside outfolder: outfolder/XXXX/
-# Inside each outfolder/XXX/qsubname.sh
-
 #pseudocode:
 #   Find samples
 #       For each sample
@@ -136,24 +128,13 @@ else:
 
 samples = prediction_support_functions.find_samples(infolder,nameStart,nameLength,firstreadextension,secondreadextension,sample_list)
 
+qlist =list()
+logfile = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "qsub.log"
+if qoptions_def == False:
+    qoptions_def,logfile = qsubclass.getOptions()
 
-#qclass = qsubclass.disclaimer()
-qclass = True
-
-if qclass:
-    qlist =list()
-    logfile = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "qsub.log"
-    if qoptions_def == False:
-        qoptions_def,logfile = qsubclass.getOptions()
-    else:
-        pass
-        #print "Automatic Logfile:%s"%logfile
-    #print qoptions_def
-
-#for i in range(3,4):
 for full_sample in samples:
     qoptions = qoptions_def
- #   full_sample = samples[i]
     sample = full_sample[nameStart-1:nameStart+nameLength-1]
     #mkdir
     prediction_support_functions.make_dirs(outfolder,sample)
@@ -196,7 +177,7 @@ for full_sample in samples:
         pipe.append(p_element)
         
         (text,conditions) = prediction_support_functions.seq_pipeline(script,parsed_config,sample_info)
-
+        
         for i in range(len(text)):            
             #p_element = pipeline_element.pipeline_element(env_var + text,"Alignment etc ")
             p_element = pipeline_element.pipeline_element(env_var + text[i],text[i].split('\n')[0])
@@ -208,8 +189,7 @@ for full_sample in samples:
         p_element = pipeline_element.pipeline_element(env_var+ text,"Indel caller")
         p_element.set_error("Error in indel caller Please refer to SGE job error file")
         pipe.append(p_element)
-        
-        
+           
         # Fusepipe
         if fusevariants=="yes":
             text = prediction_support_functions.fusevariants_pipelne(script,parsed_config,sample_info)
@@ -223,40 +203,42 @@ for full_sample in samples:
         p_element.set_error("Error in cleanup phase, reefer to SGE job error file")
         pipe.append(p_element)
         
-if qclass:
-    out_name=outfolder+'/'+ qsub_name +'.qlist'
-    try:
-        print "Now I'm saving the queue list in %s file"%(out_name)
-        with open(out_name,'wb') as outfile:
-            pickle.dump(qlist, outfile)
-    except :
-        print('error saving pipeline list to file')
-    print """
-    
-    Now I'm running the pipeline files:
-    
-    ############################################################################
-    Please remind that the terminal should not be closed for a correct execution
-    ############################################################################
-        UNLESS:
-    If you want to simply let me run in background follow the proposed instructions:
-    
-        >Ctrl+Z
-        >bg
-        >disown -h %jid # Where jid is the currend job id. Usually it is 1 but
-                        # Please check it before placing a wrong number
-    
-    
-    """
-   # nohup_script = ("""import imp;import os;os.environ['DRMAA_LIBRARY_PATH'] = '/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0';"""+
-   # "qsubclass = imp.load_source('qsubclass','%s');qsubclass.run_qlist('%s.qlist') "%(qsub_script,logfile))
-   ## print nohup_script
-    #os.system('nohup '+ python_path+' -c '+ '"'+nohup_script+'" ')
-    qsubclass.run_qlist(out_name)
-    try:
-        subprocess.call('rm %s',logfile)
-    except:
-        pass
-    print "Finished, have a nice day :)"
+out_name=outfolder+'/'+ qsub_name +'.qlist'
+try:
+    print "Now I'm saving the queue list in %s file"%(out_name)
+    with open(out_name,'wb') as outfile:
+        pickle.dump(qlist, outfile)
+except :
+    print('error saving pipeline list to file')
 
-    
+##I just un-indented these, double-check it works
+qsubclass.run_qlist(out_name)
+try:
+    subprocess.call('rm %s',logfile)
+except:
+    pass
+print "Finished, have a nice day :)"
+
+
+
+#print """
+#    
+#    Now I'm running the pipeline files:
+#    
+#    ############################################################################
+#    Please remind that the terminal should not be closed for a correct execution
+#    ############################################################################
+#        UNLESS:
+#    If you want to simply let me run in background follow the proposed instructions:
+#    
+#        >Ctrl+Z
+#        >bg
+#        >disown -h %jid # Where jid is the currend job id. Usually it is 1 but
+#                        # Please check it before placing a wrong number
+#    
+#    
+#    """
+#   # nohup_script = ("""import imp;import os;os.environ['DRMAA_LIBRARY_PATH'] = '/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0';"""+
+#   # "qsubclass = imp.load_source('qsubclass','%s');qsubclass.run_qlist('%s.qlist') "%(qsub_script,logfile))
+#   ## print nohup_script
+#    #os.system('nohup '+ python_path+' -c '+ '"'+nohup_script+'" ')    
