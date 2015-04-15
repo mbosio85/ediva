@@ -145,31 +145,31 @@ for full_sample in samples:
     
     with open(outfolder+sample+'/'+qsub_name,'w')  as script: # Trying to create a new file or open one
         pipe = list()
-        if qclass :
-            if qoptions_input==False:
-                qoptions['-e'] = list()
-                qoptions['-e'].append(outfolder+'/'+sample+'/')
-                qoptions['-o'] = list()
-                qoptions['-o'].append(outfolder+'/'+sample+'/')
-                qoptions['-N'] = [sample+'_'+qsub_name]
-                if qoptions.get('-l',False):
-                    qoptions['-l'].append("virtual_free=%dG"%mem)
-                else:
-                    qoptions['-l'] = list()
-                    qoptions['-l'].append("virtual_free=%dG,h_rt=51600"%mem)
-                qoptions['-pe'] = list()
-                qoptions['-pe'].append("smp %d"%cpu)
-            #print command_pipe
+    
+        if qoptions_input==False:
+            qoptions['-e'] = list()
+            qoptions['-e'].append(outfolder+'/'+sample+'/')
+            qoptions['-o'] = list()
+            qoptions['-o'].append(outfolder+'/'+sample+'/')
+            qoptions['-N'] = [sample+'_'+qsub_name]
+            if qoptions.get('-l',False):
+                qoptions['-l'].append("virtual_free=%dG"%mem)
             else:
-                qoptions['-e'] = list()
-                qoptions['-e'].append(outfolder+'/'+sample+'/')
-                qoptions['-o'] = list()
-                qoptions['-o'].append(outfolder+'/'+sample+'/')
-                qoptions['-N'] = [sample+'_'+qsub_name]
-                #print qoptions
-            command_pipe = python_path +' '+ pipe_script+ ' ' + script_name+'.pipe ' + logfile
-            qlist.append(qsubclass.qsubCall(command_pipe,qoptions,list(),logfile))
-            
+                qoptions['-l'] = list()
+                qoptions['-l'].append("virtual_free=%dG,h_rt=51600"%mem)
+            qoptions['-pe'] = list()
+            qoptions['-pe'].append("smp %d"%cpu)
+        #print command_pipe
+        else:
+            qoptions['-e'] = list()
+            qoptions['-e'].append(outfolder+'/'+sample+'/')
+            qoptions['-o'] = list()
+            qoptions['-o'].append(outfolder+'/'+sample+'/')
+            qoptions['-N'] = [sample+'_'+qsub_name]
+            #print qoptions
+        command_pipe = python_path +' '+ pipe_script+ ' ' + script_name+'.pipe ' + logfile
+        qlist.append(qsubclass.qsubCall(command_pipe,qoptions,list(),logfile))
+        
         ## Here now is where the pipeline is written in the "script" file        
         header,env_var = prediction_support_functions.write_header(script,parsed_config,sample_info)
         p_element = pipeline_element.pipeline_element(header,"Header writing")
