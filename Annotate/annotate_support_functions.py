@@ -245,7 +245,7 @@ def finalize(templocation,fileSuffix):
     ''' clear the tmp directory for this session'''
     clearCmm = "rm -r " + templocation + "/*"+fileSuffix +"*"
     #print(clearCmm)
-    subprocess.call(clearCmm,shell = True)
+    #subprocess.call(clearCmm,shell = True)
     return None
 
 ## sub for preparing missing db annotation @@
@@ -661,11 +661,15 @@ def fill_annovar(FILE,Annovar, geneDef, comparison):
                 if (dt[30].find(';')>=0):
                         annalts = dt[3].split(';')
                         dt[30] = annalts[0]
+		dt[26]=dt[26].replace('chr','')
+		dt[26]=dt[26].replace('Chr','')
                 valueTOmatch = dt[26]+";"+dt[27]+";"+dt[29]+";"+dt[30]
                 valueTOmatch=valueTOmatch.replace('"','')
+
                 ## fix missing values
                 if len(dt[0])==0:
                     dt[0] = 'NA'
+
                 if len(dt[1])==0:
                     dt[1] = 'NA'
                 if len(dt[2])==0:
@@ -678,15 +682,35 @@ def fill_annovar(FILE,Annovar, geneDef, comparison):
                     Annovar[valueTOmatch] = annToPass   # Fill the Annovar Dictionary with values and keys
                 else:
                     Annovar[valueTOmatch] = Annovar[valueTOmatch]+ "," + annToPass
+	#	    
+	#    	print valueTOmatch
+	#	print dt[0]
+	#	print annToPass
+	#	raise
     return Annovar
 
 
-def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar):
+def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TABIX):
     perl ="/usr/bin/perl "+" "
     ## prepare Annovar input
-    annInCmm = perl + ANNOVAR+"/convert2annovar.pl --includeinfo -format vcf4 "+infile+" > "+templocation+"/annInfile"+fileSuffix+"   2> "+infile+".annovar.log"
-    print "\t 627 MESSAGE :: Running Annovar command \n > %s" %annInCmm
-    subprocess.call(annInCmm,shell=True)
+    tabix_cmd = "PATH=$PATH:%s\n"%TABIX
+    tmp = open(infile,'r')
+    magic_number = tmp.read(2)
+    zipped = magic_number=='\x1f\x8b'
+    tmp.close()
+    if zipped:
+	infile_vcf=infile[:-3]+'.vcf'
+	tabix_cmd+="bgzip -d %s -c > %s\n"%(infile,infile_vcf)
+	remove_temp_cmd="rm %s\n"%(infile_vcf)
+	print "MESSAGE :: NEED TO DECOMPRESS THE FILE , IT WILL TAKE A LITTLE LONGER"
+    else:
+	infile_vcf = infile
+	remove_temp_cmd=''
+    
+    annInCmm = perl + ANNOVAR+"/convert2annovar.pl --includeinfo -format vcf4 "+infile_vcf+" > "+templocation+"/annInfile"+fileSuffix+"   2> "+infile_vcf+".annovar.log\n"
+    
+    print "627 MESSAGE :: Running Annovar command \n > %s" %(tabix_cmd+annInCmm+remove_temp_cmd)
+    subprocess.call(tabix_cmd+annInCmm+remove_temp_cmd,shell=True)
     annFile = templocation+"/annInfile"+fileSuffix+""
 
 
@@ -901,7 +925,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
         # used or not
 	tmp = open(infile,'r')
 	magic_number = tmp.read(2)
-	print 'MESSAGE:: BGZIP file  : %s'%(magic_number=='\x1f\x8b')
+	print 'MESSAGE :: BGZIP file  : %s'%(magic_number=='\x1f\x8b')
 	tmp.close()
         with open(infile) if magic_number!='\x1f\x8b'else bgzf.open(infile) as INFILE:
             for line in INFILE:
@@ -957,7 +981,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                         #        print( "WARNING:: !! does not support chromosome %s currently. This variant line will be skipped in the final annotation output " % (chr_col))
                         #elif not(any( k in alt for k in keywords_alt)):
                         elif not(all(k in keywords_alt for k in alt)):
-                                print( "WARNING:: Unknown alternate allele detected at %s and %s. This variant line will be skipped in the final annotation output " %( chr_col,position))
+                                print( "WARNING:: Unknown alternate allele %s detected at %s and %s. This variant line will be skipped in the final annotation output " %(alt, chr_col,position))
                         else:
                         ## grab the AF from the INFO field in the VCF
                             for info in infos:
@@ -985,8 +1009,9 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                                         print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. No AD field present in %s \n"
                                         %(myline[8], infile,chr_col,position,myline[8]))
                                 else:
-                                    print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. Expected genotype format field separator \":\" \n"
-                                           %(myline[8],infile,chr_col,position))
+                                    pass
+#				    print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. Expected genotype format field separator \":\" \n"
+#                                           %(myline[8],infile,chr_col,position))
                         ## process based on alteration
 			    if ',' in alt : ## section for all sites other than bi-allelic
 				alts = alt.split(',')

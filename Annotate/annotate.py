@@ -51,7 +51,7 @@ fileSuffix      = fileSuffix.replace('.','_')
 
 ## ANNOVAR settings
 ANNOVAR         = "/users/GD/tools/eDiVaCommandLine/lib/Annovar"
-
+TABIX           = "PATH=$PATH:/users/GD/tools/tabix/"
 ##############################################################################################
 ## INPUT PARSE - ANNOVAR CONFIGURATION CHECK - OUTPUT CREATION
 ##############################################################################################
@@ -63,7 +63,7 @@ parser_ = {"geneDef": geneDef, "type": type_var,"infile":infile,
 
 parser_ = annotate_support_functions.input_parse(parser_)
 help_           = parser_["help"]
-infile          = parser_["infile"]
+infile          = os.path.abspath(parser_["infile"])
 geneDef         = parser_["geneDef"]
 type_var        = parser_["type"]
 gtMode          = parser_["gtmode"] 
@@ -108,7 +108,7 @@ if (qlookup == "NA"):
     if (onlygenic):
         ## start a sigle thread for annovar genic annotation
         print "MESSAGE :: Annotation starting "
-        Annovar = annotate_support_functions.AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar) ## spawn a thread for Annovar annotation
+        Annovar = annotate_support_functions.AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TABIX) ## spawn a thread for Annovar annotation
     else:
         ## start threading and annotating
         print "MESSAGE :: Annotation starting "
@@ -116,7 +116,7 @@ if (qlookup == "NA"):
         #Annovar = annotate_support_functions.AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar) ## spawn a thread for Annovar annotation
         #edivaStr = annotate_support_functions.edivaPublicOmics() ## spawn a thread for ediva public omics
         thread_ediva = threading.Thread(out_queue.put(annotate_support_functions.edivaAnnotation(variants,not_biallelic_variants,sep,missandb,missandb_coordinate,missanndbindel)))
-        thread_annovar= threading.Thread(out_queue.put(annotate_support_functions.AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar))) ## spawn a thread for Annovar annotation
+        thread_annovar= threading.Thread(out_queue.put(annotate_support_functions.AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TABIX))) ## spawn a thread for Annovar annotation
         thread_pub = threading.Thread(out_queue.put(annotate_support_functions.edivaPublicOmics())) ## spawn a thread for ediva public omics
         thread_ediva.start()
         thread_annovar.start()
@@ -206,6 +206,7 @@ if qlookup == "NA":
     print "MESSAGE :: Finalizing annotation process "
     annotate_support_functions.finalize(templocation,fileSuffix)
     print "MESSAGE :: Finalization completed "
+    print "MESSAGE :: Templocation %s cleared"%(templocation)
 else:
     if os.path.isfile(qlookup):
         ## render annotation to output file

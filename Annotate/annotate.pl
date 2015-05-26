@@ -891,7 +891,8 @@ sub AnnovarAnnotation
 					my @annalts = split(/\;/,$dt[30]);
 					$dt[30] = $annalts[0];
 				}
-
+                                $dt[26] =~ s/chr//g;
+                                $dt[26] =~ s/Chr//g;
 				my $valueTOmatch = $dt[26].";".$dt[27].";".$dt[29].";".$dt[30];
 				$valueTOmatch =~ s/\"//g;
 
@@ -900,6 +901,8 @@ sub AnnovarAnnotation
 				{
 					$dt[0] = 'NA';
 				}
+						## take care of chr1 or Chr1 and convert to chr1/Chr1-> 1
+				
 				if ($dt[1] eq '')
 				{
 					$dt[1] = 'NA';
@@ -941,7 +944,8 @@ sub AnnovarAnnotation
 					my @annalts = split(/\;/,$dt[30]);
 					$dt[30] = $annalts[0];
 				}
-
+                                $dt[26] =~ s/chr//g;
+                                $dt[26] =~ s/Chr//g;
 				my $valueTOmatch = $dt[26].";".$dt[27].";".$dt[29].";".$dt[30];
 				$valueTOmatch =~ s/\"//g;
 
@@ -950,6 +954,7 @@ sub AnnovarAnnotation
 				{
 					$dt[0] = 'NA';
 				}
+
 				if ($dt[1] eq '')
 				{
 					$dt[1] = 'NA';
@@ -997,7 +1002,8 @@ sub AnnovarAnnotation
 					my @annalts = split(/\;/,$dt[30]);
 					$dt[30] = $annalts[0];
 				}
-
+                                $dt[26] =~ s/chr//g;
+                                $dt[26] =~ s/Chr//g;
 				my $valueTOmatch = $dt[26].";".$dt[27].";".$dt[29].";".$dt[30];
 				$valueTOmatch =~ s/\"//g;
 				
@@ -1006,6 +1012,7 @@ sub AnnovarAnnotation
 				{
 					$dt[0] = 'NA';
 				}
+
 				if ($dt[1] eq '')
 				{
 					$dt[1] = 'NA';
