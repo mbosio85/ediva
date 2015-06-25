@@ -1192,7 +1192,8 @@ while(<INPUT>)
 		my $AF = ".";			
 		my $gtindex = "NF";
 		my $adindex = "NF";
-			
+		print $alt."\n";
+		print $alt !~ m/[ACGT]/ . "\n";
 		## take care of chr1 or Chr1 and convert to chr1/Chr1-> 1
 		if ($chr =~ m/^chr/ or $chr =~ m/^Chr/)
 		{

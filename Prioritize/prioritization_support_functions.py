@@ -245,7 +245,7 @@ def parse_args():
     parser.add_argument('--force', action = 'store_true', help='Enable eDiVa to overwrite old output')
     parser.add_argument('--qoptions', type=str, dest='qoptions', required=False, help='--qoptions \t qsub options with this format: -X val,-Y val,-Z, -XX value\n')
     parser.add_argument('--geneexclusion',type=str,dest='geneexclusion',required=False,help='--geneexclusion \t a .txt file with the list of genes to be excluded from prioritization\n')
-    parser.add_argument('--white_list',type=str,dest='white_list',required=False,help='--white_list \t a .txt file with the list of genes known to be relevant for the disease\n')
+    parser.add_argument('--white_list',type=str,dest='white_list',required=False,default=None,help='--white_list \t a .txt file with the list of genes known to be relevant for the disease\n')
     args = parser.parse_args()
     
 

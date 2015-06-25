@@ -84,7 +84,7 @@ args = parser.parse_args()
 
 def main (args):
     pp = pprint.PrettyPrinter( indent=4) # DEBUG
-    
+    names = list()
     # read the gene exclusion list
     # an empty set will not filter out anything, if gene exclusion list is not provided
     genes2exclude = set()
@@ -115,7 +115,9 @@ def main (args):
         line = line.rstrip('\n')
         splitline = line.split('\t')
         family[splitline[0]] = splitline[1]
-    
+        #names.append(splitline[0])
+
+
     ####
     # example
     # sample	affected
@@ -127,12 +129,34 @@ def main (args):
     # read all data
     alldata = list(csv.reader(args.infile))
     
-    header = alldata.pop(0)
-    
+    header = alldata.pop(0)   
     
     out         = csv.writer(args.outfile)
     outfiltered = csv.writer(args.filteredfile)
+    
+    ############
+    # Filter out SNPs from filtered file where : 
+    # kick when variant function : synonymous,unknown => line[ExonicFunction(Refseq)]
+    # keep when function should be exonic,splicing => line[Function(Refseq)]
+    # kick when segmentdup should be 0 => line[SegMentDup]
+    # only consider Refseq annotation for performing the first criteria
+    #############
 
+    index_sample      = min([identifycolumns(header,x) for x in family.keys()    ])#+identifycolumns(header, 'ExAC_SAS') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
+    index_MAF1k       = identifycolumns(header, 'Total1000GenomesFrequency')
+    index_MAFevs      = identifycolumns(header, 'TotalEVSFrequency')
+    index_function    = identifycolumns(header, 'Function(Refseq)')
+    index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
+    index_segdup      = identifycolumns(header, 'SegMentDup')
+    index_gene        = identifycolumns(header, 'Gene(Refseq)')
+    index_str         = identifycolumns(header, 'SimpleTandemRepeatLength')
+    print index_sample
+    print family.keys()
+    for i in range(index_sample,index_sample+len(family.keys())):
+        names.append(header[i])
+
+    print header[index_sample]
+    
     ############
     # both the output file headers should be consistent
     #############
@@ -143,23 +167,6 @@ def main (args):
     outfiltered.writerow(header)
     
     out.writerow(header)
-    
-    ############
-    # Filter out SNPs from filtered file where : 
-    # kick when variant function : synonymous,unknown => line[ExonicFunction(Refseq)]
-    # keep when function should be exonic,splicing => line[Function(Refseq)]
-    # kick when segmentdup should be 0 => line[SegMentDup]
-    # only consider Refseq annotation for performing the first criteria
-    #############
-
-    index_sample      = identifycolumns(header, 'samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
-    index_MAF1k       = identifycolumns(header, 'Total1000GenomesFrequency')
-    index_MAFevs      = identifycolumns(header, 'TotalEVSFrequency')
-    index_function    = identifycolumns(header, 'Function(Refseq)')
-    index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
-    index_segdup      = identifycolumns(header, 'SegMentDup')
-    index_gene        = identifycolumns(header, 'Gene(Refseq)')
-    index_str         = identifycolumns(header, 'SimpleTandemRepeatLength')
     
     # init for compound
     initializer = 0
@@ -195,12 +202,22 @@ def main (args):
         try:
             # avoiding problems with NAs
             MAF    = max(float(MAF1k), float(MAFevs))
+
         except:
+            print ('Freq error 1k %s EVS %s ')%(MAF1k,MAFevs)
             MAF    = 0
         
-        # read sample names and according zygosity
-        sampledata = line[index_sample]
+        # read sample names and according zygosity NOW IT's a LIST
+        sampledata = line[index_sample:index_sample+len(family.keys())]
         
+
+        if len(sampledata)==0:
+            print line
+            print len(line)
+            raise
+        elif sampledata[0] =='0':
+            print line
+            raise
         # read simple tandem repeat information
         tandem = line[index_str]
         
@@ -216,8 +233,7 @@ def main (args):
         ###
         if args.inheritance == 'dominant_denovo':
             
-            judgement = denovo(sampledata, family)
-            
+            judgement = denovo(sampledata, family,names)
             # exclude gene, if it is on the exclusion list
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
@@ -275,7 +291,8 @@ def main (args):
         # look for familial dominant variants. (being tolerant for missing values)
         ###
         elif args.inheritance == 'dominant_inherited':
-            judgement = dominant(sampledata, family)
+
+            judgement = dominant(sampledata, family,names)
             # exclude gene, if it is on the exclusion list
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
@@ -332,7 +349,7 @@ def main (args):
         # look for recessive variants (be aware of trio and family inheritance)
         ###
         elif args.inheritance == 'recessive':
-            judgement = recessive(sampledata, family, args.familytype)
+            judgement = recessive(sampledata, family, args.familytype,names)
             
             # exclude gene, if it is on the exclusion list
             if len(genes2exclude & genenames) > 0:
@@ -368,7 +385,7 @@ def main (args):
                         out.writerow(line)
                 else:
                     line.append(args.inheritance)
-                    line.append('filtered')
+                    line.append('filtered_index')
                     out.writerow(line)
                 continue
             
@@ -400,7 +417,7 @@ def main (args):
             else:
                 continue
             
-            judgement = xlinked(sampledata, family)
+            judgement = xlinked(sampledata, family,names)
             
             # X linked should only work on trios
             if not args.familytype == 'trio':
@@ -488,8 +505,7 @@ def main (args):
                 
                 #pp.pprint(['old: ', old_gene, 'new: ',new_gene, 'orig: ', line[index_gene]])
                 
-                comp_judgement = compoundizer(compound_gene_storage, family, index_sample)
-            
+                comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
                 if len(compound_gene_storage) == 1:
                     compound_gene_storage[0].append('NOT_compound')
                     compound_gene_storage[0].append('filtered')
@@ -501,19 +517,21 @@ def main (args):
                         row.append('pass')
                         out.writerow(row)
                         outfiltered.writerow(row)
+                        
                 else:
                     for row in compound_gene_storage:
                         row.append('compound')
-                        row.append('filtered')
+                        row.append('filtereds')#
                         out.writerow(row)
-                
                 # reset values
                 compound_gene_storage = []
                 old_gene     = new_gene
                 old_gene_set = new_gene_set
                 pass
             
-            judgement = compound(sampledata, family)
+            
+
+            judgement = compound(sampledata, family,names)
             
             # top SNP
             if len(genes2exclude & genenames) > 0:
@@ -532,24 +550,26 @@ def main (args):
                     if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
                         if (line[index_segdup] == '0'):
                             compound_gene_storage.append(line)
+                            
+                            
                         else:
                             line.append(args.inheritance)
-                            line.append('filtered')
+                            line.append('filtered')#
                             out.writerow(line)
                     else:
                         line.append(args.inheritance)
-                        line.append('filtered')
+                        line.append('filtered')#
                         out.writerow(line)
                 else:
                     line.append(args.inheritance)
-                    line.append('filtered')
+                    line.append('filtered')#
                     out.writerow(line)
                 
             
             # fits inheritance, but is too frequent in the population
             elif judgement == 1 and MAF > 0.03:
                 line.append('compound')
-                line.append('filtered')
+                line.append('filtered')#
                 out.writerow(line)
             
             # does not fit anything
@@ -562,7 +582,7 @@ def main (args):
         # clean up for last gene
         if args.inheritance == 'compound':
             
-            comp_judgement = compoundizer(compound_gene_storage, family, index_sample)
+            comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
             
             if len(compound_gene_storage) == 1:
                 compound_gene_storage[0].append('NOT_compound')
@@ -578,7 +598,7 @@ def main (args):
             else:
                 for row in compound_gene_storage:
                     row.append('compound')
-                    row.append('filtered')
+                    row.append('filtered')#
                     out.writerow(row)
         
     
@@ -709,27 +729,29 @@ def main (args):
 # sub routines
 ###################################################
 
-def compound(sampledata, family):
+def compound(sampledata, family,names,debug=False):
     sub_pp = pprint.PrettyPrinter(indent = 8)
     # get samples as data structure
     all_samples = dict()
-    samples = sampledata.split(';')
+    samples = sampledata#.split(';')
 
     check_samples = dict()
+    
+
     
     for samp in family.keys():
         check_samples[samp] = 0
     
     judgement = 0
-    
-    for sam in samples:
-        features    = sam.split('>')
+
+    for i in range(len(samples)):
+        sam = samples[i]
+        features    = sam.split(':')
+        name        = names[i]
         # error catching because of wrong splitting, e.g. 40ACVi>0/1>99>0.333;0.167,40ACVm>0/1>99>0.333;0.167,40ACVp>0/2>99>0.333;0.167
         if len(features) == 1:
             continue
-        
-        name        = features[0]
-        
+
         # check if sample is found in pedigree
         try:
             family[name]
@@ -737,9 +759,9 @@ def compound(sampledata, family):
             # if not found, go on to next sample
             continue
         
-        zygosity    = features[1]
-        refcoverage = features[2] # could be numeric or .
-        altcoverage = features[3] # could be numeric or .
+        zygosity    = features[0]
+        refcoverage = features[1] # could be numeric or .
+        altcoverage = features[2] # could be numeric or .
         
         #sub_pp.pprint([refcoverage, altcoverage])
         
@@ -750,6 +772,11 @@ def compound(sampledata, family):
         if zygosity == '1/1' and family[name] == '1':
             #sub_pp.pprint("dropped out in 1/1 1")
             judgement = 0
+            if debug ==True:
+                print "763"
+                print name
+                print family[name]
+                print zygosity
             break
         
         # het is good (could be an inherited variant or de novo)
@@ -768,12 +795,16 @@ def compound(sampledata, family):
         elif zygosity == '1/1' and family[name] == '0':
             #sub_pp.pprint("dropped out in 1/1 0")
             judgement = 0
+            if debug ==True:
+                print '781'
             break
         
         # offspring should have the variant
         elif zygosity == '0/0' and family[name] == '1':
             #sub_pp.pprint("dropped out in 0/0 1")
             judgement = 0
+            if debug ==True:
+                print '789'
             break
         
         # now a few more complex steps, if genotype is missing (only non-affected individuals should have missing values)
@@ -809,6 +840,8 @@ def compound(sampledata, family):
             
             if coverage == 0:
                 judgement = 0
+                if debug==True :
+                    print '824'
                 break
             
             # hom ref
@@ -826,28 +859,40 @@ def compound(sampledata, family):
             # hom alt
             elif poisson.cdf( float(refcoverage), float(coverage/2) ) <= 0.007  and refcoverage / coverage <= 0.05:
                 judgement = 0
+                if debug ==True:
+                    print '824'
                 break
             
             # coverage too low?
             else:
                 #sub_pp.pprint("dropped out in ./. 0 else")
                 judgement = 0
+                if debug ==True:
+                    print "850"
                 break
         
         # do not accept missing values for affected individuals
         elif zygosity == './.' and family[name] == '1':
             #sub_pp.pprint("dropped out in ./. 1")
             judgement = 0
+            if debug ==True:
+                print '857'
             break
     
+
     for vals in check_samples.values():
         if vals == 0:
             judgement = 0
+            if debug ==True:
+                print '863'
+                print check_samples
             break
-
+    if debug:
+        print check_samples.values()
+        print judgement
     return(judgement)
 
-def compoundizer(variantlist, family, index_sample):
+def compoundizer(variantlist, family, index_sample,names):
     
     
     sub_pp = pprint.PrettyPrinter(indent = 5)
@@ -863,13 +908,14 @@ def compoundizer(variantlist, family, index_sample):
     name1 = ticker_dict.keys()[0]
     name2 = ticker_dict.keys()[1]
 
-
     judgement = 0
     
     # check line by line, if this variant could support a compound het
+    
     for variantline in variantlist:
         # produce a list with all the sample data
-        sampledata = variantline[index_sample].split(';')    
+        sampledata = variantline[index_sample:len(variantline)-1]#.split(';')
+        
         # produce a dictionary to save the zygosities
         zygosities = dict()
         
@@ -878,14 +924,15 @@ def compoundizer(variantlist, family, index_sample):
         #    judgement = 0
         #    break
         #
-        for sam in sampledata:
-            features = sam.split('>')
-            name        = features[0]
-            zygosity    = features[1]
-            refcoverage = features[2] # could be numeric or .
-            altcoverage = features[3] # could be numeric or .
-            
+        for i in range(len(sampledata)):
+            sam = sampledata[i]
+            features = sam.split(':')
+            name        = names[i]
+            zygosity    = features[0]
+            refcoverage = features[1] # could be numeric or .
+            altcoverage = features[2] # could be numeric or .
             # check if, we are looking at the offspring
+            
             if not ticker_dict.keys()[0] == name and not ticker_dict.keys()[1] == name:
                 continue
             
@@ -938,11 +985,10 @@ def compoundizer(variantlist, family, index_sample):
     
     return(judgement)
 
-def denovo(sampledata, family):
+def denovo(sampledata, family,names):
     sub_pp = pprint.PrettyPrinter(indent = 8)
     # get samples as data structure
-    samples = sampledata.split(';')
-    
+    samples = sampledata#.split(';')
     judgement = 0
     
     check_samples = dict()
@@ -952,9 +998,10 @@ def denovo(sampledata, family):
          check_samples[sam] = 0
 
     # go into the variant data
-    for sam in samples:
-        features    = sam.split('>')
-        name        = features[0]
+    for i in range(len(samples)):
+        sam = samples[i]
+        features    = sam.split(':')
+        name        = names[i]
         
         # check if sample is found in pedigree
         try:
@@ -964,11 +1011,11 @@ def denovo(sampledata, family):
             continue
         
         try:
-            zygosity    = features[1]
+            zygosity    = features[0]
         except:
             sub_pp.pprint(samples)
-        refcoverage = features[2] # could be numeric or .
-        altcoverage = features[3] # could be numeric or .
+        refcoverage = features[1] # could be numeric or .
+        altcoverage = features[2] # could be numeric or .
         
         # sample info complete?
         if check_samples.has_key(name):
@@ -1073,12 +1120,11 @@ def denovo(sampledata, family):
     
     return(judgement)
 
-def dominant(sampledata, family):
+def dominant(sampledata, family,names):
     sub_pp = pprint.PrettyPrinter(indent = 8)
     # get samples as data structure
     all_samples = dict()
-    samples = sampledata.split(';')
-        
+    samples = sampledata#.split(';')
     check_samples = dict()
     
     for samp in family.keys():
@@ -1086,21 +1132,23 @@ def dominant(sampledata, family):
     
     judgement = 0
     
-    for sam in samples:
-        features    = sam.split('>')
-        name        = features[0]
-        
+    for i in range(len(samples)):
+        sam = samples[i]
+        features    = sam.split(':')
+        name        = names[i]
+
         # check if sample is found in pedigree
         try:
             family[name]
         except:
             # if not found, go on to next sample
+            print 'didnt find sample %s'%family[name]
             continue
         
-        zygosity    = features[1]
-        refcoverage = features[2] # could be numeric or .
-        altcoverage = features[3] # could be numeric or .
-        
+        zygosity    = features[0]
+        refcoverage = features[1] # could be numeric or .
+        altcoverage = features[2] # could be numeric or .
+
         if check_samples.has_key(name):
             check_samples[name] = 1
     
@@ -1204,7 +1252,10 @@ def dominant(sampledata, family):
        if vals == 0:
             judgement = 0
             break
-
+    #if judgement==1:
+    #    print samples
+    #    print family
+        
     return(judgement)
 
 def identifycolumns (header, question):
@@ -1214,12 +1265,12 @@ def identifycolumns (header, question):
         exit("ERROR: %s column could not be identified in the annotated data" % question)
     return( int(index) )
 
-def recessive(sampledata, family, familytype):
+def recessive(sampledata, family, familytype,names):
     #sub_pp = pprint.PrettyPrinter(indent = 8)
     
     # get samples as data structure
     all_samples = dict()
-    samples = sampledata.split(';')
+    samples = sampledata#.split(';')
 
     check_samples = dict()
     
@@ -1228,9 +1279,10 @@ def recessive(sampledata, family, familytype):
     
     judgement = 0
     
-    for sam in samples:
-        features    = sam.split('>')
-        name        = features[0]
+    for i in range(len(samples)):
+        sam = samples[i]
+        features    = sam.split(':')
+        name        = names[i]
         
         # check if sample is found in pedigree
         try:
@@ -1239,9 +1291,9 @@ def recessive(sampledata, family, familytype):
             # if not found, go on to next sample
             continue
         
-        zygosity    = features[1]
-        refcoverage = features[2] # could be numeric or .
-        altcoverage = features[3] # could be numeric or .
+        zygosity    = features[0]
+        refcoverage = features[1] # could be numeric or .
+        altcoverage = features[2] # could be numeric or .
         
         if check_samples.has_key(name):
             check_samples[name] = 1
@@ -1358,12 +1410,12 @@ def recessive(sampledata, family, familytype):
 
     return(judgement)
 
-def xlinked(sampledata, family):
+def xlinked(sampledata, family,names):
     sub_pp = pprint.PrettyPrinter(indent = 8)
     
     # get samples as data structure
     all_samples = dict()
-    samples = sampledata.split(';')
+    samples = sampledata#.split(';')
 
     check_samples = dict()
     
@@ -1376,9 +1428,10 @@ def xlinked(sampledata, family):
     
     judgement = 0
     
-    for sam in samples:
-        features    = sam.split('>')
-        name        = features[0]
+    for i in range(len(samples)):
+        sam = samples[i]
+        features    = sam.split(':')
+        name        = names[i]
         
         # check if sample is found in pedigree
         try:
@@ -1387,9 +1440,9 @@ def xlinked(sampledata, family):
             # if not found, go on to next sample
             continue
         
-        zygosity    = features[1]
-        refcoverage = features[2] # could be numeric or .
-        altcoverage = features[3] # could be numeric or .
+        zygosity    = features[0]
+        refcoverage = features[1] # could be numeric or .
+        altcoverage = features[2] # could be numeric or .
         
         if check_samples.has_key(name):
             check_samples[name] = 1

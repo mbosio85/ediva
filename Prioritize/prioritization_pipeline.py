@@ -101,7 +101,8 @@ else:
 if args.white_list:
     white_list=args.white_list
 else:
-    print('Warning: no white list selected')
+    print('Warning: no white list selected set it to empty list')
+    white_list=None
     
 
 
@@ -223,7 +224,6 @@ qclass = True
 qlist =list()
 logfile = os.path.abspath(args.outfolder) + '/'+ datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S") + "qsub_log.log"
 if args.qoptions ==None:
-    qoptions,logfile = qsubclass.getOptions()
     qoptions = dict()
     qoptions,logfile = qsubclass.getOptions()
     qoptions['-e'] = list()

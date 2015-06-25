@@ -29,7 +29,7 @@ infile          = ""
 geneDef         = "refGene" ## gene Definition
 sep             = "," ## separator for annotation outfile currently comma (,) is default
 type_var        = "all" ## type of variants to annotate from input vcf file
-gtMode          = "compact" ## type of variants to annotate from input vcf file
+gtMode          = "complete" ## type of variants to annotate from input vcf file
 onlygenic       = False ## variable for only genic annotation 
 forceDel        = False ## varibale for force deleting the output annotation file (if exists)
 qlookup         = "NA" ## varibale for enabling quick lookup mode of the program
@@ -92,7 +92,7 @@ except IOError:
 print "MESSAGE :: Processing input VCF file - $input "
 ## start browsing over the VCF file
 try:
-    (samples,variants,not_biallelic_variants) = annotate_support_functions.vcf_processing(infile,qlookup,gtMode,type_var)
+    (samples,variants,not_biallelic_variants,headers) = annotate_support_functions.vcf_processing(infile,qlookup,gtMode,type_var)
 except IOError:
     sys.exit(1)
 ## Initialization completed
@@ -154,13 +154,13 @@ if qlookup == "NA":
     ## open file handler
     with open(outFile,'w+') as ANN:
         ## write header to output file
-        headerOutputFile = annotate_support_functions.getHeader(onlygenic,geneDef)
+        headerOutputFile = annotate_support_functions.getHeader(onlygenic,geneDef,headers)
         ANN.write(headerOutputFile+'\n')
         ## write data lines to main output file
         for key, value in variants.items(): 
             #edivaannotationtoprint,annovarannotationtoprint,samplewiseinfortoprint = ("NA","NA","NA")
             #edivapublicanntoprint = "NA,NA"
-            (chr_col,position,ref,alt,aftoprint) = value.split(';')
+            (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
             annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
             edivaannotationtoprint = ediva.get(key,"NA")
             #print edivaannotationtoprint
@@ -168,28 +168,35 @@ if qlookup == "NA":
             samplewiseinfortoprint = samples.get(key,"NA")
             edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
             # write annotation to file
-            write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+aftoprint+sep+
-                      annovarannotationtoprint+sep+edivaannotationtoprint+sep+
+
+            write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
+                       qual+sep+filter_+sep+
+                       aftoprint+sep+                   
+                       annovarannotationtoprint+sep+edivaannotationtoprint+sep+
                       edivapublicanntoprint+sep+samplewiseinfortoprint)
+
             write_str.replace('\n','')
             ANN.write(write_str+'\n')
     print "MESSAGE :: Writing annotation to output file %s" % (outFileIns)
     with open(outFileIns,'w+') as ANNINS:
         ## write header for inconsistent file
-        headerOutputFile = annotate_support_functions.getHeaderIns()
+        headerOutputFile = annotate_support_functions.getHeaderIns(headers)
         ANNINS.write(headerOutputFile+'\n')
         ## write data lines to main output file
         for key, value in not_biallelic_variants.items(): 
             edivaannotationtoprint,annovarannotationtoprint,samplewiseinfortoprint = ("NA","NA","NA")
             edivapublicanntoprint = "NA,NA"
-            (chr_col,position,ref,alt,aftoprint) = value.split(';')
+            (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
             edivaannotationtoprint = ediva.get(key,"NA")
             samplewiseinfortoprint = samples.get(key,"NA")
             edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
             ## write annotation to fileprint
-            write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+aftoprint+sep+
-            annovarannotationtoprint+sep+edivaannotationtoprint+sep+
-            edivapublicanntoprint+sep+samplewiseinfortoprint)              
+            
+            write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
+                       qual+sep+filter_+sep+
+                       aftoprint+sep+
+                       annovarannotationtoprint+sep+edivaannotationtoprint+sep+
+                       edivapublicanntoprint+sep+samplewiseinfortoprint)
             write_str.replace('\n','')
             ANNINS.write(write_str+'\n')
 
@@ -211,11 +218,11 @@ else:
     if os.path.isfile(qlookup):
         ## render annotation to output file
         with open(outFile,'a') as ANN:
-            headerOutputFile = annotate_support_functions.getHeaderQlookup()
+            headerOutputFile = annotate_support_functions.getHeaderQlookup(headers)
             ANN.write(headerOutputFile+'\n')
             ## get header
             for key, value in variants.items():
-                (chr_col,position,ref,alt,aftoprint) = value.split(';')
+                (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
                 annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
                 edivaannotationtoprint = ediva.get(key,"NA")
                 #print edivaannotationtoprint

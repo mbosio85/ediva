@@ -67,7 +67,7 @@ def main ():
     index_genicfunction = identifycolumns(header, 'Function(Refseq)')
     
     #alldata_clean = [ line for line in alldata if not line[index_varfunction] == 'synonymous SNV' ]
-    
+    print header 
     alldata_transpose = zip(*alldata)
     
     
