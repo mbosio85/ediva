@@ -222,7 +222,8 @@ else:
             ANN.write(headerOutputFile+'\n')
             ## get header
             for key, value in variants.items():
-                (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
+                print value
+                (chr_col,position,ref,alt,dummy) = value.split(';')
                 annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
                 edivaannotationtoprint = ediva.get(key,"NA")
                 #print edivaannotationtoprint

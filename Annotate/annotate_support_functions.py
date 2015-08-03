@@ -1036,31 +1036,29 @@ def getHeader(onlygenic,geneDef,headers):
                               "Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,"+
                               "PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,"+
                               "PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,"+
-                              "SimpleTandemRepeatRegion,SimpleTandemRepeatLength,"+
-			      exac_str)
+			      exac_str+ " SimpleTandemRepeatRegion,SimpleTandemRepeatLength,")
         elif geneDef == 'refGene':
             stringTOreturn = ("Chr,Position,Reference,Alteration,QUAL,FILTER,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),"+
                               "dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency," +
                               "Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,"+
                               "PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,"+
                               "PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,"+
-                              "SimpleTandemRepeatRegion,SimpleTandemRepeatLength,"+
-			      exac_str)
+                               exac_str+ "SimpleTandemRepeatRegion,SimpleTandemRepeatLength,")
         elif geneDef == 'knownGene':
             stringTOreturn = ("Chr,Position,Reference,Alteration,QUAL,FILTER,AlleleFrequency,Function(Known),Gene(Known),ExonicFunction(Known),AminoAcidChange(Known),"+
                               "dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,Afr1000GenomesFrequency,"+
                               "Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,"+
                               "PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,"+
-                              "Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,"+
-			      exac_str)
+                              "Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,"+
+			      exac_str +"SimpleTandemRepeatRegion,SimpleTandemRepeatLength,")
         else:
             stringTOreturn = ("Chr,Position,Reference,Alteration,QUAL,FILTER,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),AminoAcidChange(Refseq),"+
                               "Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),AminoAcidChange(Ensembl),Function(Known),Gene(Known),ExonicFunction(Known),"+
                               "AminoAcidChange(Known),dbsnpIdentifier,EurEVSFrequency,AfrEVSFrequency,TotalEVSFrequency,Eur1000GenomesFrequency,Afr1000GenomesFrequency,"+
                               "Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,"+
                               "VertebratesPhyloP,PlacentalMammalPhastCons,PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,"+
-                              "MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength,"+
-			      exac_str)
+                              "MutAss,Condel,Cadd1,Cadd2,"+
+			      exac_str + "SimpleTandemRepeatRegion,SimpleTandemRepeatLength,")
     ## replace newlines with nothing at header line
     if len(headers)>9:
 	stringTOreturn+=','.join(headers[9:len(headers)])
@@ -1080,8 +1078,7 @@ def getHeaderIns(headers):
                       "TotalEVSFrequecy,Eur1000GenomesFrequency,Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,"+
                       "Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,"+
                       "PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,"+
-                      "SimpleTandemRepeatRegion,SimpleTandemRepeatLength,"+
-        exac_str)
+                       exac_str+"SimpleTandemRepeatRegion,SimpleTandemRepeatLength,")
     if len(headers) > 9:
 	stringTOreturn+=','.join(headers[9:len(headers)])
     else:
@@ -1095,11 +1092,12 @@ def getHeaderIns(headers):
 #@@ As before : match /usr/bin/perl output
 ## subroutnine por providing header to the quick look up mode annotation output file
 def getHeaderQlookup(headers):
+    exac_str="ExAC_AF,ExAC_adjusted_AF,ExAC_AFR,ExAC_AMR,ExAC_EAS,ExAC_FIN,ExAC_NFE,ExAC_OTH,ExAC_SAS,"
     stringTOreturn = ("Chr,Position,Reference,Alteration,dbsnpIdentifier,EurEVSFrequecy,AfrEVSFrequecy,TotalEVSFrequecy,Eur1000GenomesFrequency,"+
                       "Afr1000GenomesFrequency,Asia1000GenomesFrequency,Amr1000GenomesFrequency,Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,"+
                       "PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,"+
-                      "SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,SimpleTandemRepeatRegion,SimpleTandemRepeatLength"+
-    exac_str)
+                      "SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,"+  exac_str +
+		      "SimpleTandemRepeatRegion,SimpleTandemRepeatLength,")
 
     ## replace newlines with nothing at header line
     stringTOreturn.replace('\n','') 
