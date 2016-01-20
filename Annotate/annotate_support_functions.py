@@ -1012,14 +1012,14 @@ def getHeader(onlygenic,geneDef,headers):
         ## check for gene definiton and construct header according to that
 	# old removed :samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)
         if geneDef == 'ensGene':
-            stringTOreturn = ("Chr,Position,Reference,Alteration,QUAL,FILTER,AlleleFrequency,Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl)" +
-                              ",AminoAcidChange(Ensembl),NA,NA,")
+            stringTOreturn = ("Chr,Position,Reference,Alteration,QUAL,FILTER,AlleleFrequency,Function,Gene,ExonicFunction" +
+                              ",AminoAcidChange,NA,NA,")
         elif geneDef == 'refGene':
-            stringTOreturn = ("Chr,Position,Reference,,Alteration,QUAL,FILTER,AlleleFrequency,Function(Refseq),Gene(Refseq),"+
-            "ExonicFunction(Refseq),AminoAcidChange(Refseq),NA,NA,")
+            stringTOreturn = ("Chr,Position,Reference,,Alteration,QUAL,FILTER,AlleleFrequency,Function,Gene,"+
+            "ExonicFunction,AminoAcidChange,NA,NA,")
         elif geneDef == 'knownGene':
-            stringTOreturn = ("Chr,Position,Reference,Alteration,QUAL,FILTER,AlleleFrequency,Function(Known),Gene(Known),ExonicFunction(Known),"+
-            "AminoAcidChange(Known),NA,NA,")
+            stringTOreturn = ("Chr,Position,Reference,Alteration,QUAL,FILTER,AlleleFrequency,Function,Gene,ExonicFunction,"+
+            "AminoAcidChange,NA,NA,")
         else:
             stringTOreturn = ("Chr,Position,Reference,Alteration,QUAL,FILTER,AlleleFrequency,Function(Refseq),Gene(Refseq),ExonicFunction(Refseq),"+
             "AminoAcidChange(Refseq),Function(Ensembl),Gene(Ensembl),ExonicFunction(Ensembl),AminoAcidChange(Ensembl),Function(Known),"+
@@ -1060,6 +1060,7 @@ def getHeader(onlygenic,geneDef,headers):
                               "MutAss,Condel,Cadd1,Cadd2,"+
 			      exac_str + "SimpleTandemRepeatRegion,SimpleTandemRepeatLength,")
     ## replace newlines with nothing at header line
+    stringTOreturn.replace(',',',#')
     if len(headers)>9:
 	stringTOreturn+=','.join(headers[9:len(headers)])
     else:
@@ -1067,6 +1068,7 @@ def getHeader(onlygenic,geneDef,headers):
     stringTOreturn.replace('\n','') 
     stringTOreturn.replace(' ','')
     #=~ s/\n|\s+//g;  verify that this is correct!!
+    stringTOreturn='#'+stringTOreturn
     return stringTOreturn
 
 
@@ -1079,6 +1081,7 @@ def getHeaderIns(headers):
                       "Total1000GenomesFrequency,SegMentDup,PlacentalMammalPhyloP,PrimatesPhyloP,VertebratesPhyloP,PlacentalMammalPhastCons,"+
                       "PrimatesPhastCons,VertebratesPhastCons,Score1GERP++,Score2GERP++,SIFTScore,polyphen2,MutAss,Condel,Cadd1,Cadd2,"+
                        exac_str+"SimpleTandemRepeatRegion,SimpleTandemRepeatLength,")
+    stringTOreturn.replace(',',',#')
     if len(headers) > 9:
 	stringTOreturn+=','.join(headers[9:len(headers)])
     else:
@@ -1086,6 +1089,7 @@ def getHeaderIns(headers):
     stringTOreturn.replace('\n','') 
     stringTOreturn.replace(' ','')
     #=~ s/\n|\s+//g;  verify that this is correct!!
+    stringTOreturn='#'+stringTOreturn
     return stringTOreturn
 
 

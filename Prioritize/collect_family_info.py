@@ -49,8 +49,8 @@ with open(args.config,'w+') as config_file:
             except:
                 bam = str()
             
-            args.config.write('\t'.join([name, affect, vcf, bam]))
-            args.config.write('\n')
+            config_file.write('\t'.join([name, affect, vcf, bam]))
+            config_file.write('\n')
     
     
     else:       

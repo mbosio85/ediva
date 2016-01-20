@@ -151,6 +151,12 @@ def parse_command_options(instring,outfolder,qsub_name,old_dict=dict()):
                 else:
                     out[field] = list()
                     out[field].append('')
+            else:
+                if len(field.split()) ==3:
+                    subfield=field.split()
+                    if subfield[0] in qsub_options: #case of -pe smp 4
+                        out[subfield[0]] = list()
+                        out[subfield[0]].append(' '.join([subfield[1], subfield[2]   ] ))
     
     old_dict.update(out)
        

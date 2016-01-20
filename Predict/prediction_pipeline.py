@@ -6,6 +6,8 @@ import prediction_support_functions
 if not os.environ.get('DRMAA_LIBRARY_PATH'):
     print "Adding the DRMAA library path to the environment"
     os.environ['DRMAA_LIBRARY_PATH'] = "/usr/share/univage/lib/lx-amd64/libdrmaa.so.1.0"
+else:
+   print os.environ.get('DRMAA_LIBRARY_PATH')
 #import ../pipeline_control/qsubclass
 #import ../pipeline_control/pipeline_element
 import pickle

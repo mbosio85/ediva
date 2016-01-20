@@ -446,7 +446,7 @@ pipeline_element.save_pipeline(pipe,script_location+'.pipe')
 
 command = "%s %s %s %s"%(python_path,pipe_script,script_location+'.pipe','log.log')
 qlist.append(qsubclass.qsubCall(command,qoptions,list(),logfile))
-#print qoptions
+print qoptions
 print "\n\ncommand\n"
 command = str.replace(command,'//','/')
 print command

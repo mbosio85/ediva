@@ -409,7 +409,7 @@ def main (args):
         ###
         elif args.inheritance == 'Xlinked':
             
-            index_chromosome = identifycolumns(header, 'Chr')
+            index_chromosome = identifycolumns(header, '#Chr')
             
             # skip all variants not located 
             if line[index_chromosome].lower() == 'x' or line[index_chromosome] == '23':
@@ -554,28 +554,28 @@ def main (args):
                             
                         else:
                             line.append(args.inheritance)
-                            line.append('filtered')#
+                            line.append('filtered_A')#
                             out.writerow(line)
                     else:
                         line.append(args.inheritance)
-                        line.append('filtered')#
+                        line.append('filtered_B')#
                         out.writerow(line)
                 else:
                     line.append(args.inheritance)
-                    line.append('filtered')#
+                    line.append('filtered_C')#
                     out.writerow(line)
                 
             
             # fits inheritance, but is too frequent in the population
             elif judgement == 1 and MAF > 0.03:
                 line.append('compound')
-                line.append('filtered')#
+                line.append('filtered_D')#
                 out.writerow(line)
             
             # does not fit anything
             else:
                 line.append('NOT_' + args.inheritance)
-                line.append('filtered')
+                line.append('filtered_E')
                 out.writerow(line)
     
     else:
@@ -609,13 +609,18 @@ def main (args):
         fh = open(args.filteredfile.name, 'r+')
         # open output file for re-reading
         
-        excel_name = '/variant_prioritization_report.xlsx'#args.filteredfile.name + ".xlsx"
+        excel_name = 'variant_prioritization_report.xlsx'#args.filteredfile.name + ".xlsx"
         inheritance_file=args.filteredfile.name + ".xlsx"
         
 
         excel_path  =  os.path.dirname(args.outfile.name).split('/')
         excel_path  = '/'.join(excel_path[:-1])
-        tmp_name = excel_path+'/tmp.xlsx'
+	if excel_path=='':
+		pass
+	else:
+		excel_path+='/'
+	
+        tmp_name = excel_path+'tmp.xlsx'
         excel_name = excel_path+excel_name
         
 
@@ -624,6 +629,7 @@ def main (args):
         print "Printing the Excel file:"
         xls = xlsxwriter.Workbook(tmp_name)
         sheet_name = 'ediva_filtered' + args.inheritance
+	print sheet_name
         sheet_name=sheet_name[:30]
         worksheet = xls.add_worksheet(sheet_name)
         row_xls=0
@@ -686,8 +692,10 @@ def main (args):
             row_xls += 1
         cur.close()
         db.close()
-
-        xls.close()
+	try:
+         xls.close()
+	except:
+		pass
         xls = xlsxwriter.Workbook(tmp_name)
         shutil.copyfile(tmp_name,inheritance_file)
         #check if already exist
@@ -744,7 +752,7 @@ def compound(sampledata, family,names,debug=False):
     
     judgement = 0
 
-    for i in range(len(samples)):
+    for i in range(len(names)):
         sam = samples[i]
         features    = sam.split(':')
         name        = names[i]
@@ -757,6 +765,7 @@ def compound(sampledata, family,names,debug=False):
             family[name]
         except:
             # if not found, go on to next sample
+            print name
             continue
         
         zygosity    = features[0]
@@ -924,9 +933,11 @@ def compoundizer(variantlist, family, index_sample,names):
         #    judgement = 0
         #    break
         #
-        for i in range(len(sampledata)):
+        for i in range(len(names)):
             sam = sampledata[i]
             features = sam.split(':')
+            #print sampledata
+            #print names
             name        = names[i]
             zygosity    = features[0]
             refcoverage = features[1] # could be numeric or .
