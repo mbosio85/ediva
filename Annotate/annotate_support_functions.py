@@ -416,19 +416,158 @@ def ediva_reselement(ediva,k,res,sep,exac_value=None):
 	for ex_element in exac_value:
 	    ediva[k] += (sep+str(ex_element))
     
-    
-    
-#    if not(len(ediva[k].split(',')) == 33):
-#	# erorr line
-#	print 'reselement SNP'
-#	print k
-#	print ediva[k]
-#	print len(ediva[k].split(','))
-#	print exac_value
-#	print res
-    
-    
     return ediva
+
+#@@ Takes care to do the queries for the ediva database for SNP and INDEl
+#@@ IT calls reselement and process_db_entry to fix the format where needed
+def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
+    chr_col,pos,ref,alt = k.rstrip('\n').split(';')
+    step1_common_items="""
+    SELECT ifnull(dbsnpid,'NA'),
+        ifnull(EurEVSFreq,'0'),
+        ifnull(AfrEVSFreq,'0'),
+        ifnull(TotalEVSFreq,'0'),
+        ifnull(EurAFKG,'0'),
+        ifnull(AfrAFKG,'0'),
+        ifnull(AsaAFKG,'0'),
+        ifnull(AmrAFKG,'0'),
+        ifnull(AFKG,'0')	"""
+        
+    snp_1_specific=",\n ifnull(SDSnp,'0'),"
+    indel_1_specific="SELECT ifnull(SDIndel,'0'),"
+    
+    step2_common_items="""
+        ifnull(`placentalMammal.phyloP`,'NA'),
+        ifnull(`primates.phyloP`,'NA'),
+        ifnull(`vertebrates.phyloP`,'NA'),
+        ifnull(`placentalMammal.phastCons`,'NA'),
+        ifnull(`primates.phastCons`,'NA'),
+        ifnull(`vertebrates.phastCons`,'NA'),
+        ifnull(gerp1,'NA'),
+        ifnull(gerp2,'NA') 
+    """
+    snp_ending ="""
+        ifnull(sift,'NA'),
+        ifnull(polyphen2,'NA'),
+        ifnull(mutationassessor,'NA'),
+        ifnull(condel,'NA'),
+        ifnull(cadd1,'NA'),
+        ifnull(cadd2,'NA') """
+        
+    exac_query="""SELECT ifnull(AF,'0'),
+			  ifnull(AF_adj,'0'),
+			  ifnull(AF_AFR,'0'),
+			  ifnull(AF_AMR,'0'),
+			  ifnull(AF_EAS,'0'),
+			  ifnull(AF_FIN,'0'),
+			  ifnull(AF_NFE,'0'),
+			  ifnull(AF_OTH,'0'),
+			  ifnull(AF_SAS,'0')"""
+    
+    chr_col,pos,ref,alt = k.rstrip('\n').split(';')
+    ## decide for variant type
+    lenref = len(ref)
+    lenalt = len(alt)
+    sql     = ""
+    sql2    = ""
+    stmt    = ""
+    stmt2   = ""
+    res     = list()
+    res2    = list() 
+    if ((lenref + lenalt) > 2):## INDEL
+        sql=step1_common_items + """
+        FROM Table_Chr%s_indel WHERE indelid = '%s' LIMIT 1;"""%(chr_col,k)
+        sql2=indel_1_specific + step2_common_items + """
+        FROM Table_Chr%s WHERE position = %s LIMIT 1;"""%(chr_col,pos)
+        exac_sql=exac_query + """
+        FROM `exac_indel` WHERE indelid= '%s' LIMIT 1;"""%(k)
+        
+        ## prepare statement and query#######################
+        sql = sql.replace('\n',' ')
+        sql2 = sql2.replace('\n',' ')
+        sql = sql.replace('\t',' ')
+        sql2 = sql2.replace('\t',' ')
+        exac_sql = exac_sql.replace('\n',' ')
+        exac_sql = exac_sql.replace('\t',' ')
+        cur = db.cursor()
+        cur2 = db.cursor()
+        exac_cur=db.cursor()
+        cur.execute(sql)
+        res = cur.fetchone()
+        cur.close()
+        cur2.execute(sql2)          
+        #process query result            
+        res2 = cur2.fetchone()
+        cur2.close()
+        
+        #exac query execution
+        exac_cur.execute(exac_sql)
+        exac_result= exac_cur.fetchone()
+        exac_cur.close()
+        
+        ediva  = process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,exac_result)
+    else:    
+        stringent= """ WHERE position = %s AND Reference = '%s' AND Alt = '%s'
+            LIMIT 1;"""%(pos,ref,alt)
+        broad = """WHERE position = %s LIMIT 1;"""%(pos)
+        sql = step1_common_items + snp_1_specific + step2_common_items +" FROM Table_Chr%s "%(chr_col) + stringent
+        sql = sql.replace('\n',' ')
+        sql = sql.replace('\t',' ')
+        cur = db.cursor()
+	#print sql
+        cur.execute(sql)        
+        res = cur.fetchone()
+        if res is None:
+            res = list()
+        ## prepare statement and query#######################
+        cur.close()
+        exac_sql = exac_sql=exac_query + """
+            FROM `exac_snp` WHERE chromosome = '%s'
+            AND position = %s AND Reference = '%s'
+            AND Alt = '%s'
+            LIMIT 1;"""%(chr_col,pos,ref,alt)
+            
+        exac_sql = exac_sql.replace('\n',' ')
+        exac_sql = exac_sql.replace('\t',' ')
+        exac_cur=db.cursor()
+        exac_cur.execute(exac_sql)
+        exac_result= exac_cur.fetchone()
+        exac_cur.close()
+        if (len(res) > 1):
+            # load ediva hash from database
+            ediva =  ediva_reselement(ediva,k,res,sep,exac_result)
+        else:
+            #Less stringent search driven only by chr and position
+            sql = step1_common_items + snp_1_specific+ step2_common_items +broad
+        if (len(res) > 1):
+            # load ediva hash from database
+            ediva =  ediva_reselement(ediva,k,res,sep,exac_result)
+        else:
+            #Less stringent search driven only by chr and position
+            sql = sqlbase+broad
+            sql = sql.replace('\n',' ')
+            sql = sql.replace('\t',' ')
+            ## prepare statement and query#######################
+            cur = db.cursor()
+            cur.execute(sql)
+            
+            #process query result
+            res = cur.fetchone()
+            if res is None:
+                res = list()
+            ## prepare statement and query#######################
+            cur.close()           
+            if (len(res) > 1):
+                # load ediva hash from database
+                ediva =  ediva_reselement(ediva,k,res,sep,exac_result)
+            else:
+                ## handle missing database annotation entry
+                ediva[k]=missanndb
+                ediva[k]+= ((sep+ "0")*9)
+        
+    return ediva
+
+
 
 #@@ Check all input and output variables: evaluate if it's better to pass dictionaries
 #@@ rather than variables.
@@ -451,436 +590,16 @@ def edivaAnnotation(variants,not_biallelic_variants,sep,missanndb,missanndb_coor
     # extract db result
     print("\t Running ediva annotaton with %d variants : "%(len(variants.items())))
     for k, v in (variants.items()) :
+        ediva=query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel)
         
-        chr_col,pos,ref,alt = k.rstrip('\n').split(';')
-        ## decide for variant type
-        lenref = len(ref)
-        lenalt = len(alt)
-                
-        if ((lenref + lenalt) > 2):## INDEL
-            sql     = ""
-            sql2    = ""
-            stmt    = ""
-            stmt2   = ""
-            res     = list()
-            res2    = list()
-            ## prepare query 
-            sql = """SELECT ifnull(dbsnpid,'NA'),
-			    ifnull(EurEVSFreq,'0'),
-			    ifnull(AfrEVSFreq,'0'),
-			    ifnull(TotalEVSFreq,'0'),
-			    ifnull(EurAFKG,'0'),
-			    ifnull(AfrAFKG,'0'),
-			    ifnull(AsaAFKG,'0'),
-			    ifnull(AmrAFKG,'0'),
-			    ifnull(AFKG,'0')			
-			FROM Table_Chr%s_indel 
-			WHERE indelid = '%s' LIMIT 1;"""%(chr_col,k)
-                        
-            sql2 = """select ifnull(SDIndel,'0'),
-			     ifnull(`placentalMammal.phyloP`,'NA'),
-			     ifnull(`primates.phyloP`,'NA'),
-			     ifnull(`vertebrates.phyloP`,'NA'),
-			     ifnull(`placentalMammal.phastCons`,'NA'),
-			     ifnull(`primates.phastCons`,'NA'),
-			     ifnull(`vertebrates.phastCons`,'NA'),
-			     ifnull(gerp1,'NA'),
-			     ifnull(gerp2,'NA') 
-			FROM Table_Chr%s where position = %s LIMIT 1;"""%(chr_col,pos)
-	    exac_sql = """SELECT ifnull(AF,'0'),
-				  ifnull(AF_adj,'0'),
-				  ifnull(AF_AFR,'0'),
-				  ifnull(AF_AMR,'0'),
-				  ifnull(AF_EAS,'0'),
-				  ifnull(AF_FIN,'0'),
-				  ifnull(AF_NFE,'0'),
-				  ifnull(AF_OTH,'0'),
-				  ifnull(AF_SAS,'0')
-			    FROM `exac_indel`
-			    WHERE indelid= '%s' LIMIT 1;"""%(k)
-            sql = sql.replace('\n',' ')
-            sql2 = sql2.replace('\n',' ')
-            sql = sql.replace('\t',' ')
-            sql2 = sql2.replace('\t',' ')
-	    exac_sql = exac_sql.replace('\n',' ')
-            exac_sql = exac_sql.replace('\t',' ')
-
-            ## prepare statement and query#######################
-            cur = db.cursor()
-            cur2 = db.cursor()
-	    exac_cur=db.cursor()
-            cur.execute(sql)
-            res = cur.fetchone()
-            cur.close()
-            cur2.execute(sql2)          
-            #process query result            
-            res2 = cur2.fetchone()
-            cur2.close()
-	    #exac query execution
-	    exac_cur.execute(exac_sql)
-	    exac_result= exac_cur.fetchone()
-	    exac_cur.close()
-	    
-            ## prepare statement and query#######################
-            ediva  = process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,exac_result)
-        else:##SNP
-            sql = ""
-            stmt= ""
-            res = list()
-            sql = """SELECT 
-			ifnull(dbsnpid,'NA'),
-			ifnull(EurEVSFreq,'0'),
-			ifnull(AfrEVSFreq,'0'),
-			ifnull(TotalEVSFreq,'0'),
-			ifnull(EurAFKG,'0'),
-			ifnull(AfrAFKG,'0'),
-			ifnull(AsaAFKG,'0'),
-			ifnull(AmrAFKG,'0'),
-			ifnull(AFKG,'0'),
-			ifnull(SDSnp,'0'),
-			ifnull(`placentalMammal.phyloP`,'NA'),
-			ifnull(`primates.phyloP`,'NA'),
-			ifnull(`vertebrates.phyloP`,'NA'),
-			ifnull(`placentalMammal.phastCons`,'NA'),
-			ifnull(`primates.phastCons`,'NA'),
-			ifnull(`vertebrates.phastCons`,'NA'),
-			ifnull(gerp1,'NA'),ifnull(gerp2,'NA'),
-			ifnull(sift,'NA'),
-			ifnull(polyphen2,'NA'),
-			ifnull(mutationassessor,'NA'),
-			ifnull(condel,'NA'),
-			ifnull(cadd1,'NA'),
-			ifnull(cadd2,'NA') 
-		    FROM Table_Chr%s 
-		    WHERE position = %s AND Reference = '%s' AND Alt = '%s'
-		    LIMIT 1;"""%(chr_col,pos,ref,alt)
-            sql = sql.replace('\n',' ')
-            sql = sql.replace('\t',' ')
-            cur = db.cursor()
-            cur.execute(sql)
-
-
-            #process query result
-            res = cur.fetchone()
-            if res is None:
-                res = list()
-            ## prepare statement and query#######################
-            cur.close()
-	    
-	    exac_sql = """SELECT ifnull(AF,'0'),
-			  ifnull(AF_adj,'0'),
-			  ifnull(AF_AFR,'0'),
-			  ifnull(AF_AMR,'0'),
-			  ifnull(AF_EAS,'0'),
-			  ifnull(AF_FIN,'0'),
-			  ifnull(AF_NFE,'0'),
-			  ifnull(AF_OTH,'0'),
-			  ifnull(AF_SAS,'0')
-		    FROM `exac_snp` 
-		    WHERE chromosome = '%s' AND position = %s AND Reference = '%s' AND Alt = '%s'
-		    LIMIT 1;"""%(chr_col,pos,ref,alt)
-	    exac_sql = exac_sql.replace('\n',' ')
-            exac_sql = exac_sql.replace('\t',' ')
-	    exac_cur=db.cursor()
-	    exac_cur.execute(exac_sql)
-	    exac_result= exac_cur.fetchone()
-	    exac_cur.close()
-	       
-	    
-	    
-            ## prepare statement and query#######################
-            if (len(res) > 1):
-                # load ediva hash from database
-                ediva =  ediva_reselement(ediva,k,res,sep,exac_result)
-            else:
-		#Less stringent search driven only by chr and position
-                sql = """SELECT 
-			ifnull(dbsnpid,'NA'),
-			ifnull(EurEVSFreq,'0'),
-			ifnull(AfrEVSFreq,'0'),
-			ifnull(TotalEVSFreq,'0'),
-			ifnull(EurAFKG,'0'),
-			ifnull(AfrAFKG,'0'),
-			ifnull(AsaAFKG,'0'),
-			ifnull(AmrAFKG,'0'),
-			ifnull(AFKG,'0'),
-			ifnull(SDSnp,'0'),
-			ifnull(`placentalMammal.phyloP`,'NA'),
-			ifnull(`primates.phyloP`,'NA'),
-			ifnull(`vertebrates.phyloP`,'NA'),
-			ifnull(`placentalMammal.phastCons`,'NA'),
-			ifnull(`primates.phastCons`,'NA'),
-			ifnull(`vertebrates.phastCons`,'NA'),
-			ifnull(gerp1,'NA'),ifnull(gerp2,'NA'),
-			ifnull(sift,'NA'),
-			ifnull(polyphen2,'NA'),
-			ifnull(mutationassessor,'NA'),
-			ifnull(condel,'NA'),
-			ifnull(cadd1,'NA'),
-			ifnull(cadd2,'NA') 
-		    FROM Table_Chr%s
-		    WHERE position = %s LIMIT 1;"""%(chr_col,pos)
-                sql = sql.replace('\n',' ')
-                sql = sql.replace('\t',' ')
-                ## prepare statement and query#######################
-                cur = db.cursor()
-                cur.execute(sql)
-                
-                #process query result
-                res = cur.fetchone()
-                if res is None:
-                    res = list()
-                ## prepare statement and query#######################
-                cur.close()
-                ## prepare statement and query#######################
-                
-                if (len(res) > 1):
-                    # load ediva hash from database
-                    ediva =  ediva_reselement(ediva,k,res,sep,exac_result)
-                else:
-                    ## handle missing database annotation entry
-                    ediva[k]=missanndb
-		    ediva[k]+= ((sep+ "0")*9)
     ## end of if-else for variant decision  
     # extract db result
     print("\t Running ediva annotation with %d non biallelic variants:"%(len(not_biallelic_variants.items())))
     for k, v in (not_biallelic_variants.items() ) :
-        chr_col,pos,ref,alt = k.rstrip('\n').split(';')
-        ## decide for variant type
-        lenref = len(ref)
-        lenalt = len(alt)
-        if (lenref + lenalt) > 2:## INDEL
-            sql     = ""
-            sql2    = ""
-            stmt    = ""
-            stmt2   = ""
-            res     = list()
-            res2    = list()
-            ## prepare query 
-            #$sql = "select annotateINDEL('$k','chr_col',$pos);";
-            sql = """SELECT 
-			ifnull(dbsnpid,'NA'),
-			ifnull(EurEVSFreq,'0'),
-			ifnull(AfrEVSFreq,'0'),
-			ifnull(TotalEVSFreq,'0'),
-			ifnull(EurAFKG,'0'),
-			ifnull(AfrAFKG,'0'),
-			ifnull(AsaAFKG,'0'),
-			ifnull(AmrAFKG,'0'),
-			ifnull(AFKG,'0')
-		    FROM Table_Chr%s_indel 
-		    WHERE indelid = '%s' LIMIT 1;"""%(chr_col,k)
-            
-            sql2 = """SELECT 
-			ifnull(SDIndel,'0'),
-			ifnull(`placentalMammal.phyloP`,'NA'),
-			ifnull(`primates.phyloP`,'NA'),
-			ifnull(`vertebrates.phyloP`,'NA'),
-			ifnull(`placentalMammal.phastCons`,'NA'),
-			ifnull(`primates.phastCons`,'NA'),
-			ifnull(`vertebrates.phastCons`,'NA'),
-			ifnull(gerp1,'NA'),
-			ifnull(gerp2,'NA') 
-		    FROM Table_Chr%s 
-		    WHERE position = %s LIMIT 1;"""%(chr_col,pos)
-		    
-            exac_sql = """SELECT ifnull(AF,'0'),
-				  ifnull(AF_adj,'0'),
-				  ifnull(AF_AFR,'0'),
-				  ifnull(AF_AMR,'0'),
-				  ifnull(AF_EAS,'0'),
-				  ifnull(AF_FIN,'0'),
-				  ifnull(AF_NFE,'0'),
-				  ifnull(AF_OTH,'0'),
-				  ifnull(AF_SAS,'0')
-			FROM `exac_indel`  
-			WHERE indelid= '%s' LIMIT 1;"""%(k)
-            sql = sql.replace('\n',' ')
-            sql2 = sql2.replace('\n',' ')
-            sql = sql.replace('\t',' ')
-            sql2 = sql2.replace('\t',' ')
-	    exac_sql = exac_sql.replace('\n',' ')
-            exac_sql = exac_sql.replace('\t',' ')
-            
-            ## prepare statement and query
-            cur = db.cursor()
-            cur2 = db.cursor()
-            cur.execute(sql)
-            res = cur.fetchone()
-            if res is None:
-                res = list()
-            cur2.execute(sql2)
-            #exac query execution
-	    exac_cur=db.cursor()
-	    exac_cur.execute(exac_sql)
-	    exac_result= exac_cur.fetchone()
-	    exac_cur.close()
-            #process query result
-            
-            res2 = cur2.fetchone()
-            if res2 == None:
-                res2 = list()
-            ## prepare statement and query#######################
-            #Now looks for the key in both databases: When present, the value is updated with the db info
-            #When not present, the key is filled with the default "not found" elements like: misseldb etc.
-            
-            if (len(res) > 1 and len(res2) > 1): ## both returned database rows
-                    # load ediva hash from database
-                    ediva =  ediva_reselement(ediva,k,res,sep,'indel')
-                    ediva =  ediva_reselement(ediva,k,res2,sep,'indel')
-                    ## add NAs for damage potential scores for indels
-                    ediva[k] = ediva[k] + ((sep+ "NA")*6)
-            elif(len(res) > 1 and len(res2) < 1): ## only indel table returned database row
-                ediva =  ediva_reselement(ediva,k,res,sep,'indel')
-                # take care of missing positional values			
-                ediva[k] += sep+missanndb_coordinate
-                ## add NAs for damage potential scores for indels
-                ediva[k] += ((sep+ "NA")*6)
-                
-            elif(len(res) < 1 and len(res2) > 1): ## only snp table returned database row
-                # take care of missing positional values			
-                if ediva.get(k,False):
-                ## this should never happen !!
-                    ediva[k] +=sep+missanndbindel
-                else:
-                    ediva[k] = missanndbindel
-                
-                ediva =  ediva_reselement(ediva,k,res2,sep,'indel')
-                ## add NAs for damage potential scores for indels
-                ediva[k] +=((sep+ "NA")*6)
-            else:
-                if ediva.get(k,False):
-                ## this should never happen !!
-                    ediva[k] +=sep+missanndbindel
-                else:
-                    ediva[k] = missanndbindel
-                # take care of missing positional values			
-                ediva[k] +=sep+missanndb_coordinate
-                ## add NAs for damage potential scores for indels
-                ediva[k] += ((sep+ "NA")*6)
-	    #Add the exac part
-	    if exac_result==None:
-		ediva[k] += ((sep+ "0")*9)
-	    else:
-		for ex_element in exac_result:
-		    ediva[k] += (sep+str(ex_element))
-		    
-            cur.close()
-            cur2.close()
-        else: ##SNP
-			sql = ""
-			stmt =""
-			res = list()
-		
-			#$sql = "select annotateSNPGermline('chr_col',$pos,'$ref','$alt');";					
-			sql = """SELECT
-				    ifnull(dbsnpid,'NA'),
-				    ifnull(EurEVSFreq,'0'),
-				    ifnull(AfrEVSFreq,'0'),
-				    ifnull(TotalEVSFreq,'0'),
-				    ifnull(EurAFKG,'0'),
-				    ifnull(AfrAFKG,'0'),
-				    ifnull(AsaAFKG,'0'),
-				    ifnull(AmrAFKG,'0'),
-				    ifnull(AFKG,'0'),
-				    ifnull(SDSnp,'0'),
-				    ifnull(`placentalMammal.phyloP`,'NA'),
-				    ifnull(`primates.phyloP`,'NA'),
-				    ifnull(`vertebrates.phyloP`,'NA'),
-				    ifnull(`placentalMammal.phastCons`,'NA'),
-				    ifnull(`primates.phastCons`,'NA'),
-				    ifnull(`vertebrates.phastCons`,'NA'),
-				    ifnull(gerp1,'NA'),ifnull(gerp2,'NA'),
-				    ifnull(sift,'NA'),
-				    ifnull(polyphen2,'NA'),
-				    ifnull(mutationassessor,'NA'),
-				    ifnull(condel,'NA'),
-				    ifnull(cadd1,'NA'),
-				    ifnull(cadd2,'NA') 
-				FROM Table_Chr%s 
-				WHERE position = %s AND Reference = '%s' AND Alt = '%s'
-				LIMIT 1;"""%(chr_col,pos,ref,alt)
-			sql = sql.replace('\n',' ')
-			sql = sql.replace('\t',' ')
-		
-			## prepare statement and query
-			cur = db.cursor()
-			cur.execute(sql)
-			#process query result
-			res = cur.fetchone()
-			if res == None:
-				res = list()
-				
-			exac_sql = """SELECT ifnull(AF,'0'),
-				    ifnull(AF_adj,'0'),
-				    ifnull(AF_AFR,'0'),
-				    ifnull(AF_AMR,'0'),
-				    ifnull(AF_EAS,'0'),
-				    ifnull(AF_FIN,'0'),
-				    ifnull(AF_NFE,'0'),
-				    ifnull(AF_OTH,'0'),
-				    ifnull(AF_SAS,'0')
-			      FROM `exac_snp`
-			      WHERE chromosome = '%s' AND position = %s AND Reference = '%s' AND Alt = '%s'
-			      LIMIT 1;"""%(chr_col,pos,ref,alt)
-			exac_sql = exac_sql.replace('\n',' ')
-			exac_sql = exac_sql.replace('\t',' ')
-			exac_cur=db.cursor()
-			exac_cur.execute(exac_sql)
-			exac_result= exac_cur.fetchone()
-			exac_cur.close()	
-				
-
-			if (len(res) > 1):
-				# load ediva hash from database
-				ediva =  ediva_reselement(ediva,k,res,sep,exac_result)
-			else:
-				sql = """SELECT
-					ifnull(dbsnpid,'NA'),
-					ifnull(EurEVSFreq,'0'),
-					ifnull(AfrEVSFreq,'0'),
-					ifnull(TotalEVSFreq,'0'),
-					ifnull(EurAFKG,'0'),
-					ifnull(AfrAFKG,'0'),
-					ifnull(AsaAFKG,'0'),
-					ifnull(AmrAFKG,'0'),
-					ifnull(AFKG,'0'),
-					ifnull(SDSnp,'0'),
-					ifnull(`placentalMammal.phyloP`,'NA'),
-					ifnull(`primates.phyloP`,'NA'),
-					ifnull(`vertebrates.phyloP`,'NA'),
-					ifnull(`placentalMammal.phastCons`,'NA'),
-					ifnull(`primates.phastCons`,'NA'),
-					ifnull(`vertebrates.phastCons`,'NA'),
-					ifnull(gerp1,'NA'),ifnull(gerp2,'NA'),
-					ifnull(sift,'NA'),
-					ifnull(polyphen2,'NA'),
-					ifnull(mutationassessor,'NA'),
-					ifnull(condel,'NA'),
-					ifnull(cadd1,'NA'),
-					ifnull(cadd2,'NA') 
-				    FROM Table_Chr%s
-				    WHERE position = %s LIMIT 1;"""%(chr_col,pos)
-				sql = sql.replace('\n',' ')
-			
-				## prepare statement and query
-				cur.execute(sql);
-				#process query result
-				res = cur.fetchone()
-				if res == None:
-					res = list()
-				if (len(res) > 1):
-				# load ediva hash from database
-					ediva =  ediva_reselement(ediva,k,res,sep,exac_result)
-				else:
-				## handle missing database annotation entry
-					ediva[k] =missanndb
-					ediva[k]+= ((sep+ "0")*9)
-			cur.close()					
+        ediva=query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel)					
         ## end of while on not_biallelic_variants                                 
     ## close DB connection
     db.close()
-
     return ediva
 
 
@@ -1172,6 +891,98 @@ def check_for_genotype(chr_col,position,token_ref,token_obs,genotype,dpref,dpalt
 
     return samples
 
+def process_fileline(infile,myline,ref,al,alfr,variants,not_biallelic_variants,samples,type_in,gtMode,j):
+    ## decide for variant type
+    chr_col     = myline[0]
+    position    = myline[1]
+    qual        = myline[5]
+    filter_	    = myline[6]
+    gtindex     = "NF"
+    adindex     = "NF"
+    lenref = len(ref)
+    lenalt = len(al)
+
+    keychars = list()#['n','N']
+    if gtMode != "none":
+	if len(myline) > 8 and ':' in myline[8] :
+	    gtcheck = myline[8].split(':')
+	    for gti in range(0,len(gtcheck)):
+		    if gtcheck[gti] == "GT":
+			    gtindex = gti
+		    if gtcheck[gti] == "AD":
+			    adindex = gti
+	    # check for the GT and AD fields
+	    if gtindex == "NF":
+		print ("WARNING:: Weird genotype format %s found in $input at chromosome %s and position %s. No GT field present in %s \n"
+		       %(myline[8],chr_col,position,myline[8] ))
+	    if adindex == "NF":
+		print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. No AD field present in %s \n"
+		%(myline[8], infile,chr_col,position,myline[8]))
+	else:
+	    pass
+	    #print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. Expected genotype format field separator \":\" \n"
+	    #%(myline[8],infile,chr_col,position))
+## process based on alteration
+    if (lenref + lenalt) > 2:## INDEL
+	token_ref = "NA"
+	token_obs = "NA"
+	## make indelID
+	## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
+	if not(any(k in ref for k in keychars)) and not(any(k in al for k in keychars)): #($ref !~ m/[Nn]/ and $al !~ m/[Nn]/)
+	#try:
+	    hash_ref = hashlib.md5(str(ref).encode())
+	    hash_al = hashlib.md5(str(al).encode())
+	    token_ref = str(struct.unpack('<L', hash_ref.digest()[:4])[0])
+	    token_obs = str(struct.unpack('<L', hash_al.digest()[:4])[0]) ## hope it's what's supposed to do unpack('L', md5($ref));
+	    #except:
+	    #    print myline
+	    #    #print hash_ref
+	    #    print ref
+	    #    print alt
+	    #    print hash_ref.digest()
+	    #    hash_ref = hashlib.md5(str(ref).encode())
+	    #    raise
+	if type_in == 'INDEL' or type_in == 'all':
+	       ## we are only going to report the first alternate allele in the cases where the site is more than bi-allelic
+	       # e.g A,C in the alternate column in VCF will report only A in the main annotation file
+	       ## we are doing this because we want to keep the annotation main file consistent
+		if j == 0 and token_ref != "NA" and token_obs != "NA":   #HERE WE FILL THE VARIANTS DICTIONARY
+		    variants[ chr_col+';'+position+';'+token_ref+';'+token_obs] = chr_col+';'+position+';'+ref+';'+al+';'+alfr+';'+qual+';'+filter_
+		else:
+		    not_biallelic_variants[ chr_col+';'+position+';'+token_ref+';'+token_obs] = chr_col+';'+position+';'+ref+';'+al+';'+alfr+';'+qual+';'+filter_
+		 ## if sample wise information is present in the VCF then process ; otherwise skip
+		 ## also check for none value in genotype mode parameter
+		if (len(myline) > 8) and (gtMode != "none"):
+		    for i in range(9,len(myline)):
+			(genotype,dpref,dpalt,samAf) = process_line(myline,i,adindex,gtindex)
+			## check for sample genotype mode
+			samples = check_for_genotype(chr_col,position,token_ref,token_obs,genotype,dpref,dpalt,samAf,gtMode,samples)
+			#s_key =chr_col+';'+position+';'+token_ref+';'+token_obs
+			#s_val = headers[i]+">"+genotype+">"+dpref+">"+dpalt+">"+samAf
+			#samples = samples_fill(samples,gtMode,s_key,s_val,genotype)
+    else: ## SNP
+	## we are only going to report the first alternate allele in the cases where the site is more than bi-allelic
+	## e.g A,C in the alternate column in VCF will report only A in the main annotation file
+	## we are doing this because we want to keep the annotation main file consistent
+	#print 'snp : %s ' % type_in
+	if type_in == 'SNP' or type_in == 'all':
+	    ## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
+	    if j == 0 and  not(any(k in ref for k in keychars)) and not(any(k in al for k in keychars) ):
+		variants[ chr_col+';'+position+';'+ref+';'+al] = chr_col+';'+position+';'+ref+';'+al+';'+alfr+';'+qual+';'+filter_
+	    else:
+		not_biallelic_variants[ chr_col+';'+position+';'+ref+';'+al] = chr_col+';'+position+';'+ref+';'+al+';'+alfr+';'+qual+';'+filter_
+	## if sample wise information is present in the VCF then process ; otherwise skip
+	## also check for none value in genotype mode parameter
+	    if len(myline) > 8 and gtMode != "none":
+		for i in range(9,len(myline)):
+		    (genotype,dpref,dpalt,samAf) = process_line(myline,i,adindex,gtindex)
+		    ## check for sample genotype mode
+		    samples = check_for_genotype(chr_col,position,ref,al,genotype,dpref,dpalt,samAf,gtMode,samples)
+		    #s_key =chr_col+';'+position+';'+ref+';'+al
+		    #s_val = headers[i]+">"+genotype+">"+dpref+">"+dpalt+">"+samAf
+		    #samples = samples_fill(samples,gtMode,s_key,s_val,genotype)
+    return(variants,not_biallelic_variants,samples)
+
 def vcf_processing(infile,qlookup,gtMode,type_in):
     ''' vcf file processing '''
     allowed_chr = list()
@@ -1242,7 +1053,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                             chr_col='MT'
                         keywords = ['M','T','m','t']
                         keywords_alt = ['A','T','G','C','-',',','n','N']
-                        keychars = list()#['n','N']
+                        
                         if not chr_col in allowed_chr:
                             skipped_chr.append(chr_col)
                         #if any(k in chr_col for k in keywords):
@@ -1261,26 +1072,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                                 print "WARNING:: AF tag not found in the INFO column at chromosome %s and position %s. AF will be set to \".\" for this variant"%(chr_col,position)
 				print "WARNING:: Info field: %s\n"%infos
                             ## always test for complete genotype format field consistency in the VCF; if abnormal report for that variant
-                            if gtMode != "none":
-                                if len(myline) > 8 and ':' in myline[8] :
-                                    gtcheck = myline[8].split(':')
-                                    for gti in range(0,len(gtcheck)):
-                                            if gtcheck[gti] == "GT":
-                                                    gtindex = gti
-                                            if gtcheck[gti] == "AD":
-                                                    adindex = gti
-                                    ## check for the GT and AD fields
-                                    if gtindex == "NF":
-                                        print ("WARNING:: Weird genotype format %s found in $input at chromosome %s and position %s. No GT field present in %s \n"
-                                               %(myline[8],chr_col,position,myline[8] ))
-                                    if adindex == "NF":
-                                        print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. No AD field present in %s \n"
-                                        %(myline[8], infile,chr_col,position,myline[8]))
-                                else:
-                                    pass
-#				    print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. Expected genotype format field separator \":\" \n"
-#                                           %(myline[8],infile,chr_col,position))
-                        ## process based on alteration
+#                        ## process based on alteration
 			    if ',' in alt : ## section for all sites other than bi-allelic
 				alts = alt.split(',')
 				afs = AF.split(',')
@@ -1291,122 +1083,9 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
 				for j in range(0,len(alts)):
 					al = alts[j]
 					alfr = afs[j]
-
-					
-					## decide for variant type
-					lenref = len(ref)
-					lenalt = len(al)
-					if (lenref + lenalt) > 2:## INDEL
-					    token_ref = "NA"
-					    token_obs = "NA"
-					    ## make indelID
-					    ## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
-					    if not(any(k in ref for k in keychars)) and not(any(k in al for k in keychars)): #($ref !~ m/[Nn]/ and $al !~ m/[Nn]/)
-					    #try:
-						hash_ref = hashlib.md5(str(ref).encode())
-						hash_al = hashlib.md5(str(al).encode())
-						token_ref = str(struct.unpack('<L', hash_ref.digest()[:4])[0])
-						token_obs = str(struct.unpack('<L', hash_al.digest()[:4])[0]) ## hope it's what's supposed to do unpack('L', md5($ref));
-						#except:
-						#    print myline
-						#    #print hash_ref
-						#    print ref
-						#    print alt
-						#    print hash_ref.digest()
-						#    hash_ref = hashlib.md5(str(ref).encode())
-						#    raise
-					    if type_in == 'INDEL' or type_in == 'all':
-						   ## we are only going to report the first alternate allele in the cases where the site is more than bi-allelic
-						   # e.g A,C in the alternate column in VCF will report only A in the main annotation file
-						   ## we are doing this because we want to keep the annotation main file consistent
-						    if j == 0 and token_ref != "NA" and token_obs != "NA":   #HERE WE FILL THE VARIANTS DICTIONARY
-							variants[ chr_col+';'+position+';'+token_ref+';'+token_obs] = chr_col+';'+position+';'+ref+';'+al+';'+alfr+';'+qual+';'+filter_
-						    else:
-							not_biallelic_variants[ chr_col+';'+position+';'+token_ref+';'+token_obs] = chr_col+';'+position+';'+ref+';'+al+';'+alfr+';'+qual+';'+filter_
-						     ## if sample wise information is present in the VCF then process ; otherwise skip
-						     ## also check for none value in genotype mode parameter
-						    if (len(myline) > 8) and (gtMode != "none"):
-							for i in range(9,len(myline)):
-							    (genotype,dpref,dpalt,samAf) = process_line(myline,i,adindex,gtindex)
-							    ## check for sample genotype mode
-							    samples = check_for_genotype(chr_col,position,token_ref,token_obs,genotype,dpref,dpalt,samAf,gtMode,samples)
-							    #s_key =chr_col+';'+position+';'+token_ref+';'+token_obs
-							    #s_val = headers[i]+">"+genotype+">"+dpref+">"+dpalt+">"+samAf
-							    #samples = samples_fill(samples,gtMode,s_key,s_val,genotype)
-					else: ## SNP
-					    ## we are only going to report the first alternate allele in the cases where the site is more than bi-allelic
-					    ## e.g A,C in the alternate column in VCF will report only A in the main annotation file
-					    ## we are doing this because we want to keep the annotation main file consistent
-					    #print 'snp : %s ' % type_in
-					    if type_in == 'SNP' or type_in == 'all':
-						## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
-						if j == 0 and  not(any(k in ref for k in keychars)) and not(any(k in al for k in keychars) ):
-						    variants[ chr_col+';'+position+';'+ref+';'+al] = chr_col+';'+position+';'+ref+';'+al+';'+alfr+';'+qual+';'+filter_
-						else:
-						    not_biallelic_variants[ chr_col+';'+position+';'+ref+';'+al] = chr_col+';'+position+';'+ref+';'+al+';'+alfr+';'+qual+';'+filter_
-					    ## if sample wise information is present in the VCF then process ; otherwise skip
-					    ## also check for none value in genotype mode parameter
-						if len(myline) > 8 and gtMode != "none":
-						    for i in range(9,len(myline)):
-							(genotype,dpref,dpalt,samAf) = process_line(myline,i,adindex,gtindex)
-							## check for sample genotype mode
-							samples = check_for_genotype(chr_col,position,ref,al,genotype,dpref,dpalt,samAf,gtMode,samples)
-							#s_key =chr_col+';'+position+';'+ref+';'+al
-							#s_val = headers[i]+">"+genotype+">"+dpref+">"+dpalt+">"+samAf
-							#samples = samples_fill(samples,gtMode,s_key,s_val,genotype)
+					(variants,not_biallelic_variants,samples) = process_fileline(infile,myline,ref,al,alfr,variants,not_biallelic_variants,samples,type_in,gtMode,j)
 			    else: ## section for bi-allelic sites
-				## decide for variant type
-				lenref = len(ref)
-				lenalt = len(alt)
-				if (lenref + lenalt) > 2: ## INDEL
-				    token_ref = "NA"
-				    token_obs = "NA"
-				    ## make indelID
-				    ## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
-				    if not(any(k in ref for k in keychars)) and not(any(k in alt for k in keychars)):
-					# Assumes the default UTF-8
-					hash_ref = hashlib.md5(str(ref).encode())
-					hash_alt = hashlib.md5(str(alt).encode())
-					token_ref = str(struct.unpack('<L', hash_ref.digest()[:4])[0]) ## hope it's what's supposed to do unpack('L', md5($ref));
-					token_obs = str(struct.unpack('<L', hash_alt.digest()[:4])[0]) ## hope it's what's supposed to do unpack('L', md5($ref));
-					#token_ref = ref
-					#token_obs = alt
-				    if type_in == 'INDEL' or type_in == 'all':
-					## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
-					if token_ref != "NA" and token_obs != "NA":
-					    variants[ chr_col+';'+position+';'+token_ref+';'+token_obs] = chr_col+';'+position+';'+ref+';'+alt+';'+AF+';'+qual+';'+filter_
-					else:
-					    not_biallelic_variants[ chr_col+';'+position+';'+token_ref+';'+token_obs] = chr_col+';'+position+';'+ref+';'+alt+';'+AF+';'+qual+';'+filter_
-					## if sample wise information is present in the VCF then process ; otherwise skip
-					## also check for none value in genotype mode parameter
-					if len(myline) > 8 and gtMode != "none":
-					    for i in range(9,len(myline)):
-						(genotype,dpref,dpalt,samAf) = process_line(myline,i,adindex,gtindex)
-						## check for sample genotype mode
-						samples = check_for_genotype(chr_col,position,token_ref,token_obs,genotype,dpref,dpalt,samAf,gtMode,samples)
-						#
-						#s_key =chr_col+';'+position+';'+token_ref+';'+token_obs
-						#s_val = headers[i]+">"+genotype+">"+dpref+">"+dpalt+">"+samAf
-						#samples = samples_fill(samples,gtMode,s_key,s_val,genotype)
-				else:
-				    ## SNP
-				    if type_in == 'SNP' or type_in == 'all':
-					## if ref or alternate allele is N, then annovar fails to make genic annotation for them; so put them in inconsistent section
-					if not(any(k in ref for k in keychars)) and not(any(k in alt for k in keychars)):
-					    variants[ chr_col+';'+position+';'+ref+';'+alt] = chr_col+';'+position+';'+ref+';'+alt+';'+AF+';'+qual+';'+filter_
-					else:
-					    not_biallelic_variants[ chr_col+';'+position+';'+ref+';'+alt] = chr_col+';'+position+';'+ref+';'+alt+';'+AF+';'+qual+';'+filter_
-					## if sample wise information is present in the VCF then process ; otherwise skip
-					## also check for none value in genotype mode parameter
-					if len(myline) > 8 and gtMode != "none":
-					    for i in range(9,len(myline)):
-						(genotype,dpref,dpalt,samAf) = process_line(myline,i,adindex,gtindex)
-						## check for sample genotype mode
-						samples = check_for_genotype(chr_col,position,ref,alt,genotype,dpref,dpalt,samAf,gtMode,samples)
-						#s_key =chr_col+';'+position+';'+ref+';'+alt
-						#s_val = headers[i]+">"+genotype+">"+dpref+">"+dpalt+">"+samAf
-						#samples = samples_fill(samples,gtMode,s_key,s_val,genotype)
-	    
+				(variants,not_biallelic_variants,samples) = process_fileline(infile,myline,ref,alt,AF,variants,not_biallelic_variants,samples,type_in,gtMode,0)
 	    #Reporting skipped lines
             if len(skipped_chr)>0:
                 tmp =  dict((i,skipped_chr.count(i)) for i in set(skipped_chr))
