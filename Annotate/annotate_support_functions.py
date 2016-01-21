@@ -11,7 +11,7 @@ import struct
 import hashlib
 import argparse
 from Bio import bgzf
-import y_serial_v060 as y_serial
+#import y_serial_v060 as y_serial
 
 
 ######################################
@@ -256,7 +256,7 @@ def preparemissdb(sep):
     missanndbindel       = 'NA'
     
     missandb = missandb + (sep+"0")*9
-    missandb = missandb + (sep+"NA")*16#It was 14!! remember this because we changed it to include segrepeat
+    missandb = missandb + (sep+"NA")*18#It was 14!! remember this because we changed it to include segrepeat and EIGEN
     missandb_coordinate = missandb_coordinate + (sep+"NA")*8
     missanndbindel = missanndbindel + (sep+"0")*8
 
@@ -417,7 +417,7 @@ def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,ex
     ediva[k]=sep.join(temp[:-2])
 	
     ## add NAs for damage potential scores for indels
-    ediva[k] +=((sep+ "NA")*6)
+    ediva[k] +=((sep+ "NA")*8)
     if exac_value != None:
 	#there is a result:
 	for ex_element in exac_value:
@@ -490,7 +490,9 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         ifnull(varinfo.mutationassessor,'NA'),
         ifnull(varinfo.condel,'NA'),
         ifnull(varinfo.cadd1,'NA'),
-        ifnull(varinfo.cadd2,'NA'), """
+        ifnull(varinfo.cadd2,'NA'),
+	ifnull(eigen.Eigen_raw,'NA'),
+	ifnull(eigen.Eigen_phred,'NA'),"""
         
     exac_query="""  SELECT ifnull(exac.AF,'0'),
                     ifnull(exac.AF_adj,'0'),
@@ -566,6 +568,11 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         broad = """WHERE varinfo.position = %s LIMIT 1;"""%(pos)
         sql = step1_common_items + snp_1_specific + step2_common_items + snp_ending+  repeat_query + """
         FROM eDiVa_annotation.Table_Chr%s  as varinfo
+	LEFT JOIN eDiVa_annotation.Eigein_coding AS eigen ON (
+            varinfo.chromosome = eigen.chromosome AND
+            varinfo.position = eigen.position AND
+	    varinfo.Reference = eigen.Reference AND
+            varinfo.Alt = eigen.Alt )
         LEFT JOIN eDiVa_public_omics.Table_simpleRepeat AS simplerep ON (
             varinfo.chromosome = simplerep.chr AND
             varinfo.position = simplerep.pos
@@ -603,6 +610,11 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
             #Less stringent search driven only by chr and position
             sql = step1_common_items + snp_1_specific+ step2_common_items +snp_ending +  repeat_query + """
         FROM eDiVa_annotation.Table_Chr%s  as varinfo
+	LEFT JOIN eDiVa_annotation.Eigein_coding AS eigen ON (
+            varinfo.chromosome = eigen.chromosome AND
+            varinfo.position = eigen.position AND
+	    varinfo.Reference = eigen.Reference AND
+            varinfo.Alt = eigen.Alt )
         LEFT JOIN eDiVa_public_omics.Table_simpleRepeat AS simplerep ON (
             varinfo.chromosome = simplerep.chr AND
             varinfo.position = simplerep.pos
@@ -800,7 +812,7 @@ def header_defaults():
 		 'Total1000GenomesFrequency','SegMentDup','PlacentalMammalPhyloP','PrimatesPhyloP',
 		 'VertebratesPhyloP','PlacentalMammalPhastCons','PrimatesPhastCons',
 		 'VertebratesPhastCons','Score1GERP++','Score2GERP++','SIFTScore',
-		 'polyphen2','MutAss','Condel','Cadd1','Cadd2',
+		 'polyphen2','MutAss','Condel','Cadd1','Cadd2', 'Eigen_raw','Eigen_Phred',
 		 'ExAC_AF','ExAC_adjusted_AF','ExAC_AFR','ExAC_AMR','ExAC_EAS',
 		 'ExAC_FIN','ExAC_NFE','ExAC_OTH','ExAC_SAS']
     repeat_fields=[	'SimpleTandemRepeatRegion','SimpleTandemRepeatLength']

@@ -277,6 +277,8 @@ else:
             print "Condel: %s "                         % edivavals[21]
             print "Cadd score1: %s "		            % edivavals[22]
             print "Cadd score2: %s "                    % edivavals[23]
+            print "Eigen raw: %s "                      % edivavals[24]
+            print "Eigen Phred: %s "                      % edivavals[25]
             print "Simple tandem repeat region: %s "    % edivapublicvals[0]
             print "Simple tandem repeat length: %s "    % edivapublicvals[1]
 
