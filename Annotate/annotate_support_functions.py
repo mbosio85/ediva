@@ -170,9 +170,9 @@ def out_file_generate(infile,qlookup,templocation,forceDel,tempfile):
                 templocation = "."
         
 	
-        outFile  = pathname+ filename+".annotated"
-        sortedOutFile = pathname+ filename +".sorted.annotated"
-        outFileIns = pathname+filename + ".inconsistent.annotated"       
+        outFile  = pathname+ filename+".annotated.csv"
+        sortedOutFile = pathname+ filename +".sorted.annotated.csv"
+        outFileIns = pathname+filename + ".inconsistent.annotated.csv"       
         ## check on output file existence
         if os.path.exists(outFile) or os.path.exists(sortedOutFile):
             ## check for new file creation flag
@@ -200,9 +200,9 @@ def out_file_generate(infile,qlookup,templocation,forceDel,tempfile):
             #pathname = ntpath.dirname(qlookup)
             if len(pathname)>1:
                 pathname = pathname +'/'
-            outFile  = pathname+ filename+".annotated"
-            sortedOutFile = pathname + filename +".sorted.annotated"
-            outFileIns = pathname+ filename + ".inconsistent.annotated"
+            outFile  = pathname+ filename+".annotated.csv"
+            sortedOutFile = pathname + filename +".sorted.annotated.csv"
+            outFileIns = pathname+ filename + ".inconsistent.annotated.csv"
 	    print outFile
             if os.path.exists(outFile) or os.path.exists(sortedOutFile):
             ## check for new file creation flag
