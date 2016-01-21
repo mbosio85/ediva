@@ -117,32 +117,32 @@ if (qlookup == "NA"):
         #edivaStr = annotate_support_functions.edivaPublicOmics() ## spawn a thread for ediva public omics
         thread_ediva = threading.Thread(out_queue.put(annotate_support_functions.edivaAnnotation(variants,not_biallelic_variants,sep,missandb,missandb_coordinate,missanndbindel)))
         thread_annovar= threading.Thread(out_queue.put(annotate_support_functions.AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TABIX))) ## spawn a thread for Annovar annotation
-        thread_pub = threading.Thread(out_queue.put(annotate_support_functions.edivaPublicOmics())) ## spawn a thread for ediva public omics
+        #thread_pub = threading.Thread(out_queue.put(annotate_support_functions.edivaPublicOmics())) ## spawn a thread for ediva public omics
         thread_ediva.start()
         thread_annovar.start()
-        thread_pub.start()
+        #thread_pub.start()
         # now get the queue values and join threads
         thread_ediva.join()
         thread_annovar.join()
-        thread_pub.join()
+        #thread_pub.join()
         ediva    = out_queue.get()
         Annovar  = out_queue.get()
-        edivaStr = out_queue.get()
+        #edivaStr = out_queue.get()
         print 'threading done'
 else:
     out_queue = Queue.Queue()
     thread_ediva = threading.Thread(out_queue.put(annotate_support_functions.edivaAnnotation(variants,not_biallelic_variants,sep,missandb,missandb_coordinate,missanndbindel)))
     thread_ediva.start()
-    if os.path.exists(qlookup):
-        thread_pub = threading.Thread(out_queue.put(annotate_support_functions.edivaPublicOmics())) ## spawn a thread for ediva public omic
-        thread_pub.start()
+    #if os.path.exists(qlookup):
+    #    thread_pub = threading.Thread(out_queue.put(annotate_support_functions.edivaPublicOmics())) ## spawn a thread for ediva public omic
+    #    thread_pub.start()
     # now get the queue values and join threads
     thread_ediva.join()
-    if os.path.exists(qlookup):
-        thread_pub.join()
+    #if os.path.exists(qlookup):
+        #thread_pub.join()
     ediva    = out_queue.get()
-    if os.path.exists(qlookup):
-        edivaStr = out_queue.get()
+    #if os.path.exists(qlookup):
+    #    edivaStr = out_queue.get()
     print 'threading done'
 
 
@@ -158,24 +158,23 @@ if qlookup == "NA":
         ANN.write(headerOutputFile+'\n')
         ## write data lines to main output file
         for key, value in variants.items(): 
-            #edivaannotationtoprint,annovarannotationtoprint,samplewiseinfortoprint = ("NA","NA","NA")
-            #edivapublicanntoprint = "NA,NA"
             (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
             annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
             edivaannotationtoprint = ediva.get(key,"NA")
             #print edivaannotationtoprint
             annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA")
             samplewiseinfortoprint = samples.get(key,"NA")
-            edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
+            #edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
             # write annotation to file
 
             write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
                        qual+sep+filter_+sep+
                        aftoprint+sep+                   
-                       annovarannotationtoprint+sep+edivaannotationtoprint+sep+
-                      edivapublicanntoprint+sep+samplewiseinfortoprint)
+                       annovarannotationtoprint+sep+edivaannotationtoprint+sep+samplewiseinfortoprint)
+                      #edivapublicanntoprint+sep+samplewiseinfortoprint)
 
             write_str.replace('\n','')
+
             ANN.write(write_str+'\n')
     print "MESSAGE :: Writing annotation to output file %s" % (outFileIns)
     with open(outFileIns,'w+') as ANNINS:
@@ -189,14 +188,14 @@ if qlookup == "NA":
             (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
             edivaannotationtoprint = ediva.get(key,"NA")
             samplewiseinfortoprint = samples.get(key,"NA")
-            edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
+            #edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
             ## write annotation to fileprint
             
             write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
                        qual+sep+filter_+sep+
                        aftoprint+sep+
-                       annovarannotationtoprint+sep+edivaannotationtoprint+sep+
-                       edivapublicanntoprint+sep+samplewiseinfortoprint)
+                       annovarannotationtoprint+sep+edivaannotationtoprint+sep+samplewiseinfortoprint)
+                       #edivapublicanntoprint+sep+samplewiseinfortoprint)
             write_str.replace('\n','')
             ANNINS.write(write_str+'\n')
 
