@@ -63,15 +63,16 @@ def main ():
     alldata = list(csv.reader(args.infile))
 
     header = alldata.pop(0)
+    header =[x.replace('#','',1) for x in header]
     index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
     index_genicfunction = identifycolumns(header, 'Function(Refseq)')
     
     #alldata_clean = [ line for line in alldata if not line[index_varfunction] == 'synonymous SNV' ]
-    print header 
+    #print header 
     alldata_transpose = zip(*alldata)
     
     
-    values2investigate = ['Total1000GenomesFrequency', 'TotalEVSFrequency', 'SegMentDup', 'Condel', 'VertebratesPhyloP', 'VertebratesPhastCons', 'SIFTScore']
+    values2investigate = ['ExAC_adjusted_AF','Total1000GenomesFrequency', 'TotalEVSFrequency', 'SegMentDup', 'Condel', 'VertebratesPhyloP', 'VertebratesPhastCons', 'SIFTScore']
     
     # binning, because otherwise subtle differences get too much weight
     binned_values = binning(alldata_transpose, header, 'MAF')
@@ -149,9 +150,10 @@ def binning (alldata, header, parameter):
     if parameter == 'MAF':
         index_1000G  = identifycolumns(header, 'Total1000GenomesFrequency')
         index_EVS    = identifycolumns(header, 'TotalEVSFrequency')
+        index_ExAC   = identifycolumns(header, 'ExAC_adjusted_AF')
         column_1000G = list(alldata[index_1000G])
         column_EVS   = list(alldata[index_EVS])
-
+        column_ExAC   = list(alldata[index_ExAC])
         
         # clean out closet (substitute NA by 0):
         for i in range(len(column_1000G)):
@@ -159,6 +161,8 @@ def binning (alldata, header, parameter):
                 column_1000G[i] = str(0)
             if column_EVS[i] == 'NA':
                 column_EVS[i]   = str(0)
+            if column_ExAC[i] == 'NA':
+                column_ExAC[i]   = str(0)
 
 
         array_1000G = sp.array(column_1000G, dtype=sp.float32)
@@ -167,9 +171,11 @@ def binning (alldata, header, parameter):
         array_EVS = sp.array(column_EVS, dtype=sp.float32)
         mean_EVS  = sp.mean(array_EVS)
         
+        array_ExAC = sp.array(column_ExAC, dtype=sp.float32)
+        mean_ExAC  = sp.mean(array_ExAC)
         
         for i in range( len(column_1000G) ):
-            MAF = max( round(float(column_1000G[i]), 2), round(float(column_EVS[i]), 2) )
+            MAF = max( round(float(column_1000G[i]), 2), round(float(column_EVS[i]), 2) ,round(float(column_ExAC[i]), 2))
             bin_value = int(MAF * 100) # (good 1-100 bad) small values should get small ranks
             binned_values.append(bin_value)
     

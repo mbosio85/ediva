@@ -129,8 +129,10 @@ def main (args):
     # read all data
     alldata = list(csv.reader(args.infile))
     
-    header = alldata.pop(0)   
-    
+    header = alldata.pop(0)
+    #header =[x.replace('#','',1) for x in header]
+    #print header
+    #raise
     out         = csv.writer(args.outfile)
     outfiltered = csv.writer(args.filteredfile)
     
@@ -145,17 +147,18 @@ def main (args):
     index_sample      = min([identifycolumns(header,x) for x in family.keys()    ])#+identifycolumns(header, 'ExAC_SAS') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
     index_MAF1k       = identifycolumns(header, 'Total1000GenomesFrequency')
     index_MAFevs      = identifycolumns(header, 'TotalEVSFrequency')
+    index_MAF_exac    = identifycolumns(header, 'ExAC_adjusted_AF')
     index_function    = identifycolumns(header, 'Function(Refseq)')
     index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
     index_segdup      = identifycolumns(header, 'SegMentDup')
     index_gene        = identifycolumns(header, 'Gene(Refseq)')
     index_str         = identifycolumns(header, 'SimpleTandemRepeatLength')
-    print index_sample
+    #print index_sample
     print family.keys()
     for i in range(index_sample,index_sample+len(family.keys())):
         names.append(header[i])
 
-    print header[index_sample]
+    #print header[index_sample]
     
     ############
     # both the output file headers should be consistent
@@ -197,14 +200,18 @@ def main (args):
         try:
             MAF1k      = line[index_MAF1k]
             MAFevs     = line[index_MAFevs]
+            if 'NA' == line[index_MAF_exac]:
+                MAFexac ='0'
+            else:
+                MAFexac= line[index_MAF_exac]
         except:
             pp.pprint(line)
         try:
             # avoiding problems with NAs
-            MAF    = max(float(MAF1k), float(MAFevs))
+            MAF    = max(float(MAF1k), float(MAFevs),float(MAFexac))
 
         except:
-            print ('Freq error 1k %s EVS %s ')%(MAF1k,MAFevs)
+            print ('Freq error 1k %s EVS %s ExAC %s')%(MAF1k,MAFevs,MAFexac)
             MAF    = 0
         
         # read sample names and according zygosity NOW IT's a LIST
@@ -409,7 +416,7 @@ def main (args):
         ###
         elif args.inheritance == 'Xlinked':
             
-            index_chromosome = identifycolumns(header, '#Chr')
+            index_chromosome = identifycolumns(header, 'Chr')
             
             # skip all variants not located 
             if line[index_chromosome].lower() == 'x' or line[index_chromosome] == '23':
@@ -601,8 +608,7 @@ def main (args):
                     row.append('filtered')#
                     out.writerow(row)
         
-    
-    ### write an xls output
+     ### write an xls output
     if writeXLS == True:
         ## open output file for re-reading
         args.filteredfile.close()
@@ -630,7 +636,7 @@ def main (args):
         xls = xlsxwriter.Workbook(tmp_name)
         sheet_name = 'ediva_filtered' + args.inheritance
 	print sheet_name
-        sheet_name=sheet_name[:30]
+        sheet_name=sheet_name[6:30]
         worksheet = xls.add_worksheet(sheet_name)
         row_xls=0
         fh.seek(0)
@@ -650,9 +656,7 @@ def main (args):
         for line in fh:
             #line.rstrip('\n')
             data = line.split(',')
-            
             ## Adding Omim and Clinvar annotation 18-02-2015
-                    
             gene_name = data[6]
             
             sql = ("SELECT gene_name , title_mim_number ,details_mim_number "+
@@ -688,17 +692,51 @@ def main (args):
             
             data.extend([omim_disease,omim_web,clinvar_disease_name,clinvar_access_number,clinvar_clinical_review,clinvar_clinical_significance])
             ######## -till here
-            worksheet.write_row(row_xls, 0, data)            
+            worksheet.write_row(row_xls, 0, data)
+            #print row_xls
             row_xls += 1
         cur.close()
         db.close()
 	try:
          xls.close()
 	except:
+                print 'error line 700'
 		pass
+        #xls = xlsxwriter.Workbook(tmp_name)
+        print inheritance_file
+        #shutil.copyfile(tmp_name,inheritance_file)
+        os.system('mv %s %s'%(tmp_name,inheritance_file))
         xls = xlsxwriter.Workbook(tmp_name)
-        shutil.copyfile(tmp_name,inheritance_file)
         #check if already exist
+        
+        try:
+            print "Updating the existing file with the current inheritance sheet"
+            workbook_rd = xlrd.open_workbook(inheritance_file)
+            worksheets = workbook_rd.sheet_names()
+            for worksheet_name in worksheets:
+                try:
+                    worksheet_rd = workbook_rd.sheet_by_name(worksheet_name)
+                    worksheet_wr = xls.add_worksheet(worksheet_name)
+                    
+                    num_rows = worksheet_rd.nrows - 1
+                    curr_row = -1
+                    while curr_row < num_rows:
+                            curr_row += 1
+                            row_content = worksheet_rd.row(curr_row)
+                            row_content_values = [x.value for x in row_content]
+                            worksheet_wr.write_row(curr_row, 0, row_content_values)
+                            #print row
+             
+                except:
+                    print "There was a problem in processing %s sheet. \nIt may be because the sheet was already there before"%(worksheet_name)
+                    #raise
+            #os.remove(excel_name)
+            #workbook_rd.close()
+        
+        except:
+            
+            pass
+        
         try:
             print "Updating the existing file with the already existing sheets"
             workbook_rd = xlrd.open_workbook(excel_name)
@@ -718,9 +756,13 @@ def main (args):
                             #print row
                 except:
                     print "There was a problem in processing %s sheet. \nIt may be because the sheet was already there before"%(worksheet_name)
+                    #raise
             #os.remove(excel_name)
+        
         except:
             pass
+
+        
         fh.close()
         xls.close()
         #print excel_name
@@ -728,8 +770,8 @@ def main (args):
         #print tmp_name
         cmd='mv %s %s'%(tmp_name,excel_name)
         os.system(cmd)
-        #os.rename(tmp_name, excel_name)
-    
+        #os.rename(tmp_name, excel_name)   
+
     exit(0)
 
 
@@ -1155,7 +1197,7 @@ def dominant(sampledata, family,names):
             # if not found, go on to next sample
             print 'didnt find sample %s'%family[name]
             continue
-        
+              
         zygosity    = features[0]
         refcoverage = features[1] # could be numeric or .
         altcoverage = features[2] # could be numeric or .

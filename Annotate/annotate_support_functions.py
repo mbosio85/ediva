@@ -257,9 +257,12 @@ def preparemissdb(sep):
     
     missandb = missandb + (sep+"0")*9
     missandb = missandb + (sep+"NA")*18#It was 14!! remember this because we changed it to include segrepeat and EIGEN
-    missandb_coordinate = missandb_coordinate + (sep+"NA")*8
+    missandb_coordinate = missandb_coordinate + (sep+"NA")*10
     missanndbindel = missanndbindel + (sep+"0")*8
-
+    print missandb
+    
+ 
+    #raise
     return(missandb,missandb_coordinate,missanndbindel)
 #@@ should be done: check it a couple of times with examples
 ## sub for replacing commas inside double qoutes for annovar genic annotation lines
@@ -807,6 +810,8 @@ def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TAB
 def header_defaults():
     sep=','
     head_common = ['Chr','Position','Reference','Alteration','QUAL','FILTER','AlleleFrequency' ]
+    basic_head =['Chr','Position','Reference','Alteration']
+    #head_common =basic_head.extend([ 'QUAL','FILTER','AlleleFrequency']  )
     common_fields = ['dbsnpIdentifier','EurEVSFrequency','AfrEVSFrequency','TotalEVSFrequency','Eur1000GenomesFrequency',
 		 'Afr1000GenomesFrequency','Asia1000GenomesFrequency','Amr1000GenomesFrequency',
 		 'Total1000GenomesFrequency','SegMentDup','PlacentalMammalPhyloP','PrimatesPhyloP',
@@ -820,11 +825,11 @@ def header_defaults():
     refseq_annot =['Function(Refseq)','Gene(Refseq)','ExonicFunction(Refseq)','AminoAcidChange(Refseq)']
     known_annot=['Function(Known)','Gene(Known)','ExonicFunction(Known)','AminoAcidChange(Known)']
     annot=['Function','Gene','ExonicFunction','AminoAcidChange']
-    return (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot)
+    return (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_head)
 ## subroutnine por providing header to the main annotation output file
 def getHeader(onlygenic,geneDef,headers):
     stringTOreturn=""
-    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot)=header_defaults()
+    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_haed)=header_defaults()
     if (onlygenic):
 	    ## only genic annotation header
 	    ## check for gene definiton and construct header according to that
@@ -868,7 +873,7 @@ def getHeader(onlygenic,geneDef,headers):
 ## subroutnine por providing header to the inconsistent annotation output file
 def getHeaderIns(headers):
     stringTOreturn=""
-    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot)=header_defaults()
+    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_head)=header_defaults()
 
     stringTOreturn = sep.join(head_common+annot+common_fields+repeat_fields)
     stringTOreturn=stringTOreturn.replace(',',',#')
@@ -887,8 +892,9 @@ def getHeaderIns(headers):
 ## subroutnine por providing header to the quick look up mode annotation output file
 def getHeaderQlookup(headers):
     stringTOreturn=""
-    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot)=header_defaults()
-    stringTOreturn = sep.join(head_common+annot+common_fields+repeat_fields)
+    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_head)=header_defaults()
+    #stringTOreturn = sep.join(head_common+annot+common_fields+repeat_fields)
+    stringTOreturn = sep.join(basic_head+common_fields+repeat_fields)
     ## replace newlines with nothing at header line
     stringTOreturn.replace('\n','') 
     #stringTOreturn.replace('\s+','')

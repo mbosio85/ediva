@@ -372,7 +372,7 @@ text= """
 script_content += text
 p_element = pipeline_element.pipeline_element(env_var+text,"Annotation in all family members")
 p_element.set_error("Error in Annotation execution Please refer to SGE job error file")
-filename = args.outfolder+'/combined.variants.supplement.sorted.annotated'
+filename = args.outfolder+'/combined.variants.supplement.sorted.annotated.csv'
 p_element.set_condition([filename,None])
 pipe.append(p_element)
 
@@ -383,13 +383,13 @@ pipe.append(p_element)
 text= """
     
     # rank the variants given
-    %s $EDIVA/Prioritize/rankSNP.py --infile $OUTF/combined.variants.supplement.sorted.annotated --outfile $OUTF/combined.variants.supplement.ranked
+    %s $EDIVA/Prioritize/rankSNP.py --infile $OUTF/combined.variants.supplement.sorted.annotated.csv --outfile $OUTF/combined.variants.supplement.ranked.csv
     
     """%(python_path)
 script_content += text
 p_element = pipeline_element.pipeline_element(env_var+text,"Ranking in all family members")
 p_element.set_error("Error in Ranking execution Please refer to SGE job error file")
-filename = args.outfolder+'/combined.variants.supplement.ranked'
+filename = args.outfolder+'/combined.variants.supplement.ranked.csv'
 p_element.set_condition([filename,None])
 pipe.append(p_element)
 
@@ -412,13 +412,13 @@ for inhet_mode in args.inheritance:
     text ="""
     
 # run inheritance mode: %s
-%s $EDIVA/Prioritize/familySNP.py --infile $OUTF/combined.variants.supplement.ranked  --outfile $OUTF/%s/combined.variants.supplement.%s --filteredoutfile $OUTF/%s/combined.variants.supplement.filtered%s --family $OUTF/pedigree.tree --inheritance %s --familytype %s --geneexclusion %s --white_list %s
+%s $EDIVA/Prioritize/familySNP.py --infile $OUTF/combined.variants.supplement.ranked.csv  --outfile $OUTF/%s/combined.variants.supplement.%s.csv --filteredoutfile $OUTF/%s/combined.variants.supplement.filtered%s.csv --family $OUTF/pedigree.tree --inheritance %s --familytype %s --geneexclusion %s --white_list %s
     
     """ % ((inhet_mode,python_path, inhet_mode, inhet_mode, inhet_mode, inhet_mode, inhet_mode, args.familytype,gene_exclusion_list,white_list))
     script_content += text
     p_element = pipeline_element.pipeline_element(env_var+text,"Inheritance mode %s in all family members"%inhet_mode)
     p_element.set_error("Error in Inheritance %s in all family members execution Please refer to SGE job error file"%inhet_mode)
-    filename = args.outfolder+'/%s/combined.variants.supplement.%s'%(inhet_mode,inhet_mode)
+    filename = args.outfolder+'/%s/combined.variants.supplement.%s.csv'%(inhet_mode,inhet_mode)
     p_element.set_condition([filename,None])
     pipe.append(p_element)
     

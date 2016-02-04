@@ -4,6 +4,7 @@ import readline
 import os
 import argparse
 import subprocess
+import numpy as np
 curpath= os.path.realpath(__file__)
 curpath = curpath.split('/')
 predictpath = '/'.join(curpath[:-2])
@@ -1029,3 +1030,14 @@ def cleanup(script,in_paths,in_vars):
 
 # End of prediction_support_functions.py
 
+def get_coverage_stats(bam,bed,bed_output,output):
+    subprocess.call('bedtools coverage -count -sorted -a %s -b %s > %s'%(bed,bam,bed_output))
+    #now that I have number of reads per each interval of the BED file I calculate the
+    # average coverage per base with a numpy array
+    # Then I generate an histogram in a pdf with a specific title with specs
+    cov_data=list()
+    with open('intersect_with_bedfile2.bed') as rd:
+        for line in rd:
+            fields=line.strip().split('\t')
+            cov_data.append(float(fields[3])/(-300+int(fields[2])-int(fields[1])))
+            pass
