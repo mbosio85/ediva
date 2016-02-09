@@ -79,11 +79,6 @@ try:
 except IOError:
     sys.exit(1)
 
-try:
-    (outFile,SortedoutFile,outFileIns,templocation) = annotate_support_functions.out_file_generate(infile,qlookup,templocation,forceDel,fileSuffix)
-
-except IOError:
-    sys.exit(1)
 
 ##############################################################################################
 ## MAIN starts
@@ -109,6 +104,13 @@ except IOError:
 ## Initialization completed
 print "MESSAGE :: Finished processing input VCF file - %s "%(infile);
 
+
+try:
+    (outFile,SortedoutFile,outFileIns,templocation) = annotate_support_functions.out_file_generate(infile,qlookup,templocation,forceDel,fileSuffix,MAF)
+
+except IOError:
+    sys.exit(1)
+    
 ## prepare missing data handler for db annotation
 (missandb,missandb_coordinate,missanndbindel) = annotate_support_functions.preparemissdb(sep) #<<<<<<<<<<< missdb etc values!
 
@@ -225,11 +227,11 @@ if qlookup == "NA":
                     write_str.replace('\n','')
                     ANN.write(write_str+'\n')
 
-    
-    with open(outFileIns,'w+') as ANNINS:
-        ## write header for inconsistent file
-        headerOutputFile = annotate_support_functions.getHeaderIns(headers)
-        if MAF ==0:
+    if MAF ==0:
+        with open(outFileIns,'w+') as ANNINS:
+            ## write header for inconsistent file
+            headerOutputFile = annotate_support_functions.getHeaderIns(headers)
+        
             print "MESSAGE :: Writing annotation to output file %s" % (outFileIns)
             ANNINS.write(headerOutputFile+'\n')
             ## write data lines to main output file
@@ -249,16 +251,16 @@ if qlookup == "NA":
                            #edivapublicanntoprint+sep+samplewiseinfortoprint)
                 write_str.replace('\n','')
                 ANNINS.write(write_str+'\n')
-        else: 
-            pass     
-## sort the file
-    srtCmm = "sort -k1,1 -n -k2,2 --field-separator=, %s > %s " %(outFile,SortedoutFile)
-    subprocess.call(srtCmm,shell=True)
+    
+    if MAF ==0:## sort the file
+        srtCmm = "sort -k1,1 -n -k2,2 --field-separator=, %s > %s " %(outFile,SortedoutFile)
+        subprocess.call(srtCmm,shell=True)
     ## writing completed
     print "MESSAGE :: Writing annotation completed "
     print "MESSAGE :: Your annotated file is %s " %(outFile)
-    print "MESSAGE :: Your sorted annotated file is %s "%(SortedoutFile)
+    
     if MAF ==0:
+        print "MESSAGE :: Your sorted annotated file is %s "%(SortedoutFile)
         print "MESSAGE :: Reported non bi-allelic sites are in %s " %(outFileIns)
     ## Finalize everything
     print "MESSAGE :: Finalizing annotation process "

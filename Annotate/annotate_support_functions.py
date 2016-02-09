@@ -157,7 +157,7 @@ def annovar_check(ANNOVAR):
 ##############################################################################################
 ## OUTPUT FILE(s) "done"
 ##############################################################################################
-def out_file_generate(infile,qlookup,templocation,forceDel,tempfile):
+def out_file_generate(infile,qlookup,templocation,forceDel,tempfile,MAF):
     ''' Generates the output files for annotation'''
     outFile         = ''
     sortedOutFile   = ''
@@ -248,7 +248,7 @@ def unknownArguments():
 def finalize(templocation,fileSuffix):
     ''' clear the tmp directory for this session'''
     clearCmm = "rm -r " + templocation + "/*"+fileSuffix +"*"
-    print(clearCmm)
+    #print(clearCmm)
     subprocess.call(clearCmm,shell = True)
     return None
 
@@ -1397,3 +1397,4 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
 			    variants[chr_col+';'+pos+';'+ref+';'+alt]= chr_col+';'+pos+';'+ref+';'+alt+';.'
 
     return samples,variants,not_biallelic_variants,headers
+
