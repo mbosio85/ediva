@@ -757,7 +757,7 @@ def fill_annovar(FILE,Annovar, geneDef, comparison):
     return Annovar
 
 
-def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TABIX):
+def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TABIX,MAF=0):
     perl ="/usr/bin/perl "+" "
     ## prepare Annovar input
     tabix_cmd = "PATH=$PATH:%s\n"%TABIX
@@ -773,9 +773,10 @@ def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TAB
     else:
 	infile_vcf = infile
 	remove_temp_cmd=''
-    
-    annInCmm = perl + ANNOVAR+"/convert2annovar.pl --includeinfo -format vcf4 "+infile_vcf+" > "+templocation+"/annInfile"+fileSuffix+"   2> "+infile_vcf+".annovar.log\n"
-    #annInCmm = perl + ANNOVAR+"/maf2annovar.pl "+infile_vcf+" > "+templocation+"/annInfile"+fileSuffix+"   2> "+infile_vcf+".annovar.log\n"
+    if MAF==0: #VCF
+	annInCmm = perl + ANNOVAR+"/convert2annovar.pl --includeinfo -format vcf4 "+infile_vcf+" > "+templocation+"/annInfile"+fileSuffix+"   2> "+infile_vcf+".annovar.log\n"
+    else:
+	annInCmm = perl + ANNOVAR+"/maf2annovar.pl "+infile_vcf+" > "+templocation+"/annInfile"+fileSuffix+"   2> "+infile_vcf+".annovar.log\n"
    
     print "627 MESSAGE :: Running Annovar command \n > %s" %(tabix_cmd+annInCmm+remove_temp_cmd)
     subprocess.call(tabix_cmd+annInCmm+remove_temp_cmd,shell=True)
