@@ -700,29 +700,48 @@ def edivaAnnotation(variants,not_biallelic_variants,sep,missanndb,missanndb_coor
 def fill_annovar(FILE,Annovar, geneDef, comparison):
     '''Run Annovar for annotate variants and fill the data dictionary'''
     with open(FILE) as FILE_pointer:
+	chr_idx = 26
+	pos_idx = 27
+	ref_idx = 29
+	alt_idx = 30
+	func_idx= 0
+	gene_idx= 1
+	exf_idx =2
+	AAC_idx =3
         for line in FILE_pointer:
-            if not(line.startswith("Func")):
+            if (line.startswith("Func")):
+		fields = line.strip().split(',')
+		#look for indexes positions
+		chr_idx = fields.index('Chr')
+		pos_idx = fields.index('Start')
+		ref_idx = fields.index('Ref')
+		alt_idx = fields.index('Obs')
+		func_idx= fields.index('Func')
+		gene_idx= fields.index('Gene')
+		exf_idx =fields.index('ExonicFunc')
+		AAC_idx =fields.index('AAChange')
+	    else:
                 newAnnovarLine = replaceCommainQoute(line)
-                dt = newAnnovarLine.rstrip('\n').split(',')
-                dt[30].replace('"','')
-                if (dt[30].find(';')>=0):
-                        annalts = dt[30].split(';')
-                        dt[30] = annalts[0]
-		dt[26]=dt[26].replace('chr','')
-		dt[26]=dt[26].replace('Chr','')
-                valueTOmatch = dt[26]+";"+dt[27]+";"+dt[29]+";"+dt[30]
+                fields = newAnnovarLine.rstrip('\n').split(',')
+                fields[alt_idx]=fields[alt_idx].replace('"','')
+                if (fields[alt_idx].find(';')>=0):
+                        annalts = fields[alt_idx].split(';')
+                        fields[alt_idx] = annalts[0]
+		chr_=fields[chr_idx].replace('chr','')
+		chr_=chr_.replace('Chr','')
+                valueTOmatch = chr_+";"+fields[pos_idx]+";"+fields[ref_idx]+";"+fields[alt_idx]
                 valueTOmatch=valueTOmatch.replace('"','')
 
                 ## fix missing values
-                if len(dt[0])==0:
-                    dt[0] = 'NA'
-                if len(dt[1])==0:
-                    dt[1] = 'NA'
-                if len(dt[2])==0:
-                    dt[2] = 'NA'
-                if len(dt[3])==0:
-                    dt[3] = 'NA'
-                annToPass = dt[0]+","+dt[1]+","+dt[2]+","+dt[3]
+                if len(fields[func_idx])==0:
+                    fields[func_idx] = 'NA'
+                if len(fields[gene_idx])==0:
+                    fields[gene_idx] = 'NA'
+                if len(fields[exf_idx])==0:
+                    fields[exf_idx] = 'NA'
+                if len(fields[AAC_idx])==0:
+                    fields[AAC_idx] = 'NA'
+                annToPass = fields[func_idx]+","+fields[gene_idx]+","+fields[exf_idx]+","+fields[AAC_idx]
                 annToPass  =annToPass.replace('"','')
                 if geneDef == comparison:
                     Annovar[valueTOmatch] = annToPass   # Fill the Annovar Dictionary with values and keys
@@ -732,7 +751,7 @@ def fill_annovar(FILE,Annovar, geneDef, comparison):
 	#	print "\n "
 	#	print line
 	#    	print valueTOmatch
-	#	print dt[0]
+	#	print fields[0]
 	#	print annToPass
 	#	raise
     return Annovar
@@ -811,7 +830,7 @@ def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TAB
         Annovar = fill_annovar(annFianlAnnE,Annovar, geneDef, 'ensGene')
     if os.path.isfile(annFianlAnnK):
         Annovar = fill_annovar(annFianlAnnK,Annovar, geneDef, "knownGene")
-    raise
+
     return Annovar
 def header_defaults():
     sep=','
