@@ -137,13 +137,17 @@ def annovar_check(ANNOVAR):
     ### check of annovar settings
     vcftoAnn = ANNOVAR+"/convert2annovar.pl"
     genicAnn = ANNOVAR+"/ediva_summarize_annovar.pl"
+    maftoAnn = ANNOVAR+"/maf2annovar.pl"
     if not(os.path.isdir(ANNOVAR)):    #{
         print "\nERROR :: Annovar library location is not found. Please set the Annovar library path correctly inside the program \n"
         raise IOError
-    if not(os.path.exists(vcftoAnn)):
-        print "\nERROR :: Program for converting VCF to Annovar format is not found in the Annovar library location \n"
+    if not(os.path.exists(maftoAnn)):
+        print "\nERROR :: Program for converting MAF to Annovar format is not found in the Annovar library location \n"
         raise IOError
 
+    if not(os.path.exists(genicAnn)):
+        print "\nERROR :: Program for converting VCF to Annovar format is not found in the Annovar library location \n";
+        raise IOError
     if not(os.path.exists(genicAnn)):
         print "\nERROR :: Program for converting VCF to Annovar format is not found in the Annovar library location \n";
         raise IOError
@@ -259,7 +263,7 @@ def preparemissdb(sep):
     missandb = missandb + (sep+"NA")*18#It was 14!! remember this because we changed it to include segrepeat and EIGEN
     missandb_coordinate = missandb_coordinate + (sep+"NA")*10
     missanndbindel = missanndbindel + (sep+"0")*8
-    print missandb
+    #print missandb
     
  
     #raise
@@ -752,11 +756,12 @@ def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TAB
 	remove_temp_cmd=''
     
     annInCmm = perl + ANNOVAR+"/convert2annovar.pl --includeinfo -format vcf4 "+infile_vcf+" > "+templocation+"/annInfile"+fileSuffix+"   2> "+infile_vcf+".annovar.log\n"
-    
+    #annInCmm = perl + ANNOVAR+"/maf2annovar.pl "+infile_vcf+" > "+templocation+"/annInfile"+fileSuffix+"   2> "+infile_vcf+".annovar.log\n"
+   
     print "627 MESSAGE :: Running Annovar command \n > %s" %(tabix_cmd+annInCmm+remove_temp_cmd)
     subprocess.call(tabix_cmd+annInCmm+remove_temp_cmd,shell=True)
     annFile = templocation+"/annInfile"+fileSuffix+""
-
+    
 
     ## run Annovar annotation
     if geneDef == "ensGene":
@@ -806,6 +811,7 @@ def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TAB
         Annovar = fill_annovar(annFianlAnnE,Annovar, geneDef, 'ensGene')
     if os.path.isfile(annFianlAnnK):
         Annovar = fill_annovar(annFianlAnnK,Annovar, geneDef, "knownGene")
+    raise
     return Annovar
 def header_defaults():
     sep=','
@@ -841,7 +847,7 @@ def getHeader(onlygenic,geneDef,headers):
 	    elif geneDef == 'knownGene':
 		stringTOreturn = sep.join(head_common+known_annot+ repeat_fields)
 	    else:
-		sstringTOreturn = sep.join(head_common+refseq_annot+ensembl_annot+
+		stringTOreturn = sep.join(head_common+refseq_annot+ensembl_annot+
 					   known_annot+ repeat_fields)
     else:
 	if geneDef == 'ensGene':
@@ -859,7 +865,8 @@ def getHeader(onlygenic,geneDef,headers):
     ## replace newlines with nothing at header line
     stringTOreturn=stringTOreturn.replace(sep,sep+'#')
     if len(headers)>9:
-	stringTOreturn+=sep+sep.join(headers[9:len(headers)])
+	#stringTOreturn+=sep+sep.join(headers[9:])
+	stringTOreturn+=sep+sep.join([sep.join([x,'DP','REF','ALT','AF','GQ']) for x in headers[9:]])
     else:
 	stringTOreturn+=sep+'samples'
     stringTOreturn.replace('\n','') 
@@ -904,7 +911,7 @@ def getHeaderQlookup(headers):
 ##############################################################################################
 ## VCF PROCESSING
 ##############################################################################################
-def process_line(myline,i,adindex,gtindex):
+def process_line(myline,i,adindex,gtindex,dpindex,gqindex):
     ''' process vcf input file line by line'''
     gts = list()
     if ':' in myline[i]:
@@ -929,16 +936,27 @@ def process_line(myline,i,adindex,gtindex):
             dpalt = "."
             samAf = "."
         ## for missing genotype or homozygous reference genotype set the AF to 0
-        if gtindex != "NF":
-            genotype = gts[gtindex]
-        else:
-            genotype = "."
+        if gtindex != "NF":	genotype = gts[gtindex]
+        else: 			genotype = "."
+	if dpindex != "NF":	DP = gts[dpindex]
+	else : 			DP='0'
+	try:
+	    if gqindex != "NF" and len(gts)>gqindex:GQ = gts[gqindex]
+	    else : 			GQ='0'
+	except:
+	    print gqindex
+	    print dpindex
+	    print gts
+	    raise
+	
     else:
         genotype = myline[i]
         dpref = "."
         dpalt = "."
         samAf = "."
-    return genotype,dpref,dpalt,samAf
+	DP='0'
+	GQ='0'
+    return (genotype,DP,dpref,dpalt,samAf,GQ)
 
 def samples_fill(samples,gtMode,s_key,s_val,genotype):
     if gtMode == "complete":
@@ -956,10 +974,11 @@ def samples_fill(samples,gtMode,s_key,s_val,genotype):
     return samples
 
 
-def check_for_genotype(chr_col,position,token_ref,token_obs,genotype,dpref,dpalt,samAf,gtMode,samples):
+def check_for_genotype(chr_col,position,token_ref,token_obs,sample_info,gtMode,samples):
     ''' checks for sample genotype and adds it to the sample array , processed '''
+    (genotype,DP,dpref,dpalt,samAf,GQ) = sample_info
     s_key =chr_col+';'+position+';'+token_ref+';'+token_obs
-    s_val = genotype+":"+dpref+":"+dpalt+":"+samAf
+    s_val = ','.join([genotype,DP,dpref,dpalt,samAf,GQ])
     samples = samples_fill(samples,gtMode,s_key,s_val,genotype)
 
     return samples
@@ -972,6 +991,8 @@ def process_fileline(infile,myline,ref,al,alfr,variants,not_biallelic_variants,s
     filter_	    = myline[6]
     gtindex     = "NF"
     adindex     = "NF"
+    gqindex     = "NF"
+    dpindex	= "NF"
     lenref = len(ref)
     lenalt = len(al)
 
@@ -984,12 +1005,22 @@ def process_fileline(infile,myline,ref,al,alfr,variants,not_biallelic_variants,s
 			    gtindex = gti
 		    if gtcheck[gti] == "AD":
 			    adindex = gti
+		    if gtcheck[gti] == "DP":
+			    dpindex = gti
+		    if gtcheck[gti] == "GQ":
+			    gqindex = gti
 	    # check for the GT and AD fields
 	    if gtindex == "NF":
 		print ("WARNING:: Weird genotype format %s found in $input at chromosome %s and position %s. No GT field present in %s \n"
 		       %(myline[8],chr_col,position,myline[8] ))
 	    if adindex == "NF":
 		print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. No AD field present in %s \n"
+		%(myline[8], infile,chr_col,position,myline[8]))
+	    if dpindex == "NF":
+		print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. No DP field present in %s \n"
+		%(myline[8], infile,chr_col,position,myline[8]))
+	    if gqindex == "NF":
+		print ("WARNING:: Weird genotype format %s found in %s at chromosome %s and position %s. No GQ field present in %s \n"
 		%(myline[8], infile,chr_col,position,myline[8]))
 	else:
 	    pass
@@ -1027,9 +1058,10 @@ def process_fileline(infile,myline,ref,al,alfr,variants,not_biallelic_variants,s
 		 ## also check for none value in genotype mode parameter
 		if (len(myline) > 8) and (gtMode != "none"):
 		    for i in range(9,len(myline)):
-			(genotype,dpref,dpalt,samAf) = process_line(myline,i,adindex,gtindex)
+			#(genotype,dpref,dpalt,samAf,GQ) = process_line(myline,i,adindex,gtindex)
+			sample_info = process_line(myline,i,adindex,gtindex,dpindex,gqindex)
 			## check for sample genotype mode
-			samples = check_for_genotype(chr_col,position,token_ref,token_obs,genotype,dpref,dpalt,samAf,gtMode,samples)
+			samples = check_for_genotype(chr_col,position,token_ref,token_obs,sample_info,gtMode,samples)
 			#s_key =chr_col+';'+position+';'+token_ref+';'+token_obs
 			#s_val = headers[i]+">"+genotype+">"+dpref+">"+dpalt+">"+samAf
 			#samples = samples_fill(samples,gtMode,s_key,s_val,genotype)
@@ -1048,9 +1080,9 @@ def process_fileline(infile,myline,ref,al,alfr,variants,not_biallelic_variants,s
 	## also check for none value in genotype mode parameter
 	    if len(myline) > 8 and gtMode != "none":
 		for i in range(9,len(myline)):
-		    (genotype,dpref,dpalt,samAf) = process_line(myline,i,adindex,gtindex)
+		    sample_info = process_line(myline,i,adindex,gtindex,dpindex,gqindex)
 		    ## check for sample genotype mode
-		    samples = check_for_genotype(chr_col,position,ref,al,genotype,dpref,dpalt,samAf,gtMode,samples)
+		    samples = check_for_genotype(chr_col,position,ref,al,sample_info,gtMode,samples)
 		    #s_key =chr_col+';'+position+';'+ref+';'+al
 		    #s_val = headers[i]+">"+genotype+">"+dpref+">"+dpalt+">"+samAf
 		    #samples = samples_fill(samples,gtMode,s_key,s_val,genotype)
@@ -1066,7 +1098,6 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
 	allowed_chr.append(str(i+1))
     allowed_chr+=(['X','Y','x','y'])
     skipped_chr = list()
-    print "!!!!!!!! LINE 1007 to change now it's just a toy example!!!!!!!!!"
     db = 'temp.sqlite'#/tmp/test.sqlite'
     variants = dict()
     not_biallelic_variants = dict()
@@ -1118,6 +1149,8 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                         AF          = "."
                         gtindex     = "NF"
                         adindex     = "NF"
+			gqindex     = "NF"
+			dpindex	    = "NF"
                         ## take care of chr1 or Chr1 and convert to chr1/Chr1-> 1
                         if chr_col.startswith('chr') or chr_col.startswith('Chr'):
                                 chr_col = chr_col[3:]
@@ -1190,9 +1223,30 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
         if os.path.isfile(qlookup):
             ## its a file
             # print "MESSAGE :: Processing input file - %s " %qlookup
+	    ##check if it is a MAF file or a quick lookup file
+	    MAF = 0
+	    tmp= open(qlookup)
+	    line= tmp.readline().strip()
+	    if line.count(':') != 3 and line.count('\t')>1:
+		print 'Reading file as a MAF file'
+		MAF=1
+	    tmp.close()
+	    counter = 0
             with open(qlookup) as FL:
                 for line in FL:
-                    var = line.rstrip('\n').split(':')
+		    if MAF ==0:
+			var = line.rstrip('\n').split(':')
+		    else:
+			if counter==0 : 
+			    counter +=1
+			    continue
+			fields = line.strip().split('\t')
+			if fields[11] == fields[10]:
+			    var = [fields[4],fields[5],fields[10],fields[12]]
+			else:
+			     var = [fields[4],fields[5],fields[10],fields[11]]
+			# Chr Pos Refernce 2nd Tumor allele
+		    counter +=1
                     ## check for quick lookup data field consistency
                     if len(var) != 4:
                         print "ERROR :: Not a valid format. Correct format is chr:position:reference:alternate "

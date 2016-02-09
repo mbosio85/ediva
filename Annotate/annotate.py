@@ -7,6 +7,8 @@ import difflib, sys
 import threading, Queue
 import time
 import os.path
+import struct
+import hashlib
 start = time.time()
 ######################################
 #
@@ -215,22 +217,66 @@ if qlookup == "NA":
     print "MESSAGE :: Templocation %s cleared"%(templocation)
 else:
     if os.path.isfile(qlookup):
+
         ## render annotation to output file
-        with open(outFile,'a') as ANN:
+        with open(outFile,'a') as ANN,open(qlookup) as FL:
+            MAF = 0
+            tmp= open(qlookup)
+            line= tmp.readline().strip()
+            if line.count(':') != 3 and line.count('\t')>1:
+                print 'Reading file as a MAF file'
+                MAF=1
+            tmp.close()
+            counter = 0
             headerOutputFile = annotate_support_functions.getHeaderQlookup(headers)
-            ANN.write(headerOutputFile+'\n')
-            ## get header
-            for key, value in variants.items():
-                #print value
-                (chr_col,position,ref,alt,dummy) = value.split(';')
-                annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
-                edivaannotationtoprint = ediva.get(key,"NA")
-                #print edivaannotationtoprint
-                edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
-                write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+edivaannotationtoprint+sep+
-                      edivapublicanntoprint)
-                write_str.replace('\n','')
-                ANN.write(write_str+'\n')
+            
+            if MAF ==0:
+                var = line.rstrip('\n').split(':')
+                ANN.write(headerOutputFile+'\n')
+                ## get header
+                for key, value in variants.items():
+                    #print value
+                    (chr_col,position,ref,alt,dummy) = value.split(';')
+                    annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
+                    edivaannotationtoprint = ediva.get(key,"NA")
+                    #print edivaannotationtoprint
+                    edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
+                    write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+edivaannotationtoprint+sep+
+                          edivapublicanntoprint)
+                    write_str.replace('\n','')
+                    ANN.write(write_str+'\n')
+            else:
+                maf_separator='\t'
+                for line in FL:
+                    if counter==0 : 
+                        counter +=1
+                        headerOutputFile=headerOutputFile.split(sep)[4:]
+                        missing_entry =maf_separator.join(["NA"]*len(headerOutputFile))
+                        headerOutputFile = maf_separator.join(headerOutputFile)
+                        ANN.write(line.strip()+maf_separator+headerOutputFile+'\n')
+                    else:
+                        fields = line.strip().split('\t')
+			if fields[11] == fields[10]:
+			    (chr_col,position,ref,alt) = [fields[4],fields[5],fields[10],fields[12]]
+			else:
+			     (chr_col,position,ref,alt) = [fields[4],fields[5],fields[10],fields[11]]
+                        if len(ref)+len(alt)>2:
+                            ## indel then recover the key
+                            hash_ref = hashlib.md5(str(ref).encode())
+                            hash_alt = hashlib.md5(str(alt).encode())
+                            token_ref = str(struct.unpack('<L', hash_ref.digest()[:4])[0])
+                            token_alt = str(struct.unpack('<L', hash_alt.digest()[:4])[0])
+                            key=';'.join((chr_col,position,token_ref,token_alt))
+                        else:
+                            key=';'.join((chr_col,position,ref,alt))
+                        ### now get the info from ediva annotatio and annovar annotation
+                        edivaannotationtoprint = ediva.get(key,missing_entry).replace(sep,maf_separator)
+                        #print edivaannotationtoprint
+                        #edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA").replace(sep,maf_separator)
+                        write_str=(line.strip() + maf_separator + edivaannotationtoprint  )
+                        write_str.replace('\n','')
+                        ANN.write(write_str+'\n')
+
         ## sort the file
         srtCmm = "sort -k1,1 -n -k2,2 --field-separator=, %s > %s " %(outFile,SortedoutFile)
         subprocess.call(srtCmm,shell=True)

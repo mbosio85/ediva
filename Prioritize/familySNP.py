@@ -154,8 +154,9 @@ def main (args):
     index_gene        = identifycolumns(header, 'Gene(Refseq)')
     index_str         = identifycolumns(header, 'SimpleTandemRepeatLength')
     #print index_sample
+    sample_annot_size = 6 # sampleid - DP - REF - ALT - AF - GQ
     print family.keys()
-    for i in range(index_sample,index_sample+len(family.keys())):
+    for i in range(index_sample,index_sample+sample_annot_size*len(family.keys()),sample_annot_size):
         names.append(header[i])
 
     #print header[index_sample]
@@ -170,6 +171,7 @@ def main (args):
     outfiltered.writerow(header)
     
     out.writerow(header)
+
     
     # init for compound
     initializer = 0
@@ -215,7 +217,7 @@ def main (args):
             MAF    = 0
         
         # read sample names and according zygosity NOW IT's a LIST
-        sampledata = line[index_sample:index_sample+len(family.keys())]
+        sampledata = line[index_sample:index_sample+sample_annot_size*len(family.keys())]
         
 
         if len(sampledata)==0:
@@ -652,48 +654,52 @@ def main (args):
         cur = db.cursor()
         
         
-        # read line by line and transform to xls
+       # read line by line and transform to xls
         for line in fh:
             #line.rstrip('\n')
-            data = line.split(',')
-            ## Adding Omim and Clinvar annotation 18-02-2015
-            gene_name = data[6]
-            
-            sql = ("SELECT gene_name , title_mim_number ,details_mim_number "+
-                   "FROM eDiVa_annotation.Table_gene2mim, eDiVa_annotation.Table_omim "+
-                   "where eDiVa_annotation.Table_gene2mim.mim_number = eDiVa_annotation.Table_omim.mim_number "+
-                   "and eDiVa_annotation.Table_gene2mim.gene_name ='%s';"%gene_name)
-                #sql = "select chr,pos,lengthofrepeat,copyNum,region from ediva_public_omics.Table_simpleRepeat;"
-            cur.execute(sql)
-            
-            omim_disease = ""
-            omim_web=""
-            
-            for row in cur:
-                omim_disease+=str(row[1])+" | "
-                omim_web+=str(row[2])+" | "
-            sql_clinvar =("SELECT clinical_significance, disease_name, clinical_review, access_number "+
-                          "FROM eDiVa_annotation.Table_clinvar "+
-                          "WHERE chr='%s' and pos='%s' and ref='%s'and alt='%s'"
-                          %(data[0],data[1],data[2],data[3])
-            )
-            
-            
-            cur.execute(sql_clinvar)         
-            clinvar_clinical_significance = ""
-            clinvar_disease_name = ""
-            clinvar_clinical_review = ""
-            clinvar_access_number = ""
-            for row in cur:
-                clinvar_clinical_significance +=str(row[0])+" | "
-                clinvar_disease_name +=str(row[1])+" | "
-                clinvar_clinical_review +=str(row[2])+" | "
-                clinvar_access_number +=str(row[3])+" | "
-            
-            data.extend([omim_disease,omim_web,clinvar_disease_name,clinvar_access_number,clinvar_clinical_review,clinvar_clinical_significance])
-            ######## -till here
-            worksheet.write_row(row_xls, 0, data)
-            #print row_xls
+            data = line.strip().split(',')
+            if row_xls>0:
+                ## Adding Omim and Clinvar annotation 18-02-2015
+                gene_name = data[8]
+                sql = ("SELECT gene_name , title_mim_number ,details_mim_number "+
+                       "FROM eDiVa_annotation.Table_gene2mim, eDiVa_annotation.Table_omim "+
+                       "where eDiVa_annotation.Table_gene2mim.mim_number = eDiVa_annotation.Table_omim.mim_number "+
+                       "and eDiVa_annotation.Table_gene2mim.gene_name ='%s';"%gene_name)
+                    #sql = "select chr,pos,lengthofrepeat,copyNum,region from ediva_public_omics.Table_simpleRepeat;"
+                cur.execute(sql)
+    
+                omim_disease = "."
+                omim_web="."
+                
+                for row in cur:
+                    omim_disease+=str(row[1])+" | "
+                    omim_web+=str(row[2])+" | "
+                    
+                    
+                sql_clinvar =("SELECT clinical_significance, disease_name, clinical_review, access_number "+
+                              "FROM eDiVa_annotation.Table_clinvar "+
+                              "WHERE chr='%s' and pos='%s' and ref='%s'and alt='%s';"
+                              %(data[0],data[1],data[2],data[3])
+                )
+                
+                cur.execute(sql_clinvar)         
+                clinvar_clinical_significance = "."
+                clinvar_disease_name = "."
+                clinvar_clinical_review = "."
+                clinvar_access_number = "."
+                for row in cur:
+                    clinvar_clinical_significance +=str(row[0])+" | "
+                    clinvar_disease_name +=str(row[1])+" | "
+                    clinvar_clinical_review +=str(row[2])+" | "
+                    clinvar_access_number +=str(row[3])+" | "
+                added_annotation= [omim_disease,omim_web,clinvar_disease_name,clinvar_access_number,clinvar_clinical_review,clinvar_clinical_significance]
+                added_annotation = [x[1:] if len(x)>1  else x for x in added_annotation]
+                data.extend(added_annotation)
+                ######## -till here
+                worksheet.write_row(row_xls, 0, data)
+                #print row_xls
+            else:
+                data.extend(['OMIM_name','OMIM_ID','clinical_significance', 'disease_name', 'clinical_review',' access_number'])
             row_xls += 1
         cur.close()
         db.close()
@@ -786,7 +792,7 @@ def compound(sampledata, family,names,debug=False):
     samples = sampledata#.split(';')
 
     check_samples = dict()
-    
+    sample_annot_size = len(sampledata)/len(names)
 
     
     for samp in family.keys():
@@ -794,141 +800,132 @@ def compound(sampledata, family,names,debug=False):
     
     judgement = 0
 
-    for i in range(len(names)):
+    for i in range(0,sample_annot_size*len(names),sample_annot_size):
         sam = samples[i]
-        features    = sam.split(':')
-        name        = names[i]
-        # error catching because of wrong splitting, e.g. 40ACVi>0/1>99>0.333;0.167,40ACVm>0/1>99>0.333;0.167,40ACVp>0/2>99>0.333;0.167
-        if len(features) == 1:
-            continue
-
-        # check if sample is found in pedigree
-        try:
-            family[name]
-        except:
-            # if not found, go on to next sample
-            print name
-            continue
+        features    = samples[i:i+sample_annot_size]#sam.split(':')
+        name        = names[i/sample_annot_size]
+        # error catching because of wrong splitting,
+        #e.g. 40ACVi>0/1>99>0.333;0.167,40ACVm>0/1>99>0.333;0.167,40ACVp>0/2>99>0.333;0.167
+        if len(features) > 1 and family.has_key(name):
+            zygosity    = features[0]
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
         
-        zygosity    = features[0]
-        refcoverage = features[1] # could be numeric or .
-        altcoverage = features[2] # could be numeric or .
-        
-        #sub_pp.pprint([refcoverage, altcoverage])
-        
-        if check_samples.has_key(name):
-            check_samples[name] = 1
-
-        # homo alt is not expected in compound
-        if zygosity == '1/1' and family[name] == '1':
-            #sub_pp.pprint("dropped out in 1/1 1")
-            judgement = 0
-            if debug ==True:
-                print "763"
-                print name
-                print family[name]
-                print zygosity
-            break
-        
-        # het is good (could be an inherited variant or de novo)
-        if zygosity == '0/1' and family[name] == '1':
-            #sub_pp.pprint("dropped out in 0/1 1")
-            judgement = 1
-            continue
-        
-        # het or hom ref for parents is good
-        elif ( zygosity == '0/0' or zygosity == '0/1' ) and family[name] == '0':
-            #sub_pp.pprint("dropped out in 0/0 0")
-            judgement = 1
-            continue
-        
-        # parents must not be hom alt
-        elif zygosity == '1/1' and family[name] == '0':
-            #sub_pp.pprint("dropped out in 1/1 0")
-            judgement = 0
-            if debug ==True:
-                print '781'
-            break
-        
-        # offspring should have the variant
-        elif zygosity == '0/0' and family[name] == '1':
-            #sub_pp.pprint("dropped out in 0/0 1")
-            judgement = 0
-            if debug ==True:
-                print '789'
-            break
-        
-        # now a few more complex steps, if genotype is missing (only non-affected individuals should have missing values)
-        elif zygosity == './.' and family[name] == '0':
-            # which chance has the current read distribution to miss out on an alt read
-            # e.g. 10ref, 0alt
-            # if coverage > 8, the chance is less than 0.5% to miss out on one alt read
-            # http://stattrek.com/online-calculator/poisson.aspx
-            # use poisson distribution
-            # poisson_miss = poisson.cdf(0.0, float(ND_coverage)/2)
+            #sub_pp.pprint([refcoverage, altcoverage])
             
-            # if vcf file was not supplemented by pileup data
-            # accept variants which could not be called in the parents
-            if refcoverage == '.' or altcoverage == '.' or refcoverage == '' or altcoverage == '':
+            if check_samples.has_key(name):
+                check_samples[name] = 1
+    
+            # homo alt is not expected in compound
+            if zygosity == '1/1' and family[name] == '1':
+                #sub_pp.pprint("dropped out in 1/1 1")
+                judgement = 0
+                if debug ==True:
+                    print "763"
+                    print name
+                    print family[name]
+                    print zygosity
+                break
+            
+            # het is good (could be an inherited variant or de novo)
+            if zygosity == '0/1' and family[name] == '1':
+                #sub_pp.pprint("dropped out in 0/1 1")
                 judgement = 1
                 continue
             
-            try:
-                int(refcoverage)
-            except:
-                #sub_pp.pprint(sampledata)
-                exit(0)
-            
-            # hom ref
-            #if int(refcoverage) >= 8 and int(altcoverage) == 0:
-            #    #sub_pp.pprint("dropped out in ./. 0 8 0")
-            #    judgement = 1
-            #    continue
-            refcoverage = float(refcoverage)
-            altcoverage = float(altcoverage)
-            
-            coverage = refcoverage + altcoverage
-            
-            if coverage == 0:
-                judgement = 0
-                if debug==True :
-                    print '824'
-                break
-            
-            # hom ref
-            # poisson for low coverage and percentage for high coverage
-            elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.007 and altcoverage / coverage <= 0.05:
+            # het or hom ref for parents is good
+            elif ( zygosity == '0/0' or zygosity == '0/1' ) and family[name] == '0':
+                #sub_pp.pprint("dropped out in 0/0 0")
                 judgement = 1
                 continue
             
-            # hom alt
-            #elif int(altcoverage) >=8 and int(refcoverage) == 0:
-            #    #sub_pp.pprint("dropped out in ./. 0 0 8")
-            #    judgement = 0
-            #    break
-            
-            # hom alt
-            elif poisson.cdf( float(refcoverage), float(coverage/2) ) <= 0.007  and refcoverage / coverage <= 0.05:
+            # parents must not be hom alt
+            elif zygosity == '1/1' and family[name] == '0':
+                #sub_pp.pprint("dropped out in 1/1 0")
                 judgement = 0
                 if debug ==True:
-                    print '824'
+                    print '781'
                 break
             
-            # coverage too low?
-            else:
-                #sub_pp.pprint("dropped out in ./. 0 else")
+            # offspring should have the variant
+            elif zygosity == '0/0' and family[name] == '1':
+                #sub_pp.pprint("dropped out in 0/0 1")
                 judgement = 0
                 if debug ==True:
-                    print "850"
+                    print '789'
                 break
-        
-        # do not accept missing values for affected individuals
-        elif zygosity == './.' and family[name] == '1':
-            #sub_pp.pprint("dropped out in ./. 1")
-            judgement = 0
-            if debug ==True:
-                print '857'
-            break
+            
+            # now a few more complex steps, if genotype is missing (only non-affected individuals should have missing values)
+            elif zygosity == './.' and family[name] == '0':
+                # which chance has the current read distribution to miss out on an alt read
+                # e.g. 10ref, 0alt
+                # if coverage > 8, the chance is less than 0.5% to miss out on one alt read
+                # http://stattrek.com/online-calculator/poisson.aspx
+                # use poisson distribution
+                # poisson_miss = poisson.cdf(0.0, float(ND_coverage)/2)
+                
+                # if vcf file was not supplemented by pileup data
+                # accept variants which could not be called in the parents
+                if refcoverage == '.' or altcoverage == '.' or refcoverage == '' or altcoverage == '':
+                    judgement = 1
+                    continue
+                
+                try:
+                    int(refcoverage)
+                except:
+                    #sub_pp.pprint(sampledata)
+                    exit(0)
+                
+                # hom ref
+                #if int(refcoverage) >= 8 and int(altcoverage) == 0:
+                #    #sub_pp.pprint("dropped out in ./. 0 8 0")
+                #    judgement = 1
+                #    continue
+                refcoverage = float(refcoverage)
+                altcoverage = float(altcoverage)
+                
+                coverage = refcoverage + altcoverage
+                
+                if coverage == 0:
+                    judgement = 0
+                    if debug==True :
+                        print '824'
+                    break
+                
+                # hom ref
+                # poisson for low coverage and percentage for high coverage
+                elif poisson.cdf( float(altcoverage), float(coverage)/2 ) <= 0.007 and altcoverage / coverage <= 0.05:
+                    judgement = 1
+                    continue
+                
+                # hom alt
+                #elif int(altcoverage) >=8 and int(refcoverage) == 0:
+                #    #sub_pp.pprint("dropped out in ./. 0 0 8")
+                #    judgement = 0
+                #    break
+                
+                # hom alt
+                elif poisson.cdf( float(refcoverage), float(coverage/2) ) <= 0.007  and refcoverage / coverage <= 0.05:
+                    judgement = 0
+                    if debug ==True:
+                        print '824'
+                    break
+                
+                # coverage too low?
+                else:
+                    #sub_pp.pprint("dropped out in ./. 0 else")
+                    judgement = 0
+                    if debug ==True:
+                        print "850"
+                    break
+            
+            # do not accept missing values for affected individuals
+            elif zygosity == './.' and family[name] == '1':
+                #sub_pp.pprint("dropped out in ./. 1")
+                judgement = 0
+                if debug ==True:
+                    print '857'
+                break
     
 
     for vals in check_samples.values():
@@ -964,9 +961,11 @@ def compoundizer(variantlist, family, index_sample,names):
     # check line by line, if this variant could support a compound het
     
     for variantline in variantlist:
+        
         # produce a list with all the sample data
         sampledata = variantline[index_sample:len(variantline)-1]#.split(';')
         
+        sample_annot_size = len(sampledata)/len(names)
         # produce a dictionary to save the zygosities
         zygosities = dict()
         
@@ -975,15 +974,15 @@ def compoundizer(variantlist, family, index_sample,names):
         #    judgement = 0
         #    break
         #
-        for i in range(len(names)):
+        for i in range(0,sample_annot_size*len(names),sample_annot_size):
             sam = sampledata[i]
-            features = sam.split(':')
+            features    = sampledata[i:i+sample_annot_size]#sam.split(':')
             #print sampledata
             #print names
-            name        = names[i]
+            name        = names[i/sample_annot_size]
             zygosity    = features[0]
-            refcoverage = features[1] # could be numeric or .
-            altcoverage = features[2] # could be numeric or .
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
             # check if, we are looking at the offspring
             
             if not ticker_dict.keys()[0] == name and not ticker_dict.keys()[1] == name:
@@ -1051,24 +1050,31 @@ def denovo(sampledata, family,names):
          check_samples[sam] = 0
 
     # go into the variant data
-    for i in range(len(samples)):
+    sample_annot_size = len(sampledata)/len(names)
+    for i in range(0,sample_annot_size*len(names),sample_annot_size):
         sam = samples[i]
-        features    = sam.split(':')
-        name        = names[i]
-        
+        features    = samples[i:i+sample_annot_size]#sam.split(':')
+        name        = names[i/sample_annot_size]
+
         # check if sample is found in pedigree
         try:
             family[name]
         except:
             # if not found, go on to next sample
+            print family
+            
             continue
         
-        try:
+        if len(features)>=3:
             zygosity    = features[0]
-        except:
-            sub_pp.pprint(samples)
-        refcoverage = features[1] # could be numeric or .
-        altcoverage = features[2] # could be numeric or .
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
+        else:
+            #stick with genotype and the others are empty
+            zygosity    = features[0]
+            refcoverage = '.'
+            altcoverage = '.'
+        # check if sample is found in pedigree
         
         # sample info complete?
         if check_samples.has_key(name):
@@ -1185,22 +1191,30 @@ def dominant(sampledata, family,names):
     
     judgement = 0
     
-    for i in range(len(samples)):
+    sample_annot_size = len(sampledata)/len(names)
+    for i in range(0,sample_annot_size*len(names),sample_annot_size):
         sam = samples[i]
-        features    = sam.split(':')
-        name        = names[i]
+        features    = samples[i:i+sample_annot_size]#sam.split(':')
+        name        = names[i/sample_annot_size]
 
         # check if sample is found in pedigree
         try:
             family[name]
         except:
             # if not found, go on to next sample
-            print 'didnt find sample %s'%family[name]
+            print family
+            
             continue
-              
-        zygosity    = features[0]
-        refcoverage = features[1] # could be numeric or .
-        altcoverage = features[2] # could be numeric or .
+        
+        if len(features)>=3:
+            zygosity    = features[0]
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
+        else:
+            #stick with genotype and the others are empty
+            zygosity    = features[0]
+            refcoverage = '.'
+            altcoverage = '.'
 
         if check_samples.has_key(name):
             check_samples[name] = 1
@@ -1332,21 +1346,31 @@ def recessive(sampledata, family, familytype,names):
     
     judgement = 0
     
-    for i in range(len(samples)):
+    sample_annot_size = len(sampledata)/len(names)
+    for i in range(0,sample_annot_size*len(names),sample_annot_size):
         sam = samples[i]
-        features    = sam.split(':')
-        name        = names[i]
-        
+        features    = samples[i:i+sample_annot_size]#sam.split(':')
+        name        = names[i/sample_annot_size]
+
         # check if sample is found in pedigree
         try:
             family[name]
         except:
             # if not found, go on to next sample
+            print family
+            
             continue
         
-        zygosity    = features[0]
-        refcoverage = features[1] # could be numeric or .
-        altcoverage = features[2] # could be numeric or .
+        if len(features)>=3:
+            zygosity    = features[0]
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
+        else:
+            #stick with genotype and the others are empty
+            zygosity    = features[0]
+            refcoverage = '.'
+            altcoverage = '.'
+            
         
         if check_samples.has_key(name):
             check_samples[name] = 1
@@ -1481,21 +1505,31 @@ def xlinked(sampledata, family,names):
     
     judgement = 0
     
-    for i in range(len(samples)):
+    sample_annot_size = len(sampledata)/len(names)
+    for i in range(0,sample_annot_size*len(names),sample_annot_size):
         sam = samples[i]
-        features    = sam.split(':')
-        name        = names[i]
-        
+        features    = samples[i:i+sample_annot_size]#sam.split(':')
+        name        = names[i/sample_annot_size]
+
         # check if sample is found in pedigree
         try:
             family[name]
         except:
             # if not found, go on to next sample
+            print family
+            
             continue
         
-        zygosity    = features[0]
-        refcoverage = features[1] # could be numeric or .
-        altcoverage = features[2] # could be numeric or .
+        if len(features)>=3:
+            zygosity    = features[0]
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
+            
+        else:
+            #stick with genotype and the others are empty
+            zygosity    = features[0]
+            refcoverage = '.'
+            altcoverage = '.'
         
         if check_samples.has_key(name):
             check_samples[name] = 1

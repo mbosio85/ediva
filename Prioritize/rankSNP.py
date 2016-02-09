@@ -55,8 +55,8 @@ def main ():
     
     parser = argparse.ArgumentParser(description = 'rank SNPs according to their mutation properties')
     
-    parser.add_argument('--infile', type=argparse.FileType('r'), dest='infile', required=True, help='comma separated list of SNPs annotated with mutation impact data. [required]')
-    parser.add_argument('--outfile', type=argparse.FileType('w'), dest='outfile', required=True, help='comma separated list of SNPs annotated with ranks. [required]')
+    parser.add_argument('--infile','-i', type=argparse.FileType('r'), dest='infile', required=True, help='comma separated list of SNPs annotated with mutation impact data. [required]')
+    parser.add_argument('--outfile','-o', type=argparse.FileType('w'), dest='outfile', required=True, help='comma separated list of SNPs annotated with ranks. [required]')
     
     args = parser.parse_args()
     

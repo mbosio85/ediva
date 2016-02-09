@@ -11,7 +11,8 @@ def compound(sampledata, family,names,debug=False):
     all_samples = dict()
     samples = sampledata#.split(';')
     check_samples = dict()
-
+    sample_annot_size = len(sampledata)/len(names)
+    
     for samp in family.keys():
         check_samples[samp] = 0
     
@@ -22,16 +23,16 @@ def compound(sampledata, family,names,debug=False):
         type_check = 'compound_denovo'
     else:
         type_check ='compound'
-    for i in range(len(names)):
+    for i in range(0,sample_annot_size*len(names),sample_annot_size):
         sam = samples[i]
-        features    = sam.split(':')
-        name        = names[i]
+        features    = samples[i:i+sample_annot_size]#sam.split(':')
+        name        = names[i/sample_annot_size]
         # error catching because of wrong splitting,
         #e.g. 40ACVi>0/1>99>0.333;0.167,40ACVm>0/1>99>0.333;0.167,40ACVp>0/2>99>0.333;0.167
         if len(features) > 1 and family.has_key(name):
             zygosity    = features[0]
-            refcoverage = features[1] # could be numeric or .
-            altcoverage = features[2] # could be numeric or .
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
           
             if check_samples.has_key(name):
               check_samples[name] = 1
@@ -82,7 +83,7 @@ def compoundizer(variantlist, family, index_sample,names):
     #Parents names    
     name1 = ticker_dict.keys()[0]
     name2 = ticker_dict.keys()[1]
-
+    
     judgement = 0
     
     # check line by line, if this variant could support a compound het
@@ -90,7 +91,7 @@ def compoundizer(variantlist, family, index_sample,names):
     for variantline in variantlist:
         # produce a list with all the sample data
         sampledata = variantline[index_sample:len(variantline)-1]#.split(';')
-        
+        sample_annot_size = len(sampledata)/len(names)
         # produce a dictionary to save the zygosities
         zygosities = dict()
         
@@ -99,15 +100,15 @@ def compoundizer(variantlist, family, index_sample,names):
         #    judgement = 0
         #    break
         #
-        for i in range(len(names)):
+        for i in range(0,sample_annot_size*len(names),sample_annot_size):
             sam = sampledata[i]
-            features = sam.split(':')
+            features    = sampledata[i:i+sample_annot_size]#sam.split(':')
             #print sampledata
             #print names
-            name        = names[i]
+            name        = names[i/sample_annot_size]
             zygosity    = features[0]
-            refcoverage = features[1] # could be numeric or .
-            altcoverage = features[2] # could be numeric or .
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
             # check if, we are looking at the offspring
             
             if not ticker_dict.keys()[0] == name and not ticker_dict.keys()[1] == name:
@@ -175,26 +176,31 @@ def denovo(sampledata, family,names):
          check_samples[sam] = 0
 
     # go into the variant data
-    for i in range(len(samples)):
+    sample_annot_size = len(sampledata)/len(names)
+    for i in range(0,sample_annot_size*len(names),sample_annot_size):
         sam = samples[i]
-        features    = sam.split(':')
-        name        = names[i]
+        features    = samples[i:i+sample_annot_size]#sam.split(':')
+        name        = names[i/sample_annot_size]
+
+        # check if sample is found in pedigree
+        try:
+            family[name]
+        except:
+            # if not found, go on to next sample
+            print family
+            
+            continue
         
         if len(features)>=3:
             zygosity    = features[0]
-            refcoverage = features[1] # could be numeric or .
-            altcoverage = features[2] # could be numeric or .
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
         else:
             #stick with genotype and the others are empty
             zygosity    = features[0]
             refcoverage = '.'
             altcoverage = '.'
         # check if sample is found in pedigree
-        try:
-            family[name]
-        except:
-            # if not found, go on to next sample
-            continue
         
         # sample info complete?
         if check_samples.has_key(name):
@@ -238,32 +244,34 @@ def dominant(sampledata, family,names):
          check_samples[samp] = 0
     
     judgement = 0
-    
-    for i in range(len(samples)):
+    sample_annot_size = len(sampledata)/len(names)
+    for i in range(0,sample_annot_size*len(names),sample_annot_size):
         sam = samples[i]
-        features    = sam.split(':')
-        name        = names[i]
+        features    = samples[i:i+sample_annot_size]#sam.split(':')
+        name        = names[i/sample_annot_size]
 
-        # check if sample is found in pedigree
-        if len(features)>=3:
-            zygosity    = features[0]
-            refcoverage = features[1] # could be numeric or .
-            altcoverage = features[2] # could be numeric or .
-        else:
-            #stick with genotype and the others are empty
-            zygosity    = features[0]
-            refcoverage = '.'
-            altcoverage = '.'
         # check if sample is found in pedigree
         try:
             family[name]
         except:
             # if not found, go on to next sample
+            print family
+            
             continue
+        
+        if len(features)>=3:
+            zygosity    = features[0]
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
+        else:
+            #stick with genotype and the others are empty
+            zygosity    = features[0]
+            refcoverage = '.'
+            altcoverage = '.'
         
         if check_samples.has_key(name):
             check_samples[name] = 1
-    
+   
         if zygosity== '0/0':
             if family[name]== '0':  judgement = 1                 
             else:                   judgement = 0
@@ -315,22 +323,25 @@ def recessive(sampledata, family, familytype,names):
     
     judgement = 0
     
-    for i in range(len(samples)):
+    sample_annot_size = len(sampledata)/len(names)
+    for i in range(0,sample_annot_size*len(names),sample_annot_size):
         sam = samples[i]
-        features    = sam.split(':')
-        name        = names[i]
-        
+        features    = samples[i:i+sample_annot_size]#sam.split(':')
+        name        = names[i/sample_annot_size]
+
         # check if sample is found in pedigree
         try:
             family[name]
         except:
             # if not found, go on to next sample
+            print family
+            
             continue
         
         if len(features)>=3:
             zygosity    = features[0]
-            refcoverage = features[1] # could be numeric or .
-            altcoverage = features[2] # could be numeric or .
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
         else:
             #stick with genotype and the others are empty
             zygosity    = features[0]
@@ -391,21 +402,26 @@ def xlinked(sampledata, family,names):
     
     judgement = 0
     
-    for i in range(len(samples)):
+    sample_annot_size = len(sampledata)/len(names)
+    for i in range(0,sample_annot_size*len(names),sample_annot_size):
         sam = samples[i]
-        features    = sam.split(':')
-        name        = names[i]
-        
+        features    = samples[i:i+sample_annot_size]#sam.split(':')
+        name        = names[i/sample_annot_size]
+
+        # check if sample is found in pedigree
         try:
             family[name]
         except:
             # if not found, go on to next sample
+            print family
+            
             continue
         
         if len(features)>=3:
             zygosity    = features[0]
-            refcoverage = features[1] # could be numeric or .
-            altcoverage = features[2] # could be numeric or .
+            refcoverage = features[2] # could be numeric or .
+            altcoverage = features[3] # could be numeric or .
+            
         else:
             #stick with genotype and the others are empty
             zygosity    = features[0]
@@ -505,13 +521,15 @@ def check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,jud
         if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
             if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
                 if (line[index_segdup] == '0'):
-                    line.append(args.inheritance)
-                    line.append('pass')
                     if args.inheritance != 'compound':
+                        line.append(args.inheritance)
+                        line.append('pass')
                         outfiltered.writerow(line)
+                        out.writerow(line)
                     else:
                         compound_gene_storage.append(line)
-                    out.writerow(line)
+                        out.writerow(line)
+                    
                     
                     return
         
@@ -660,49 +678,7 @@ if __name__=='__main__':
         writeXLS = False
         print 'No XlS writer'
     
-    # Note header:
-    #[   'Chr',
-    #    'Position',
-    #    'Reference',
-    #    'Alteration',
-    #    'Function(Refseq)',
-    #    'Gene(Refseq)',
-    #    'ExonicFunction(Refseq)',
-    #    'AminoAcidChange(Refseq)',
-    #    'Function(Ensembl)',
-    #    'Gene(Ensembl)',
-    #    'ExonicFunction(Ensembl)',
-    #    'AminoAcidChange(Ensembl)',
-    #    'Function(Known)',
-    #    'Gene(Known)',
-    #    'ExonicFunction(Known)',
-    #    'AminoAcidChange(Known)',
-    #    'dbsnpIdentifier',
-    #    'dbSNPfrequency',
-    #    'EurEVSFrequecy',
-    #    'AfrEVSFrequecy',
-    #    'TotalEVSFrequecy',
-    #    'Eur1000GenomesFrequency',
-    #    'Afr1000GenomesFrequency',
-    #    'Amr1000GenomesFrequency',
-    #    'Asia1000GenomesFrequency',
-    #    'Total1000GenomesFrequency',
-    #    'SegMentDup',
-    #    'PlacentalMammalPhyloP',
-    #    'PrimatesPhyloP',
-    #    'VertebratesPhyloP',
-    #    'PlacentalMammalPhastCons',
-    #    'PrimatesPhastCons',
-    #    'VertebratesPhastCons',
-    #    'Score1GERP++',
-    #    'Score2GERP++',
-    #    'SIFTScore',
-    #    'polyphen2',
-    #    'MutAss',
-    #    'Condel',
-    #    'pos_samples(sampleid>zygosity>Cov>AF)',
-    #    'neg_samples(sampleid>zygosity>Cov>AF)',
-    #    'rank']
+    sample_annot_size = 6 # sampleid - DP - REF - ALT - AF - GQ
     
     
     parser = argparse.ArgumentParser(description = 'filter SNPs according to their family distribution')
@@ -802,7 +778,7 @@ if __name__=='__main__':
     
     #print index_sample
     print family.keys()
-    for i in range(index_sample,index_sample+len(family.keys())):
+    for i in range(index_sample,index_sample+sample_annot_size*len(family.keys()),sample_annot_size):
         names.append(header[i])
 
     #print header[index_sample]
@@ -813,7 +789,7 @@ if __name__=='__main__':
     
     header.append('inheritance')
     header.append('filter')
-    header.extend(['OMIM_name','OMIM_ID','clinical_significance', 'disease_name', 'clinical_review',' access_number'])
+    #header.extend(['OMIM_name','OMIM_ID','clinical_significance', 'disease_name', 'clinical_review',' access_number'])
     outfiltered.writerow(header)
     
     out.writerow(header)
@@ -834,7 +810,7 @@ if __name__=='__main__':
         
        
         # read sample names and according zygosity NOW IT's a LIST
-        sampledata = line[index_sample:index_sample+len(family.keys())]
+        sampledata = line[index_sample:index_sample+sample_annot_size*len(family.keys())]
         
 
         if len(sampledata)==0:
@@ -936,7 +912,7 @@ if __name__=='__main__':
                 else:
                     for row in compound_gene_storage:
                         row.append('compound')
-                        row.append('filtereds')#
+                        row.append('filtered')#
                         out.writerow(row)
                 # reset values
                 compound_gene_storage = []
@@ -1016,45 +992,49 @@ if __name__=='__main__':
         # read line by line and transform to xls
         for line in fh:
             #line.rstrip('\n')
-            data = line.split(',')
-            ## Adding Omim and Clinvar annotation 18-02-2015
-            gene_name = data[6]
-            
-            sql = ("SELECT gene_name , title_mim_number ,details_mim_number "+
-                   "FROM eDiVa_annotation.Table_gene2mim, eDiVa_annotation.Table_omim "+
-                   "where eDiVa_annotation.Table_gene2mim.mim_number = eDiVa_annotation.Table_omim.mim_number "+
-                   "and eDiVa_annotation.Table_gene2mim.gene_name ='%s';"%gene_name)
-                #sql = "select chr,pos,lengthofrepeat,copyNum,region from ediva_public_omics.Table_simpleRepeat;"
-            cur.execute(sql)
-            
-            omim_disease = ""
-            omim_web=""
-            
-            for row in cur:
-                omim_disease+=str(row[1])+" | "
-                omim_web+=str(row[2])+" | "
-            sql_clinvar =("SELECT clinical_significance, disease_name, clinical_review, access_number "+
-                          "FROM eDiVa_annotation.Table_clinvar "+
-                          "WHERE chr='%s' and pos='%s' and ref='%s'and alt='%s'"
-                          %(data[0],data[1],data[2],data[3])
-            )
-            
-            
-            cur.execute(sql_clinvar)         
-            clinvar_clinical_significance = ""
-            clinvar_disease_name = ""
-            clinvar_clinical_review = ""
-            clinvar_access_number = ""
-            for row in cur:
-                clinvar_clinical_significance +=str(row[0])+" | "
-                clinvar_disease_name +=str(row[1])+" | "
-                clinvar_clinical_review +=str(row[2])+" | "
-                clinvar_access_number +=str(row[3])+" | "
-            
-            data.extend([omim_disease,omim_web,clinvar_disease_name,clinvar_access_number,clinvar_clinical_review,clinvar_clinical_significance])
-            ######## -till here
-            worksheet.write_row(row_xls, 0, data)
-            #print row_xls
+            data = line.strip().split(',')
+            if row_xls>0:
+                ## Adding Omim and Clinvar annotation 18-02-2015
+                gene_name = data[8]
+                sql = ("SELECT gene_name , title_mim_number ,details_mim_number "+
+                       "FROM eDiVa_annotation.Table_gene2mim, eDiVa_annotation.Table_omim "+
+                       "where eDiVa_annotation.Table_gene2mim.mim_number = eDiVa_annotation.Table_omim.mim_number "+
+                       "and eDiVa_annotation.Table_gene2mim.gene_name ='%s';"%gene_name)
+                    #sql = "select chr,pos,lengthofrepeat,copyNum,region from ediva_public_omics.Table_simpleRepeat;"
+                cur.execute(sql)
+    
+                omim_disease = "."
+                omim_web="."
+                
+                for row in cur:
+                    omim_disease+=str(row[1])+" | "
+                    omim_web+=str(row[2])+" | "
+                    
+                    
+                sql_clinvar =("SELECT clinical_significance, disease_name, clinical_review, access_number "+
+                              "FROM eDiVa_annotation.Table_clinvar "+
+                              "WHERE chr='%s' and pos='%s' and ref='%s'and alt='%s';"
+                              %(data[0],data[1],data[2],data[3])
+                )
+                
+                cur.execute(sql_clinvar)         
+                clinvar_clinical_significance = "."
+                clinvar_disease_name = "."
+                clinvar_clinical_review = "."
+                clinvar_access_number = "."
+                for row in cur:
+                    clinvar_clinical_significance +=str(row[0])+" | "
+                    clinvar_disease_name +=str(row[1])+" | "
+                    clinvar_clinical_review +=str(row[2])+" | "
+                    clinvar_access_number +=str(row[3])+" | "
+                added_annotation= [omim_disease,omim_web,clinvar_disease_name,clinvar_access_number,clinvar_clinical_review,clinvar_clinical_significance]
+                added_annotation = [x[1:] if len(x)>1  else x for x in added_annotation]
+                data.extend(added_annotation)
+                ######## -till here
+                worksheet.write_row(row_xls, 0, data)
+                #print row_xls
+            else:
+                data.extend(['OMIM_name','OMIM_ID','clinical_significance', 'disease_name', 'clinical_review',' access_number'])
             row_xls += 1
         cur.close()
         db.close()
