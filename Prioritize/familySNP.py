@@ -167,7 +167,7 @@ def main (args):
     
     header.append('inheritance')
     header.append('filter')
-    header.extend(['OMIM_name','OMIM_ID','clinical_significance', 'disease_name', 'clinical_review',' access_number'])
+    #header.extend(['OMIM_name','OMIM_ID','clinical_significance', 'disease_name', 'clinical_review',' access_number'])
     outfiltered.writerow(header)
     
     out.writerow(header)
@@ -700,6 +700,7 @@ def main (args):
                 #print row_xls
             else:
                 data.extend(['OMIM_name','OMIM_ID','clinical_significance', 'disease_name', 'clinical_review',' access_number'])
+                worksheet.write_row(row_xls, 0, data)
             row_xls += 1
         cur.close()
         db.close()

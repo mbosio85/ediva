@@ -173,10 +173,14 @@ def out_file_generate(infile,qlookup,templocation,forceDel,tempfile,MAF):
         elif templocation == "INPATH":
                 templocation = "."
         
-	
-        outFile  = pathname+ filename+".annotated.csv"
-        sortedOutFile = pathname+ filename +".sorted.annotated.csv"
-        outFileIns = pathname+filename + ".inconsistent.annotated.csv"       
+	if MAF==0:
+	    outFile  = pathname+ filename+".annotated.csv"
+	    sortedOutFile = pathname+ filename +".sorted.annotated.csv"
+	    outFileIns = pathname+filename + ".inconsistent.annotated.csv"
+	else:
+	    outFile  = pathname+ filename+".annotated.maf"
+	    sortedOutFile = pathname+ filename +".sorted.annotated.maf"
+	    outFileIns = pathname+filename + ".inconsistent.annotated.maf"
         ## check on output file existence
         if os.path.exists(outFile) or os.path.exists(sortedOutFile):
             ## check for new file creation flag
@@ -204,9 +208,14 @@ def out_file_generate(infile,qlookup,templocation,forceDel,tempfile,MAF):
             #pathname = ntpath.dirname(qlookup)
             if len(pathname)>1:
                 pathname = pathname +'/'
-            outFile  = pathname+ filename+".annotated.csv"
-            sortedOutFile = pathname + filename +".sorted.annotated.csv"
-            outFileIns = pathname+ filename + ".inconsistent.annotated.csv"
+	    if MAF==0:
+		outFile  = pathname+ filename+".annotated.csv"
+		sortedOutFile = pathname+ filename +".sorted.annotated.csv"
+		outFileIns = pathname+filename + ".inconsistent.annotated.csv"
+	    else:
+		outFile  = pathname+ filename+".annotated.maf"
+		sortedOutFile = pathname+ filename +".sorted.annotated.maf"
+		outFileIns = pathname+filename + ".inconsistent.annotated.maf"
 	    print outFile
             if os.path.exists(outFile) or os.path.exists(sortedOutFile):
             ## check for new file creation flag
@@ -226,8 +235,9 @@ def out_file_generate(infile,qlookup,templocation,forceDel,tempfile,MAF):
                     print "\nWARNING :: Target output file(s) already exists. Either rename them, remove them or set the --forceNewFileCreate variable \n";
                     raise IOError
     print("MESSAGE :: Your annotated file is: %s"%(outFile))
-    print("MESSAGE :: Your sorted annotated file is: %s" %(sortedOutFile))
-    print("MESSAGE :: Reported non bi-allelic sites are in: %s" %(outFileIns))
+    if MAF ==0:
+	print("MESSAGE :: Your sorted annotated file is: %s" %(sortedOutFile))
+	print("MESSAGE :: Reported non bi-allelic sites are in: %s" %(outFileIns))
     return(outFile,sortedOutFile,outFileIns,templocation) ## files to write annotation
 
 ##############################################################################################
@@ -1245,20 +1255,24 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
             # print "MESSAGE :: Processing input file - %s " %qlookup
 	    ##check if it is a MAF file or a quick lookup file
 	    MAF = 0
-	    tmp= open(qlookup)
-	    line= tmp.readline().strip()
-	    if line.count(':') != 3 and line.count('\t')>1:
-		print 'Reading file as a MAF file'
-		MAF=1
-	    tmp.close()
+	    with  open(qlookup) as rd:
+		for line in rd:
+		    tmp = line.strip()
+		    if not(line.startswith('#')):
+			if line.count(':') != 3 and line.count('\t')>1:
+			    print 'Reading file as a MAF file'
+			    MAF=1
+			break
+		
 	    counter = 0
             with open(qlookup) as FL:
                 for line in FL:
 		    if MAF ==0:
 			var = line.rstrip('\n').split(':')
 		    else:
-			if counter==0 : 
-			    counter +=1
+			if counter==0  :
+			    if not(line.startswith('#')): 
+				counter +=1
 			    continue
 			fields = line.strip().split('\t')
 			if fields[11] == fields[10]:

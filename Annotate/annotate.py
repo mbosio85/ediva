@@ -98,6 +98,7 @@ try:
         (samples,variants,not_biallelic_variants,headers) = annotate_support_functions.vcf_processing(infile,infile,gtMode,type_var)
     else:
         print 'The extension is not recognized. By default process like a VCF file '
+        if qlookup!='NA' and qlookup.endswith('.maf'): MAF =1
         (samples,variants,not_biallelic_variants,headers) = annotate_support_functions.vcf_processing(infile,qlookup,gtMode,type_var)
 except IOError:
     sys.exit(1)
@@ -195,12 +196,15 @@ if qlookup == "NA":
             maf_separator='\t'
             counter= 0
             for line in FL:
-                if counter==0 : 
-                    counter +=1
-                    headerOutputFile=headerOutputFile.split(sep)[7:-1]
-                    missing_entry =maf_separator.join(["NA"]*(len(headerOutputFile)-4)) #compensates for Annovar header
-                    headerOutputFile = maf_separator.join(headerOutputFile)
-                    ANN.write(line.strip()+maf_separator+headerOutputFile+'\n')
+                if counter==0 :
+                    if line.startswith('#'):
+                        ANN.write(line)
+                    else:
+                        counter +=1
+                        headerOutputFile=headerOutputFile.split(sep)[7:-1]
+                        missing_entry =maf_separator.join(["NA"]*(len(headerOutputFile)-4)) #compensates for Annovar header
+                        headerOutputFile = maf_separator.join(headerOutputFile)
+                        ANN.write(line.strip()+maf_separator+headerOutputFile+'\n')
                 else:
                     fields = line.strip().split('\t')
                     
@@ -269,16 +273,25 @@ if qlookup == "NA":
     print "MESSAGE :: Templocation %s cleared"%(templocation)
 else:
     if os.path.isfile(qlookup):
+        with  open(qlookup) as rd:
+            for line in rd:
+                tmp = line.strip()
+                if not(line.startswith('#')):
+                    if line.count(':') != 3 and line.count('\t')>1:
+                        print 'Reading file as a MAF file'
+                        MAF=1
+                    break
+
 
         ## render annotation to output file
         with open(outFile,'a') as ANN,open(qlookup) as FL:
-            MAF = 0
-            tmp= open(qlookup)
-            line= tmp.readline().strip()
-            if line.count(':') != 3 and line.count('\t')>1:
-                print 'Reading file as a MAF file'
-                MAF=1
-            tmp.close()
+            #MAF = 0
+            #tmp= open(qlookup)
+            #line= tmp.readline().strip()
+            #if line.count(':') != 3 and line.count('\t')>1:
+            #    print 'Reading file as a MAF file'
+            #    MAF=1
+            #tmp.close()
             counter = 0
             headerOutputFile = annotate_support_functions.getHeaderQlookup(headers)
             
@@ -300,12 +313,15 @@ else:
             else:
                 maf_separator='\t'
                 for line in FL:
-                    if counter==0 : 
-                        counter +=1
-                        headerOutputFile=headerOutputFile.split(sep)[4:]
-                        missing_entry =maf_separator.join(["NA"]*len(headerOutputFile))
-                        headerOutputFile = maf_separator.join(headerOutputFile)
-                        ANN.write(line.strip()+maf_separator+headerOutputFile+'\n')
+                    if counter==0 :
+                        if line.startswith('#'):
+                            ANN.write(line)
+                        else:
+                            counter +=1
+                            headerOutputFile=headerOutputFile.split(sep)[4:]
+                            missing_entry =maf_separator.join(["NA"]*len(headerOutputFile))
+                            headerOutputFile = maf_separator.join(headerOutputFile)
+                            ANN.write(line.strip()+maf_separator+headerOutputFile+'\n')
                     else:
                         fields = line.strip().split('\t')
 			if fields[11] == fields[10]:
@@ -330,12 +346,13 @@ else:
                         ANN.write(write_str+'\n')
 
         ## sort the file
-        srtCmm = "sort -k1,1 -n -k2,2 --field-separator=, %s > %s " %(outFile,SortedoutFile)
-        subprocess.call(srtCmm,shell=True)
-        ## writing completed
         print "MESSAGE :: Writing annotation completed"
-        print "MESSAGE :: Your annotated file is %s " %outFile
-        print "MESSAGE :: Your sorted annotated file is %s " %SortedoutFile
+        if MAF ==0:
+            srtCmm = "sort -k1,1 -n -k2,2 --field-separator=, %s > %s " %(outFile,SortedoutFile)
+            subprocess.call(srtCmm,shell=True)
+            ## writing completed
+            print "MESSAGE :: Your annotated file is %s " %outFile
+            print "MESSAGE :: Your sorted annotated file is %s " %SortedoutFile
     else:
         for key, value in variants.items():
             (chr_col,position,ref,alt,aftoprint) = value.split(';')
