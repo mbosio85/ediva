@@ -65,6 +65,7 @@ def input_parse(defaults):
     parser.add_argument('-q','--quicklookup'  ,      type=str, dest ="qlookup",      required=False, 					 help= q_str)
     parser.add_argument('-s','--sampleGenotypeMode', type=str, dest ="gtmode",       required=False, 					 help= s_str)
     parser.add_argument('-g','--geneDef',            type=str, dest ="geneDef",      required=False, 					 help= g_str)  
+    parser.add_argument('--csvfile', dest='csvfile', required=False, help='csv file with username and user email address. [optional]')
     args = parser.parse_args()
 
 

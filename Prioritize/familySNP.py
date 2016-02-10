@@ -78,11 +78,12 @@ compound: detect compound heterozygous recessive variants
 parser.add_argument('--familytype', choices=['trio', 'family'], dest='familytype', required=True, help="choose if the data you provide is a trio or a larger family")
 parser.add_argument('--geneexclusion',  type=argparse.FileType('r'), dest='geneexclusion', required=False, help='[Analysis of DNA sequence variants detected by high-throughput sequencing; DOI: 10.1002/humu.22035]. [required]')
 parser.add_argument('--white_list',type=str,dest='white_list',required=False,help='--white_list \t a .txt file with the list of genes known to be relevant for the disease\n')
-
+parser.add_argument('--csvfile', dest='csvfile', required=False, help='csv file with username and user email address. [optional]')
 
 args = parser.parse_args()
 
 def main (args):
+    mailer_path='/home/rrahman/soft/python-mailer/pymailer.py'
     pp = pprint.PrettyPrinter( indent=4) # DEBUG
     names = list()
     # read the gene exclusion list
@@ -778,7 +779,10 @@ def main (args):
         cmd='mv %s %s'%(tmp_name,excel_name)
         os.system(cmd)
         #os.rename(tmp_name, excel_name)   
-
+    if len(args.csvfile)>1 and os.path.isfile(args.csvfile):
+        mailCmd = 'python '+ mailer_path +' -s /home/rrahman/soft/python-mailer/rank.html '+ str(args.csvfile) +' Ranking'
+        #print mailCmd
+        os.system(mailCmd)
     exit(0)
 
 

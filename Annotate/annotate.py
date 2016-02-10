@@ -62,6 +62,7 @@ parser_ = {"geneDef": geneDef, "type": type_var,"infile":infile,
            "onlygenic":onlygenic,"qlookup":qlookup,
            "forcedel":forceDel,"gtmode":gtMode,
            "templocation":templocation,"help":help_}# Arguments of the input parser
+mailer_path='/home/rrahman/soft/python-mailer/pymailer.py'
 
 parser_ = annotate_support_functions.input_parse(parser_)
 help_           = parser_["help"]
@@ -399,3 +400,7 @@ else:
 
 end = time.time()
 py_time = end-start
+if len(parser_.csvfile)>1 and os.path.isfile(args.csvfile):
+    mailCmd = 'python '+ mailer_path +' -s /home/rrahman/soft/python-mailer/rank.html '+ str(args.csvfile) +' Ranking'
+    #print mailCmd
+    os.system(mailCmd)

@@ -50,14 +50,14 @@ import re
 
 
 def main ():
-    
+    mailer_path='/home/rrahman/soft/python-mailer/pymailer.py'
     sub_pp = pprint.PrettyPrinter(indent = 4)
     
     parser = argparse.ArgumentParser(description = 'rank SNPs according to their mutation properties')
     
     parser.add_argument('--infile','-i', type=argparse.FileType('r'), dest='infile', required=True, help='comma separated list of SNPs annotated with mutation impact data. [required]')
     parser.add_argument('--outfile','-o', type=argparse.FileType('w'), dest='outfile', required=True, help='comma separated list of SNPs annotated with ranks. [required]')
-    
+    parser.add_argument('--csvfile', dest='csvfile', required=False, help='csv file with username and user email address. [optional]')
     args = parser.parse_args()
     
     alldata = list(csv.reader(args.infile))
@@ -134,7 +134,10 @@ def main ():
     outcsv.writerow(header)
     for line in alldata:
         outcsv.writerow(line)
-    
+    if len(args.csvfile)>1 and os.path.isfile(args.csvfile):
+        mailCmd = 'python '+ mailer_path +' -s /home/rrahman/soft/python-mailer/rank.html '+ str(args.csvfile) +' Ranking'
+        #print mailCmd
+        os.system(mailCmd)
     exit(0)
 
 ###########################
