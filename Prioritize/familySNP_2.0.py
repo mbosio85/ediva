@@ -1117,7 +1117,7 @@ if __name__=='__main__':
         os.system(cmd)
         #os.rename(tmp_name, excel_name)
     
-        if len(args.csvfile)>1 and os.path.isfile(args.csvfile):
+        if args.csvfile!=None and os.path.isfile(args.csvfile):
             mailCmd = 'python '+ mailer_path +' -s /home/rrahman/soft/python-mailer/rank.html '+ str(args.csvfile) +' Ranking'
             #print mailCmd
             os.system(mailCmd)
