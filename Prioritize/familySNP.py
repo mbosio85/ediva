@@ -781,7 +781,7 @@ def main (args):
         os.system(cmd)
         #os.rename(tmp_name, excel_name)   
     if args.csvfile != None and os.path.isfile(args.csvfile):
-        mailCmd = 'python '+ mailer_path +' -s /home/rrahman/soft/python-mailer/rank.html '+ str(args.csvfile) +' Ranking'
+        mailCmd = 'python '+ mailer_path +' -s /home/rrahman/soft/python-mailer/family.html '+ str(args.csvfile) +' Variant Prioritization'
         #print mailCmd
         os.system(mailCmd)
     exit(0)
