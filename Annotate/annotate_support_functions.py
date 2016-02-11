@@ -328,6 +328,12 @@ def edivaPublicOmics():
     database    = "eDiVa_public_omics"
     dbhost      = "mysqlsrv-ediva.linux.crg.es"
     passw       = "FD5KrT3q"
+    
+    ## DB parameters
+    username = 'edivapublic';
+    database = 'eDiVa_annotation';
+    dbhost = 'mysqlsrv-ediva.linux.crg.es';
+    passw = 'x86d2k1B';
      
     db = MySQLdb.connect(host=dbhost, # your host, usually localhost
     user=username, # your username
@@ -357,6 +363,12 @@ def edivaPublicOmics_search(chr_,pos):
     database    = "eDiVa_public_omics"
     dbhost      = "mysqlsrv-ediva.linux.crg.es"
     passw       = "FD5KrT3q"
+    
+    ## DB parameters
+    username = 'edivapublic';
+    database = 'eDiVa_annotation';
+    dbhost = 'mysqlsrv-ediva.linux.crg.es';
+    passw = 'x86d2k1B';
     
     db = MySQLdb.connect(host=dbhost, # your host
     user=username, # your username
@@ -683,6 +695,12 @@ def edivaAnnotation(variants,not_biallelic_variants,sep,missanndb,missanndb_coor
     database    = "eDiVa_annotation"
     dbhost      = "mysqlsrv-ediva.linux.crg.es"
     passw       = "FD5KrT3q"
+    
+    ## DB parameters
+    username = 'edivapublic';
+    database = 'eDiVa_annotation';
+    dbhost = 'mysqlsrv-ediva.linux.crg.es';
+    passw = 'x86d2k1B';
     
     ## open DB connection
     db = MySQLdb.connect(host=dbhost, # your host, usually localhost
