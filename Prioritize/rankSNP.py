@@ -4,7 +4,8 @@ import pprint
 import argparse
 import csv
 import re
-
+import os
+import sys
 ### Note header
 #[   'Chr',
 #    'Position',
