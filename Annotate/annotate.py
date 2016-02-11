@@ -403,6 +403,6 @@ else:
 end = time.time()
 py_time = end-start
 if len(csvfile)>1 and os.path.isfile(csvfile):
-    mailCmd = 'python '+ mailer_path +' -s /home/rrahman/soft/python-mailer/rank.html '+ str(csvfile) +' Ranking'
+    mailCmd = 'python '+ mailer_path +' -s /home/rrahman/soft/python-mailer/annotation.html '+ str(csvfile) +' Ranking'
     print mailCmd
     os.system(mailCmd)
