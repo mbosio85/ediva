@@ -309,9 +309,8 @@ else:
                     annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
                     edivaannotationtoprint = ediva.get(key,"NA")
                     #print edivaannotationtoprint
-                    edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
-                    write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+edivaannotationtoprint+sep+
-                          edivapublicanntoprint)
+                    #edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
+                    write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+edivaannotationtoprint)
                     write_str.replace('\n','')
                     ANN.write(write_str+'\n')
             else:
