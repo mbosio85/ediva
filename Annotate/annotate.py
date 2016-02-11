@@ -53,6 +53,7 @@ fileSuffix      = fileSuffix.replace('.','_')
 
 ## ANNOVAR settings
 ANNOVAR         = "/users/GD/tools/eDiVaCommandLine/lib/Annovar"
+ANNOVARWEB      ="/home/rrahman/soft/Annovar"
 TABIX           = "PATH=$PATH:/users/GD/tools/tabix/"
 ##############################################################################################
 ## INPUT PARSE - ANNOVAR CONFIGURATION CHECK - OUTPUT CREATION
@@ -61,7 +62,7 @@ TABIX           = "PATH=$PATH:/users/GD/tools/tabix/"
 parser_ = {"geneDef": geneDef, "type": type_var,"infile":infile,
            "onlygenic":onlygenic,"qlookup":qlookup,
            "forcedel":forceDel,"gtmode":gtMode,
-           "templocation":templocation,"help":help_}# Arguments of the input parser
+           "templocation":templocation,"help":help_,"csvfile":''}# Arguments of the input parser
 mailer_path='/home/rrahman/soft/python-mailer/pymailer.py'
 
 parser_ = annotate_support_functions.input_parse(parser_)
@@ -74,9 +75,11 @@ onlygenic       = parser_["onlygenic"]
 forceDel        = parser_["forcedel"]
 qlookup         = parser_["qlookup"]
 templocation    = parser_["templocation"]
-
+csvfile         = parser_["csvfile"]
 try:
-    (vcftoAnn,genicAnn) = annotate_support_functions.annovar_check(ANNOVAR)
+    if os.path.isdir(ANNOVARWEB):
+        ANNOVAR = ANNOVARWEB
+        (vcftoAnn,genicAnn) = annotate_support_functions.annovar_check(ANNOVAR)
 except IOError:
     sys.exit(1)
 
@@ -400,7 +403,7 @@ else:
 
 end = time.time()
 py_time = end-start
-if len(parser_.csvfile)>1 and os.path.isfile(args.csvfile):
-    mailCmd = 'python '+ mailer_path +' -s /home/rrahman/soft/python-mailer/rank.html '+ str(args.csvfile) +' Ranking'
-    #print mailCmd
+if len(csvfile)>1 and os.path.isfile(csvfile):
+    mailCmd = 'python '+ mailer_path +' -s /home/rrahman/soft/python-mailer/rank.html '+ str(csvfile) +' Ranking'
+    print mailCmd
     os.system(mailCmd)

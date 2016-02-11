@@ -85,7 +85,8 @@ def input_parse(defaults):
         parser_["qlookup"] = args.qlookup
     if args.templocation:
         parser_["templocation"] = args.templocation
-        
+    if args.csvfile:
+	parser_["csvfile"] = args.csvfile
 
     ### check mandatory command line parameters and take necessary actions
     if  len(parser_["infile"] )==0 and parser_["qlookup"] == "NA":
