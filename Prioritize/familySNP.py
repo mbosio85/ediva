@@ -643,10 +643,11 @@ def main (args):
         worksheet = xls.add_worksheet(sheet_name)
         row_xls=0
         fh.seek(0)
-        username    = "edivacrg"
-        database    = "eDiVa_annotation"
-        dbhost      = "mysqlsrv-ediva.linux.crg.es"
-        passw       = "FD5KrT3q"
+        ## DB parameters
+        username = 'edivapublic';
+        database = 'eDiVa_annotation';
+        dbhost = 'mysqlsrv-ediva.linux.crg.es';
+        passw = 'x86d2k1B';
          
         db = MySQLdb.connect(host=dbhost, # your host, usually localhost
         user=username, # your username
