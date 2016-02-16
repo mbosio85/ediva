@@ -239,7 +239,7 @@ def out_file_generate(infile,qlookup,templocation,forceDel,tempfile,MAF):
     print("MESSAGE :: Your annotated file is: %s"%(outFile))
     if MAF ==0:
 	print("MESSAGE :: Your sorted annotated file is: %s" %(sortedOutFile))
-	print("MESSAGE :: Reported non bi-allelic sites are in: %s" %(outFileIns))
+	#print("MESSAGE :: Reported non bi-allelic sites are in: %s" %(outFileIns))
     return(outFile,sortedOutFile,outFileIns,templocation) ## files to write annotation
 
 ##############################################################################################
@@ -714,11 +714,11 @@ def edivaAnnotation(variants,not_biallelic_variants,sep,missanndb,missanndb_coor
         
     ## end of if-else for variant decision  
     # extract db result
-    print("\t Running ediva annotation with %d non biallelic variants:"%(len(not_biallelic_variants.items())))
-    for k, v in (not_biallelic_variants.items() ) :
-        ediva=query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel)					
-        ## end of while on not_biallelic_variants                                 
-    ## close DB connection
+    #print("\t Running ediva annotation with %d non biallelic variants:"%(len(not_biallelic_variants.items())))
+    #for k, v in (not_biallelic_variants.items() ) :
+    #    ediva=query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel)					
+    #    ## end of while on not_biallelic_variants                                 
+    ### close DB connection
     db.close()
     return ediva
 
@@ -1240,7 +1240,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
 				    afs=['.']*len(alts)
 				    
 				## process each alteration allele
-				for j in range(0,len(alts)):
+				for j in range(0,1):##,len(alts)):
 					al = alts[j]
 					alfr = afs[j]
 					(variants,not_biallelic_variants,samples) = process_fileline(infile,myline,ref,al,alfr,variants,not_biallelic_variants,samples,type_in,gtMode,j)

@@ -176,26 +176,65 @@ if qlookup == "NA":
         
         if MAF ==0 :
             ANN.write(headerOutputFile+'\n')
-            ## write data lines to main output file
-            for key, value in variants.items(): 
-                (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
-                annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
-                edivaannotationtoprint = ediva.get(key,"NA")
-                #print edivaannotationtoprint
-                annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA")
-                samplewiseinfortoprint = samples.get(key,"NA")
-                #edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
-                # write annotation to file
-    
-                write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
+            counter= 0
+            for line in FL:
+                if counter==0 :
+                    if line.startswith('#'):
+                        pass
+                    else:
+                        counter +=1
+                else:
+                    fields = line.strip().split('\t')                    
+                    (chr_col,position,ref,alt) = [fields[0],fields[1],fields[3],fields[4]]
+                    alt= alt.split(',')[0]
+                    if len(ref)+len(alt)>2:
+                        ## indel then recover the key
+                        hash_ref = hashlib.md5(str(ref).encode())
+                        hash_alt = hashlib.md5(str(alt).encode())
+                        token_ref = str(struct.unpack('<L', hash_ref.digest()[:4])[0])
+                        token_alt = str(struct.unpack('<L', hash_alt.digest()[:4])[0])
+                        key=';'.join((chr_col,position,token_ref,token_alt))
+                    else:
+                        key=';'.join((chr_col,position,ref,alt))
+                    if variants.get(key,False):
+                        (chr_col,position,ref,alt,aftoprint,qual,filter_) = variants.get(key,"NA").split(';')
+                    elif not_biallelic_variants.get(key,False):
+                        (chr_col,position,ref,alt,aftoprint,qual,filter_) = not_biallelic_variants.get(key2,"NA").split(';')
+                    else:
+                        print ';'.join((chr_col,position,ref,alt))
+                        raise
+                    annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
+                    ### now get the info from ediva annotatio and annovar annotation
+                    edivaannotationtoprint = ediva.get(key,"NA")
+                    annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA")
+                    samplewiseinfortoprint = samples.get(key,"NA")
+                    write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
                            qual+sep+filter_+sep+
                            aftoprint+sep+                   
                            annovarannotationtoprint+sep+edivaannotationtoprint+sep+samplewiseinfortoprint)
                           #edivapublicanntoprint+sep+samplewiseinfortoprint)
-    
-                write_str.replace('\n','')
-    
-                ANN.write(write_str+'\n')
+                    write_str.replace('\n','')
+                    ANN.write(write_str+'\n')
+            #### write data lines to main output file
+            ##for key, value in variants.items(): 
+            ##    (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
+            ##    annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
+            ##    edivaannotationtoprint = ediva.get(key,"NA")
+            ##    #print edivaannotationtoprint
+            ##    annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA")
+            ##    samplewiseinfortoprint = samples.get(key,"NA")
+            ##    #edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
+            ##    # write annotation to file
+            ##
+            ##    write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
+            ##               qual+sep+filter_+sep+
+            ##               aftoprint+sep+                   
+            ##               annovarannotationtoprint+sep+edivaannotationtoprint+sep+samplewiseinfortoprint)
+            ##              #edivapublicanntoprint+sep+samplewiseinfortoprint)
+            ##
+            ##    write_str.replace('\n','')
+            ##
+            ##    ANN.write(write_str+'\n')
         else:
             maf_separator='\t'
             counter= 0
@@ -235,41 +274,43 @@ if qlookup == "NA":
                     write_str.replace('\n','')
                     ANN.write(write_str+'\n')
 
-    if MAF ==0:
-        with open(outFileIns,'w+') as ANNINS:
-            ## write header for inconsistent file
-            headerOutputFile = annotate_support_functions.getHeaderIns(headers)
-        
-            print "MESSAGE :: Writing annotation to output file %s" % (outFileIns)
-            ANNINS.write(headerOutputFile+'\n')
-            ## write data lines to main output file
-            for key, value in not_biallelic_variants.items(): 
-                edivaannotationtoprint,annovarannotationtoprint,samplewiseinfortoprint = ("NA","NA","NA")
-                edivapublicanntoprint = "NA,NA"
-                (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
-                edivaannotationtoprint = ediva.get(key,"NA")
-                samplewiseinfortoprint = samples.get(key,"NA")
-                #edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
-                ## write annotation to fileprint
-                
-                write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
-                           qual+sep+filter_+sep+
-                           aftoprint+sep+
-                           annovarannotationtoprint+sep+edivaannotationtoprint+sep+samplewiseinfortoprint)
-                           #edivapublicanntoprint+sep+samplewiseinfortoprint)
-                write_str.replace('\n','')
-                ANNINS.write(write_str+'\n')
-    
+    #if MAF ==0:
+    #    with open(outFileIns,'w+') as ANNINS:
+    #        ## write header for inconsistent file
+    #        headerOutputFile = annotate_support_functions.getHeaderIns(headers)
+    #    
+    #        print "MESSAGE :: Writing annotation to output file %s" % (outFileIns)
+    #        ANNINS.write(headerOutputFile+'\n')
+    #        ## write data lines to main output file
+    #        for key, value in not_biallelic_variants.items(): 
+    #            edivaannotationtoprint,annovarannotationtoprint,samplewiseinfortoprint = ("NA","NA","NA")
+    #            edivapublicanntoprint = "NA,NA"
+    #            (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
+    #            edivaannotationtoprint = ediva.get(key,"NA")
+    #            samplewiseinfortoprint = samples.get(key,"NA")
+    #            #edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
+    #            ## write annotation to fileprint
+    #            
+    #            write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
+    #                       qual+sep+filter_+sep+
+    #                       aftoprint+sep+
+    #                       annovarannotationtoprint+sep+edivaannotationtoprint+sep+samplewiseinfortoprint)
+    #                       #edivapublicanntoprint+sep+samplewiseinfortoprint)
+    #            write_str.replace('\n','')
+    #            ANNINS.write(write_str+'\n')
+    #
     if MAF ==0:## sort the file
-        srtCmm = "sort -k1,1 -n -k2,2 --field-separator=, %s > %s " %(outFile,SortedoutFile)
-        subprocess.call(srtCmm,shell=True)
+        mvCmm  = 'mv %s %s'%(outFile,SortedoutFile)
+        subprocess.call(mvCmm,shell=True)
+        #srtCmm = "sort -k1,1 -n -k2,2 --field-separator=, %s > %s " %(outFile,SortedoutFile)
+        #subprocess.call(srtCmm,shell=True)
     ## writing completed
     print "MESSAGE :: Writing annotation completed "
     print "MESSAGE :: Your annotated file is %s " %(outFile)
     
     if MAF ==0:
         print "MESSAGE :: Your sorted annotated file is %s "%(SortedoutFile)
-        print "MESSAGE :: Reported non bi-allelic sites are in %s " %(outFileIns)
+        #print "MESSAGE :: Reported non bi-allelic sites are in %s " %(outFileIns)
     ## Finalize everything
     print "MESSAGE :: Finalizing annotation process "
     annotate_support_functions.finalize(templocation,fileSuffix)
