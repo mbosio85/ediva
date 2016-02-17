@@ -145,6 +145,8 @@ def process_config_file(text):
     picard=""
     bedtools=""
     exome=""
+    bedtools=""
+    fastqc=""
     ##now actually parse them from config file
     with open(text) as oldconfig:  
         for line in oldconfig:
@@ -188,9 +190,18 @@ def process_config_file(text):
                 bedtools     = splitline[1].rstrip()
                 
             elif splitline[0] == 'EXOME':
-                exome        = splitline[1].rstrip()                  
+                exome        = splitline[1].rstrip()
+                
+            elif splitline[0] == 'FASTQC':
+                fastqc = splitline[1].rstrip()
+                
+                
+            elif splitline[0] == 'BEDTOOLS':
+                bedtools = splitline[1].rstrip()
+                
     return{"installdir":installdir,"ref_genome":ref_genome,"shore_ref":shore_ref,"dbindel":dbindel,"dbsnp":dbsnp, "bwa":bwa,
-           "gatk":gatk,"samtools":samtools,"novosort":novosort,"clindel":clindel,"picard":picard,"bedtools":bedtools,"exome":exome}
+           "gatk":gatk,"samtools":samtools,"novosort":novosort,"clindel":clindel,"picard":picard,"bedtools":bedtools,"exome":exome,
+           "bedtools":bedtools,"fastqc":fastqc}
 
 
 def parse_config_file():
@@ -533,6 +544,8 @@ def write_header(script,in_paths,in_vars):
         BEDTOOLS={0[bedtools]}
         CLINDEL={0[clindel]}
         EXOME={0[exome]}
+        BEDTOOLS={0[bedtools]}
+        FASTQC={0[fastqc]}
         #TMPDIR={0[outfolder]}/{0[sdir]}       
     """.format(value_dictionary))
 
@@ -1020,6 +1033,23 @@ def fusevariants_pipelne(script,in_paths,in_vars):
     script.write(text)
     return text
 
+
+def quality_control(script):
+    text =""
+    text = """## QUALITY CONTROL
+    %s $EDIVA/Predict/quality_control.py \
+   -bamfile $OUTF/$NAME.realigned.dm.recalibrated.bam \
+  -bedfile $EXOME \
+  --output $OUTF/QualityControl/ \
+  --samtools $SAMTOOLS \
+  --bedtools $BEDTOOLS \
+  --fastqc $FASTQC \
+  --read1 $READ1 \
+  --read2 $READ2 \
+  --gatk  $OUTF/SNP_Intersection/report.all.txt
+    """%(python_path)
+    script.write(text)
+    return text
 
 def cleanup(script,in_paths,in_vars):
     text="""CLEANUP

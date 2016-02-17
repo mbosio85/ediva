@@ -76,7 +76,7 @@ if commandLine:
 else:
     ### Gather and parse input file
     parsed_config   = prediction_support_functions.parse_config_file()
-    
+
     #load infolder
     infolder  = prediction_support_functions.get_path("Please insert the path where your input files are located:%s"%(cursor),0)
     infolder +='/'
@@ -200,11 +200,22 @@ for full_sample in samples:
             pipe.append(p_element)
         pipeline_element.save_pipeline(pipe,script_name+'.pipe')
         
+        
+
+        text = prediction_support_functions.quality_control(script)
+        p_element = pipeline_element.pipeline_element(env_var+text,"QualityControl")
+        p_element.set_error("Error in Quality Control executions Please refer to SGE job error file")
+        pipe.append(p_element)
+        pipeline_element.save_pipeline(pipe,script_name+'.pipe')
+        
+        
         text = prediction_support_functions.cleanup(script,parsed_config,sample_info)
         p_element = pipeline_element.pipeline_element(env_var+ text,"Cleanup intermediate files")
         p_element.set_error("Error in cleanup phase, reefer to SGE job error file")
         pipe.append(p_element)
         
+        
+        pipeline_element.save_pipeline(pipe,script_name+'.pipe')
 out_name=outfolder+'/'+ qsub_name +'.qlist'
 try:
     print "Now I'm saving the queue list in %s file"%(out_name)

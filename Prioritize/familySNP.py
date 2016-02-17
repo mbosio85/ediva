@@ -89,6 +89,7 @@ def main (args):
     # read the gene exclusion list
     # an empty set will not filter out anything, if gene exclusion list is not provided
     genes2exclude = set()
+    genes_known   = set()
     if args.geneexclusion:
         for gene in args.geneexclusion:
             gene = gene.rstrip()
@@ -106,6 +107,7 @@ def main (args):
                 if line in genes2exclude:
                     genes2exclude.remove(line)
                     print 'Removing %s from black list'%line
+                genes_known.add(line)
 
         
     # read family relationships
@@ -168,9 +170,9 @@ def main (args):
     
     header.append('inheritance')
     header.append('filter')
+    header.append('known')
     #header.extend(['OMIM_name','OMIM_ID','clinical_significance', 'disease_name', 'clinical_review',' access_number'])
     outfiltered.writerow(header)
-    
     out.writerow(header)
 
     
@@ -233,10 +235,14 @@ def main (args):
         
         # check, if gene is on the gene exclusion list.
         genenames = set()
-        if args.geneexclusion:
-            genecolumn   = re.sub('\(.*?\)','',line[index_gene])
-            genenames = set(genecolumn.split(';'))
+        genecolumn   = re.sub('\(.*?\)','',line[index_gene])
+        genenames = set(genecolumn.split(';'))
         
+    
+        if len(genes_known & genenames) >0:
+            known= 'yes'
+        else:
+            known = 'no'
         judgement = int()
         ###
         # look for de novo variants
@@ -248,9 +254,10 @@ def main (args):
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
                 line.append('exclusionlist')
+                line.append(known)
                 out.writerow(line)
                 continue
-            
+
             # check before all others, if variant locates to simple tandem repeat region
             elif judgement == 1 and not tandem == 'NA':
                 line.append('denovo')
@@ -265,20 +272,25 @@ def main (args):
                         if (line[index_segdup] == '0'):
                             line.append('denovo')
                             line.append('pass')
+                            line.append(known)
                             out.writerow(line)
                             outfiltered.writerow(line)
                 # e.g. intronic variants fitting the criteria
                         else:
                             line.append(args.inheritance)
                             line.append('filtered')
+                            line.append(known)
                             out.writerow(line)
                     else:
                         line.append(args.inheritance)
                         line.append('filtered')
+                        line.append(known)
+                        line.append(known)
                         out.writerow(line)
                 else:
                     line.append(args.inheritance)
                     line.append('filtered')
+                    line.append(known)
                     out.writerow(line)
                 continue
             
@@ -286,6 +298,7 @@ def main (args):
             elif judgement == 1 and MAF > 0.01:
                 line.append('denovo')
                 line.append('filtered')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -294,6 +307,7 @@ def main (args):
                 line.append('NOT_' + args.inheritance)
                 #line.append('bad_inheritance')
                 line.append('filtered')
+                line.append(known)
                 out.writerow(line)
                 continue
         
@@ -307,6 +321,7 @@ def main (args):
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
                 line.append('exclusionlist')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -314,6 +329,7 @@ def main (args):
             elif judgement == 1 and not tandem == 'NA':
                 line.append('dominant')
                 line.append('tandem')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -323,20 +339,24 @@ def main (args):
                         if (line[index_segdup] == '0'):
                             line.append('dominant')
                             line.append('pass')
+                            line.append(known)
                             out.writerow(line)
                             outfiltered.writerow(line)
                 # e.g. intronic variants fitting the criteria
                         else:
                             line.append(args.inheritance)
                             line.append('filtered')
+                            line.append(known)
                             out.writerow(line)
                     else:
                         line.append(args.inheritance)
                         line.append('filtered')
+                        line.append(known)
                         out.writerow(line)
                 else:
                     line.append(args.inheritance)
                     line.append('filtered')
+                    line.append(known)
                     out.writerow(line)
                 continue
             
@@ -344,6 +364,7 @@ def main (args):
             elif judgement == 1 and MAF > 0.05:
                 line.append('dominant')
                 line.append('filtered')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -352,6 +373,7 @@ def main (args):
                 line.append('NOT_' + args.inheritance)
                 #line.append('bad_inheritance')
                 line.append('filtered')
+                line.append(known)
                 out.writerow(line)
                 continue
         
@@ -365,6 +387,7 @@ def main (args):
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
                 line.append('exclusionlist')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -372,6 +395,7 @@ def main (args):
             elif judgement == 1 and not tandem == 'NA':
                 line.append('recessive')
                 line.append('tandem')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -382,19 +406,23 @@ def main (args):
                         if (line[index_segdup] == '0'):
                             line.append('recessive')
                             line.append('pass')
+                            line.append(known)
                             out.writerow(line)
                             outfiltered.writerow(line)
                 # e.g. intronic variants fitting the criteria
                         else:
                             line.append(args.inheritance)
                             line.append('filtered')
+                            line.append(known)
                             out.writerow(line)
                     else:
                         line.append(args.inheritance)
                         line.append('filtered')
+                        line.append(known)
                         out.writerow(line)
                 else:
                     line.append(args.inheritance)
+                    line.append(known)
                     line.append('filtered_index')
                     out.writerow(line)
                 continue
@@ -403,6 +431,7 @@ def main (args):
             elif judgement == 1 and MAF > 0.03:
                 line.append('recessive')
                 line.append('filtered')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -411,6 +440,7 @@ def main (args):
                 line.append('NOT_' + args.inheritance)
                 #line.append('bad_inheritance')
                 line.append('filtered')
+                line.append(known)
                 out.writerow(line)
                 continue
         
@@ -433,6 +463,7 @@ def main (args):
             if not args.familytype == 'trio':
                 line.append('Trio_only')
                 line.append('filtered')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -440,6 +471,7 @@ def main (args):
             elif len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
                 line.append('exclusionlist')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -447,6 +479,7 @@ def main (args):
             elif judgement == 1 and not tandem == 'NA':
                 line.append('Xlinked')
                 line.append('tandem')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -456,20 +489,24 @@ def main (args):
                         if (line[index_segdup] == '0'):
                             line.append('Xlinked')
                             line.append('pass')
+                            line.append(known)
                             out.writerow(line)
                             outfiltered.writerow(line)
                 # e.g. intronic variants fitting the criteria
                         else:
                             line.append(args.inheritance)
                             line.append('filtered')
+                            line.append(known)
                             out.writerow(line)
                     else:
                         line.append(args.inheritance)
                         line.append('filtered')
+                        line.append(known)
                         out.writerow(line)
                 else:
                     line.append(args.inheritance)
                     line.append('filtered')
+                    line.append(known)
                     out.writerow(line)
                 continue
             
@@ -477,6 +514,7 @@ def main (args):
             elif judgement == 1 and MAF > 0.01:
                 line.append('Xlinked')
                 line.append('filtered')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -484,6 +522,7 @@ def main (args):
                 line.append('NOT_' + args.inheritance)
                 #line.append('bad_inheritance')
                 line.append('filtered')
+                line.append(known)
                 out.writerow(line)
                 continue
         
@@ -514,25 +553,32 @@ def main (args):
             if len(old_gene_set - new_gene_set) > 0:
                 
                 #pp.pprint(['old: ', old_gene, 'new: ',new_gene, 'orig: ', line[index_gene]])
-                
+
                 comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-                if len(compound_gene_storage) == 1:
-                    compound_gene_storage[0].append('NOT_compound')
-                    compound_gene_storage[0].append('filtered')
-                    out.writerow(compound_gene_storage[0]) # there is only one line
-                
-                elif comp_judgement == 1:
-                    for row in compound_gene_storage:
-                        row.append('compound')
-                        row.append('pass')
-                        out.writerow(row)
-                        outfiltered.writerow(row)
-                        
+                extension = []
+                pass_ = 0
+                if len(compound_gene_storage) == 1: extension.extend(['NOT_compound','filtered'])
                 else:
+                    extension.append('compound')
+                    if comp_judgement==1:
+                        extension.append('pass')
+                        pass_ = 1
+                    else:
+                        extension.append('filtered')                
+
                     for row in compound_gene_storage:
-                        row.append('compound')
-                        row.append('filtereds')#
+                        genecolumn2   = re.sub('\(.*?\)','',row[index_gene])
+                        genenames2 = set(genecolumn2.split(';'))
+                        
+                        if len(genes_known & genenames2) >0:
+                            known= 'yes'
+                        else:
+                            known = 'no'
+                        row.extend(extension)
+                        row.append(known)
                         out.writerow(row)
+                        if pass_>0:outfiltered.writerow(row)
+
                 # reset values
                 compound_gene_storage = []
                 old_gene     = new_gene
@@ -547,12 +593,14 @@ def main (args):
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
                 line.append('exclusionlist')
+                line.append(known)
                 out.writerow(line)
             
             # check before all others, if variant locates to simple tandem repeat region
             elif judgement == 1 and not tandem == 'NA':
                 line.append('compound')
                 line.append('tandem')
+                line.append(known)
                 out.writerow(line)
             
             elif judgement == 1 and MAF <= 0.03:
@@ -564,28 +612,33 @@ def main (args):
                             
                         else:
                             line.append(args.inheritance)
-                            line.append('filtered_A')#
+                            line.append('filtered')#
+                            line.append(known)
                             out.writerow(line)
                     else:
                         line.append(args.inheritance)
-                        line.append('filtered_B')#
+                        line.append('filtered')#
+                        line.append(known)
                         out.writerow(line)
                 else:
                     line.append(args.inheritance)
-                    line.append('filtered_C')#
+                    line.append('filtered')#
+                    line.append(known)
                     out.writerow(line)
                 
             
             # fits inheritance, but is too frequent in the population
             elif judgement == 1 and MAF > 0.03:
                 line.append('compound')
-                line.append('filtered_D')#
+                line.append('filtered')#
+                line.append(known)
                 out.writerow(line)
             
             # does not fit anything
             else:
                 line.append('NOT_' + args.inheritance)
-                line.append('filtered_E')
+                line.append('filtered')
+                line.append(known)
                 out.writerow(line)
     
     else:
@@ -593,23 +646,35 @@ def main (args):
         if args.inheritance == 'compound':
             
             comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-            
-            if len(compound_gene_storage) == 1:
-                compound_gene_storage[0].append('NOT_compound')
-                compound_gene_storage[0].append('filtered')
-                out.writerow(compound_gene_storage[0])
-            
-            elif comp_judgement == 1:
-                for row in compound_gene_storage:
-                    row.append('compound')
-                    row.append('pass')
-                    out.writerow(row)
-                    outfiltered.writerow(row)
-            else:
-                for row in compound_gene_storage:
-                    row.append('compound')
-                    row.append('filtered')#
-                    out.writerow(row)
+            genecolumn   = re.sub('\(.*?\)','',line[index_gene])
+            genenames = set(genecolumn.split(';'))
+        
+            if len(old_gene_set - new_gene_set) > 0:
+                
+                #pp.pprint(['old: ', old_gene, 'new: ',new_gene, 'orig: ', line[index_gene]])
+                comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
+                extension = []
+                pass_ = 0
+                if len(compound_gene_storage) == 1: extension.extend(['NOT_compound','filtered'])
+                else:
+                    extension.append('compound')
+                    if comp_judgement==1:
+                        extension.append('pass')
+                        pass_ = 1
+                    else:
+                        extension.append('filtered')                
+                    for row in compound_gene_storage:
+                        genecolumn2   = re.sub('\(.*?\)','',row[index_gene])
+                        genenames2 = set(genecolumn2.split(';'))
+                        
+                        if len(genes_known & genenames2) >0:
+                            known= 'yes'
+                        else:
+                            known = 'no'
+                        row.extend(extension)
+                        row.append(known)
+                        out.writerow(row)
+                        if pass_>0:outfiltered.writerow(row)
         
      ### write an xls output
     if writeXLS == True:

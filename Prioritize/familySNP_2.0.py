@@ -478,7 +478,7 @@ def xlinked(sampledata, family,names):
 
     return(judgement)
 
-def check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered,compound_gene_storage=None):
+def check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered,known,compound_gene_storage=None):
     (index_MAF1k,index_MAFevs,index_MAF_exac,index_function,index_varfunction,index_segdup,index_gene,index_str,index_qual)=indexes
     
     ##MAF as maximum 1000G EVS and EXAC    
@@ -503,16 +503,19 @@ def check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,jud
     if len(genes2exclude & genenames) > 0:
         line.append('NOT_' + args.inheritance)
         line.append('exclusionlist')
+        line.append(known)
         out.writerow(line)
         return 
     if judgement ==1 and float(line[index_qual] ) < 10:
         line.append(args.inheritance)
         line.append('filtered QUAL')
+        line.append(known)
         out.writerow(line)
     # check before all others, if variant locates to simple tandem repeat region
     elif judgement == 1 and not tandem == 'NA':
         line.append(args.inheritance)
         line.append('filtered tandem')
+        line.append(known)
         out.writerow(line)
         return 
     
@@ -524,6 +527,7 @@ def check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,jud
                     if args.inheritance != 'compound':
                         line.append(args.inheritance)
                         line.append('pass')
+                        line.append(known)
                         outfiltered.writerow(line)
                         out.writerow(line)
                     else:
@@ -537,18 +541,21 @@ def check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,jud
                     # e.g. variant in seg dup area
                     line.append(args.inheritance)
                     line.append('filtered seg_dup')
+                    line.append(known)
                     out.writerow(line)
                     return
             else:
                 # e.g. var function synonimous 
                 line.append(args.inheritance)
                 line.append('filtered varfunction')
+                line.append(known)
                 out.writerow(line)
                 return
         else:
             # e.g. intronic variants fitting the criteria
             line.append(args.inheritance)
             line.append('filtered non coding')
+            line.append(known)
             out.writerow(line)
             return
         return 
@@ -557,6 +564,7 @@ def check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,jud
     elif judgement == 1 and MAF > MAF_threshold:
         line.append(args.inheritance)
         line.append('filtered MAF too high')
+        line.append(known)
         out.writerow(line)
         return 
 
@@ -565,6 +573,7 @@ def check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,jud
         line.append('NOT_' + args.inheritance)
         #line.append('bad_inheritance')
         line.append('filtered')
+        line.append(known)
         out.writerow(line)
         return        
     
@@ -708,6 +717,7 @@ if __name__=='__main__':
     # read the gene exclusion list
     # an empty set will not filter out anything, if gene exclusion list is not provided
     genes2exclude = set()
+    genes_known   = set()
     if args.geneexclusion:
         for gene in args.geneexclusion:
             gene = gene.rstrip()
@@ -725,6 +735,7 @@ if __name__=='__main__':
                 if line in genes2exclude:
                     genes2exclude.remove(line)
                     print 'Removing %s from black list'%line
+                    genes_known.add(line)
 
         
     # read family relationships
@@ -790,6 +801,7 @@ if __name__=='__main__':
     
     header.append('inheritance')
     header.append('filter')
+    header.append('known')
     #header.extend(['OMIM_name','OMIM_ID','clinical_significance', 'disease_name', 'clinical_review',' access_number'])
     outfiltered.writerow(header)
     
@@ -824,9 +836,13 @@ if __name__=='__main__':
         
         # check, if gene is on the gene exclusion list.
         genenames = set()
-        if args.geneexclusion:
-            genecolumn   = re.sub('\(.*?\)','',line[index_gene])
-            genenames = set(genecolumn.split(';'))
+        genecolumn   = re.sub('\(.*?\)','',line[index_gene])
+        genenames = set(genecolumn.split(';'))
+        
+        if len(genes_known & genenames) >0:
+            known= 'yes'
+        else:
+            known = 'no'
         
         judgement = int()
         ###
@@ -835,21 +851,21 @@ if __name__=='__main__':
         if args.inheritance == 'dominant_denovo':
             MAF_threshold=0.01
             judgement = denovo(sampledata, family,names)
-            check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered)      
+            check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered,known)      
         ###
         # look for familial dominant variants. (being tolerant for missing values)
         ###
         elif args.inheritance == 'dominant_inherited':
             MAF_threshold=0.05
             judgement = dominant(sampledata, family,names)
-            check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered)
+            check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered,known)
         ###
         # look for recessive variants (be aware of trio and family inheritance)
         ###
         elif args.inheritance == 'recessive':
             MAF_threshold=0.03
             judgement = recessive(sampledata, family, args.familytype,names)
-            check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered)
+            check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered,known)
             
         ###
         # look for X linked recessive variants in trios
@@ -865,9 +881,10 @@ if __name__=='__main__':
                 if not args.familytype == 'trio':
                     line.append('Trio_only')
                     line.append('filtered')
+                    line.append(known)
                     out.writerow(line)
                 else:
-                    check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered)
+                    check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered,known)
 
         ###
         # look for compound heterozygous variants
@@ -896,25 +913,32 @@ if __name__=='__main__':
             if len(old_gene_set - new_gene_set) > 0:
                 
                 #pp.pprint(['old: ', old_gene, 'new: ',new_gene, 'orig: ', line[index_gene]])
-                
+
                 comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-                if len(compound_gene_storage) == 1:
-                    compound_gene_storage[0].append('NOT_compound')
-                    compound_gene_storage[0].append('filtered')
-                    out.writerow(compound_gene_storage[0]) # there is only one line
-                
-                elif comp_judgement == 1:
-                    for row in compound_gene_storage:
-                        row.append('compound')
-                        row.append('pass')
-                        out.writerow(row)
-                        outfiltered.writerow(row)
-                        
+                extension = []
+                pass_ = 0
+                if len(compound_gene_storage) == 1: extension.extend(['NOT_compound','filtered'])
                 else:
+                    extension.append('compound')
+                    if comp_judgement==1:
+                        extension.append('pass')
+                        pass_ = 1
+                    else:
+                        extension.append('filtered')                
+
                     for row in compound_gene_storage:
-                        row.append('compound')
-                        row.append('filtered')#
+                        genecolumn2   = re.sub('\(.*?\)','',row[index_gene])
+                        genenames2 = set(genecolumn2.split(';'))
+                        
+                        if len(genes_known & genenames2) >0:
+                            known= 'yes'
+                        else:
+                            known = 'no'
+                        row.extend(extension)
+                        row.append(known)
                         out.writerow(row)
+                        if pass_>0:outfiltered.writerow(row)
+
                 # reset values
                 compound_gene_storage = []
                 old_gene     = new_gene
@@ -923,27 +947,41 @@ if __name__=='__main__':
             
             MAF_threshold=0.03
             judgement = compound(sampledata, family,names)
-            check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered,compound_gene_storage)
+            check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered,known,compound_gene_storage)
                
     else:
         # clean up for last gene
-        if args.inheritance == 'compound':            
+        if args.inheritance == 'compound':
             comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-            if len(compound_gene_storage) == 1:
-                compound_gene_storage[0].append('NOT_compound')
-                compound_gene_storage[0].append('filtered')
-                out.writerow(compound_gene_storage[0])            
-            elif comp_judgement == 1:
-                for row in compound_gene_storage:
-                    row.append('compound')
-                    row.append('pass')
-                    out.writerow(row)
-                    outfiltered.writerow(row)
-            else:
-                for row in compound_gene_storage:
-                    row.append('compound')
-                    row.append('filtered')#
-                    out.writerow(row)
+            genecolumn   = re.sub('\(.*?\)','',line[index_gene])
+            genenames = set(genecolumn.split(';'))
+        
+            if len(old_gene_set - new_gene_set) > 0:
+                
+                #pp.pprint(['old: ', old_gene, 'new: ',new_gene, 'orig: ', line[index_gene]])
+                comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
+                extension = []
+                pass_ = 0
+                if len(compound_gene_storage) == 1: extension.extend(['NOT_compound','filtered'])
+                else:
+                    extension.append('compound')
+                    if comp_judgement==1:
+                        extension.append('pass')
+                        pass_ = 1
+                    else:
+                        extension.append('filtered')                
+                    for row in compound_gene_storage:
+                        genecolumn2   = re.sub('\(.*?\)','',row[index_gene])
+                        genenames2 = set(genecolumn2.split(';'))
+                        
+                        if len(genes_known & genenames2) >0:
+                            known= 'yes'
+                        else:
+                            known = 'no'
+                        row.extend(extension)
+                        row.append(known)
+                        out.writerow(row)
+                        if pass_>0:outfiltered.writerow(row)
         
     
     ### write an xls output
