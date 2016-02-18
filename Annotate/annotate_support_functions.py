@@ -988,8 +988,10 @@ def process_line(myline,i,adindex,gtindex,dpindex,gqindex):
         ## for missing genotype or homozygous reference genotype set the AF to 0
         if gtindex != "NF":	genotype = gts[gtindex]
         else: 			genotype = "."
-	if dpindex != "NF":	DP = gts[dpindex]
-	else : 			DP='0'
+	if dpindex != "NF" and dpindex<len(gts):
+	    DP = gts[dpindex]
+	else :
+	    DP='0'
 	try:
 	    if gqindex != "NF" and len(gts)>gqindex:GQ = gts[gqindex]
 	    else : 			GQ='0'

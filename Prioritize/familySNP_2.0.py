@@ -245,11 +245,13 @@ def dominant(sampledata, family,names):
     
     judgement = 0
     sample_annot_size = len(sampledata)/len(names)
+    total_affected =0
     for i in range(0,sample_annot_size*len(names),sample_annot_size):
+        
         sam = samples[i]
         features    = samples[i:i+sample_annot_size]#sam.split(':')
         name        = names[i/sample_annot_size]
-
+        total_affected =+ int(family[name])
         # check if sample is found in pedigree
         try:
             family[name]
@@ -291,7 +293,7 @@ def dominant(sampledata, family,names):
         ## escape element
         if judgement==0:
             break
-    
+    if total_affected ==1: judgement = 0 #because it's a denovo
     for vals in check_samples.values():
        if vals == 0:
             judgement = 0

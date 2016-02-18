@@ -317,6 +317,15 @@ def main (args):
         elif args.inheritance == 'dominant_inherited':
 
             judgement = dominant(sampledata, family,names)
+            sample_annot_size = len(sampledata)/len(names)
+            total_affected=0
+            for i in range(0,sample_annot_size*len(names),sample_annot_size):                
+                sam = sampledata[i]
+                features    = sampledata[i:i+sample_annot_size]#sam.split(':')
+                name        = names[i/sample_annot_size]
+                total_affected += int(family[name] )
+            if total_affected==1:judgement *=0 #denovo mutation excluded       
+
             # exclude gene, if it is on the exclusion list
             if len(genes2exclude & genenames) > 0:
                 line.append('NOT_' + args.inheritance)
