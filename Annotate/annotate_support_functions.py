@@ -1036,6 +1036,7 @@ def check_for_genotype(chr_col,position,token_ref,token_obs,sample_info,gtMode,s
 def process_fileline(infile,myline,ref,al,alfr,variants,not_biallelic_variants,samples,type_in,gtMode,j):
     ## decide for variant type
     chr_col     = myline[0]
+    if chr_col.startswith('chr') or chr_col.startswith('Chr'):chr_col=chr_col[3:]
     position    = myline[1]
     qual        = myline[5]
     filter_	    = myline[6]
@@ -1187,6 +1188,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
                                 print "ERROR:: Not a valid VCF format \n 866"
                                 raise IOError
                         chr_col     = myline[0]
+			if chr_col.startswith('chr') or chr_col.startswith('Chr'):chr_col=chr_col[3:]
                         position    = myline[1]
                         ref         = myline[3]
                         alt         = myline[4]

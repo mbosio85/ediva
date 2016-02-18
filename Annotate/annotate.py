@@ -186,6 +186,7 @@ if qlookup == "NA":
                 else:
                     fields = line.strip().split('\t')                    
                     (chr_col,position,ref,alt) = [fields[0],fields[1],fields[3],fields[4]]
+                    if chr_col.startswith('chr') or chr_col.startswith('Chr'):chr_col=chr_col[3:]
                     alt= alt.split(',')[0]
                     if len(ref)+len(alt)>2:
                         ## indel then recover the key
@@ -255,6 +256,7 @@ if qlookup == "NA":
                         (chr_col,position,ref,alt) = [fields[4],fields[5],fields[10],fields[12]]
                     else:
                         (chr_col,position,ref,alt) = [fields[4],fields[5],fields[10],fields[11]]
+                    if chr_col.startswith('chr') or chr_col.startswith('Chr'):chr_col=chr_col[3:]
                     if len(ref)+len(alt)>2:
                         ## indel then recover the key
                         hash_ref = hashlib.md5(str(ref).encode())
