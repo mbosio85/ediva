@@ -221,13 +221,13 @@ def main (args):
         
         # read sample names and according zygosity NOW IT's a LIST
         sampledata = line[index_sample:index_sample+sample_annot_size*len(family.keys())]
-        
 
         if len(sampledata)==0:
             print line
             print len(line)
             raise
         elif sampledata[0] =='0':
+            print len(line)
             print line
             raise
         # read simple tandem repeat information

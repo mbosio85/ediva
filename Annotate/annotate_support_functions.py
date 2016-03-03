@@ -33,6 +33,7 @@ g_str = 'Gene deifnition you want to select for genic annotation (ensGene,refGen
 v_str = 'Type of variants to annotate from input VCF file (SNP,INDEL,all) \n\t\t\t default: all'
 s_str = ('complete: reports all genotypes from the input VCF file\n\t\t\t compact: reports only '+
 		 'heterozygous and homozygous alteration genotypes from the input VCF file \n\t\t\t '+
+		 'vcflike: sample information is stored all in one column divided by ":" \n\t\t\t '+
 		 'none: exclude sample wise genotype information in annotation \n\t\t\t default: complete')
 o_str = 'If set, then only genic annotation will be performed'
 f_str = 'If set, then it will over-write existing output annotation file with the same name '
@@ -109,7 +110,7 @@ def input_parse(defaults):
         usage()
         sys.exit()
     ### final check of sample genotype mode type
-    if parser_["gtmode"]!= "complete" and parser_["gtmode"] != "compact" and parser_["gtmode"] != "none":
+    if parser_["gtmode"]!= "complete" and parser_["gtmode"] != "compact" and parser_["gtmode"] != "vcflike" and parser_["gtmode"] != "none":
         print "\nWARNING :: Not a valid sample genptype mode value. Please select a correct value and if you are not sure then use the default settings !\n";
         usage()
         sys.exit()
@@ -272,7 +273,7 @@ def preparemissdb(sep):
     missanndbindel       = 'NA'
     
     missandb = missandb + (sep+"0")*9
-    missandb = missandb + (sep+"NA")*18#It was 14!! remember this because we changed it to include segrepeat and EIGEN
+    missandb = missandb + (sep+"NA")*16#It was 14!! remember this because we changed it to include segrepeat and EIGEN
     missandb_coordinate = missandb_coordinate + (sep+"NA")*10
     missanndbindel = missanndbindel + (sep+"0")*8
     #print missandb
@@ -447,8 +448,8 @@ def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,ex
     repeat_region_info = sep.join(temp[-2:])
     ediva[k]=sep.join(temp[:-2])
 	
-    ## add NAs for damage potential scores for indels
-    ediva[k] +=((sep+ "NA")*8)
+    ## add NAs for damage potential scores for indels and ABB score Now just for SNPs
+    ediva[k] +=((sep+ "NA")*8+sep+'0')
     if exac_value != None:
 	#there is a result:
 	for ex_element in exac_value:
@@ -523,7 +524,8 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         ifnull(varinfo.cadd1,'NA'),
         ifnull(varinfo.cadd2,'NA'),
 	ifnull(eigen.Eigen_raw,'NA'),
-	ifnull(eigen.Eigen_phred,'NA'),"""
+	ifnull(eigen.Eigen_phred,'NA'),
+	ifnull(abb.ABB_score,'0'),"""
         
     exac_query="""  SELECT ifnull(exac.AF,'0'),
                     ifnull(exac.AF_adj,'0'),
@@ -559,9 +561,11 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         FROM Table_Chr%s as varinfo
         LEFT JOIN eDiVa_public_omics.Table_simpleRepeat AS simplerep ON (
             varinfo.chromosome = simplerep.chr AND
-            varinfo.position = simplerep.pos
+            varinfo.position = simplerep.pos AND
+	    varinfo.position = '%s'
+	    
         )        
-        WHERE varinfo.position = '%s' LIMIT 1;"""%(chr_col,pos)
+        WHERE varinfo.position = '%s' LIMIT 1;"""%(chr_col,pos,pos)
 	exac_sql=""
         exac_sql=exac_query + """
         FROM `exac_indel` as exac WHERE exac.indelid= '%s' LIMIT 1;"""%(k)
@@ -603,16 +607,22 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
             varinfo.chromosome = eigen.chromosome AND
             varinfo.position = eigen.position AND
 	    varinfo.Reference = eigen.Reference AND
-            varinfo.Alt = eigen.Alt )
+            varinfo.Alt = eigen.Alt AND
+	    varinfo.position = '%s')
+	LEFT JOIN eDiVa_public_omics.ABB_score AS abb ON(
+            varinfo.chromosome = abb.chr AND
+            varinfo.position = abb.pos
+	)
         LEFT JOIN eDiVa_public_omics.Table_simpleRepeat AS simplerep ON (
             varinfo.chromosome = simplerep.chr AND
             varinfo.position = simplerep.pos
         )
-        """%(chr_col) + stringent
+        """%(chr_col,pos) + stringent
+	#print sql
+
         sql = sql.replace('\n',' ')
         sql = sql.replace('\t',' ')
         cur = db.cursor()
-	#print sql
 	#raise
     
         cur.execute(sql)        
@@ -645,12 +655,17 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
             varinfo.chromosome = eigen.chromosome AND
             varinfo.position = eigen.position AND
 	    varinfo.Reference = eigen.Reference AND
-            varinfo.Alt = eigen.Alt )
+            varinfo.Alt = eigen.Alt AND
+	    varinfo.position = '%s' )
+	LEFT JOIN eDiVa_public_omics.ABB_score AS abb ON(
+            varinfo.chromosome = abb.chr AND
+            varinfo.position = abb.pos
+	)
         LEFT JOIN eDiVa_public_omics.Table_simpleRepeat AS simplerep ON (
             varinfo.chromosome = simplerep.chr AND
             varinfo.position = simplerep.pos
         )
-        """%(chr_col) + broad
+        """%(chr_col,pos) + broad
 	    #print sql
         #if (len(res) > 1):
         #    # load ediva hash from database
@@ -676,7 +691,8 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
             else:
                 ## handle missing database annotation entry
                 ediva[k]=missanndb
-                ediva[k]+= ((sep+ "0")*9)
+                ediva[k]+= ((sep+ "0")*10)# ABB +EXAC
+		ediva[k] += ((sep + "NA")*2) #Tandem repeat
 
     return ediva
 
@@ -873,7 +889,7 @@ def header_defaults():
 		 'Total1000GenomesFrequency','SegMentDup','PlacentalMammalPhyloP','PrimatesPhyloP',
 		 'VertebratesPhyloP','PlacentalMammalPhastCons','PrimatesPhastCons',
 		 'VertebratesPhastCons','Score1GERP++','Score2GERP++','SIFTScore',
-		 'polyphen2','MutAss','Condel','Cadd1','Cadd2', 'Eigen_raw','Eigen_Phred',
+		 'polyphen2','MutAss','Condel','Cadd1','Cadd2', 'Eigen_raw','Eigen_Phred','ABB_score',
 		 'ExAC_AF','ExAC_adjusted_AF','ExAC_AFR','ExAC_AMR','ExAC_EAS',
 		 'ExAC_FIN','ExAC_NFE','ExAC_OTH','ExAC_SAS']
     repeat_fields=[	'SimpleTandemRepeatRegion','SimpleTandemRepeatLength']
@@ -883,7 +899,7 @@ def header_defaults():
     annot=['Function','Gene','ExonicFunction','AminoAcidChange']
     return (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_head)
 ## subroutnine por providing header to the main annotation output file
-def getHeader(onlygenic,geneDef,headers):
+def getHeader(onlygenic,geneDef,headers,gtMode):
     stringTOreturn=""
     (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_haed)=header_defaults()
     if (onlygenic):
@@ -916,7 +932,9 @@ def getHeader(onlygenic,geneDef,headers):
     stringTOreturn=stringTOreturn.replace(sep,sep+'#')
     if len(headers)>9:
 	#stringTOreturn+=sep+sep.join(headers[9:])
-	stringTOreturn+=sep+sep.join([sep.join([x,'DP','REF','ALT','AF','GQ']) for x in headers[9:]])
+	if gtMode =='vcflike': sep_sample = ':'
+	else: sep_sample=sep
+	stringTOreturn+=sep+sep.join([sep_sample.join([x,'DP','REF','ALT','AF','GQ']) for x in headers[9:]])
     else:
 	stringTOreturn+=sep+'samples'
     stringTOreturn.replace('\n','') 
@@ -1016,6 +1034,11 @@ def samples_fill(samples,gtMode,s_key,s_val,genotype):
             samples[s_key] += ","+s_val
         else:
             samples[s_key] = s_val
+    elif gtMode == "vcflike":
+	if (samples.get(s_key,False)):
+            samples[s_key] += ","+s_val.replace(',',':')
+        else:
+            samples[s_key] = s_val.replace(',',':')
     else: ## compact
         ## kick out genotypes of '0/0','./.','0|0' and '.|.'
         if genotype != '0/0' and genotype != './.' and genotype != '.|.' and genotype != '0|0':
@@ -1184,7 +1207,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
 		    pass #this are gvcf lines including not relevant annotations
 		else: ## data lines
                         var_counter +=1
-                        myline = line.rstrip('\n').split('\t')
+                        myline = line.rstrip('\n').rstrip('\t').split('\t')
                         ## check for malformed VCF file and take action
                         if (len(myline) < 8):
                                 print "ERROR:: Not a valid VCF format \n 866"
@@ -1292,7 +1315,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
             with open(qlookup) as FL:
                 for line in FL:
 		    if MAF ==0:
-			var = line.rstrip('\n').split(':')
+			var = line.rstrip('\n').rstrip('\t').split(':')
 		    else:
 			if counter==0  :
 			    if not(line.startswith('#')): 

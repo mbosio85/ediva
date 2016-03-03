@@ -172,7 +172,7 @@ if qlookup == "NA":
     ## open file handler
     with open(outFile,'w+') as ANN, open(infile) as FL:
         ## write header to output file
-        headerOutputFile = annotate_support_functions.getHeader(onlygenic,geneDef,headers)
+        headerOutputFile = annotate_support_functions.getHeader(onlygenic,geneDef,headers,gtMode)
         
         if MAF ==0 :
             ANN.write(headerOutputFile+'\n')
@@ -245,7 +245,12 @@ if qlookup == "NA":
                         ANN.write(line)
                     else:
                         counter +=1
+                        
                         headerOutputFile=headerOutputFile.split(sep)[7:-1]
+                        annovar_head = headerOutputFile[:4]
+                        headerOutputFile= headerOutputFile[4:]
+                        headerOutputFile.extend(annovar_head)
+                        print headerOutputFile
                         missing_entry =maf_separator.join(["NA"]*(len(headerOutputFile)-4)) #compensates for Annovar header
                         headerOutputFile = maf_separator.join(headerOutputFile)
                         ANN.write(line.strip()+maf_separator+headerOutputFile+'\n')
@@ -267,6 +272,7 @@ if qlookup == "NA":
                     else:
                         key=';'.join((chr_col,position,ref,alt))
                     annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
+                    
                     ### now get the info from ediva annotatio and annovar annotation
                     edivaannotationtoprint = ediva.get(key,missing_entry).replace(sep,maf_separator)
                     annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA").replace(sep,maf_separator)
