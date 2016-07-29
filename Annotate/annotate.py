@@ -202,12 +202,14 @@ if qlookup == "NA":
                     elif not_biallelic_variants.get(key,False):
                         (chr_col,position,ref,alt,aftoprint,qual,filter_) = not_biallelic_variants.get(key2,"NA").split(';')
                     else:
+			print 'skipping',
                         print ';'.join((chr_col,position,ref,alt))
-                        raise
+                        continue
                     annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
                     ### now get the info from ediva annotatio and annovar annotation
                     edivaannotationtoprint = ediva.get(key,"NA")
                     annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA")
+                    #print Annovar.keys()
                     samplewiseinfortoprint = samples.get(key,"NA")
                     write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
                            qual+sep+filter_+sep+

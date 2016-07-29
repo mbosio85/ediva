@@ -745,6 +745,8 @@ def edivaAnnotation(variants,not_biallelic_variants,sep,missanndb,missanndb_coor
 
 def fill_annovar(FILE,Annovar, geneDef, comparison):
     '''Run Annovar for annotate variants and fill the data dictionary'''
+
+
     with open(FILE) as FILE_pointer:
 	chr_idx = 26
 	pos_idx = 27
@@ -756,16 +758,19 @@ def fill_annovar(FILE,Annovar, geneDef, comparison):
 	AAC_idx =3
         for line in FILE_pointer:
             if (line.startswith("Func")):
-		fields = line.strip().split(',')
-		#look for indexes positions
-		chr_idx = fields.index('Chr')
-		pos_idx = fields.index('Start')
-		ref_idx = fields.index('Ref')
-		alt_idx = fields.index('Obs')
-		func_idx= fields.index('Func')
-		gene_idx= fields.index('Gene')
-		exf_idx =fields.index('ExonicFunc')
-		AAC_idx =fields.index('AAChange')
+		#fields = line.strip().split(',')
+		##look for indexes positions
+		#chr_idx = fields.index('Chr')
+		#pos_idx = fields.index('Start')
+		#ref_idx = fields.index('Ref')
+		#alt_idx = fields.index('Obs')
+		#func_idx= fields.index('Func')
+		#gene_idx= fields.index('Gene')
+		#exf_idx =fields.index('ExonicFunc')
+		#AAC_idx =fields.index('AAChange')
+		#print alt_idx
+		#print '.....'
+		pass
 	    else:
                 newAnnovarLine = replaceCommainQoute(line)
                 fields = newAnnovarLine.rstrip('\n').split(',')
@@ -777,7 +782,6 @@ def fill_annovar(FILE,Annovar, geneDef, comparison):
 		chr_=chr_.replace('Chr','')
                 valueTOmatch = chr_+";"+fields[pos_idx]+";"+fields[ref_idx]+";"+fields[alt_idx]
                 valueTOmatch=valueTOmatch.replace('"','')
-
                 ## fix missing values
                 if len(fields[func_idx])==0:
                     fields[func_idx] = 'NA'
@@ -1172,7 +1176,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
     allowed_chr = list()
     for i in range(23):
 	allowed_chr.append(str(i+1))
-    allowed_chr+=(['X','Y','x','y'])
+    allowed_chr+=(['X','Y','x','y','mt','MT'])
     skipped_chr = list()
     db = 'temp.sqlite'#/tmp/test.sqlite'
     variants = dict()
