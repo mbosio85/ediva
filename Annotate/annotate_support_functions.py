@@ -1176,7 +1176,7 @@ def vcf_processing(infile,qlookup,gtMode,type_in):
     allowed_chr = list()
     for i in range(23):
 	allowed_chr.append(str(i+1))
-    allowed_chr+=(['X','Y','x','y','mt','MT'])
+    allowed_chr+=(['X','Y','x','y'])
     skipped_chr = list()
     db = 'temp.sqlite'#/tmp/test.sqlite'
     variants = dict()
