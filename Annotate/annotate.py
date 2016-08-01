@@ -164,6 +164,7 @@ else:
     print 'threading done'
 
 
+
 ## join spawned threads
 ## write annotation to file or ender output
 if qlookup == "NA":
@@ -179,7 +180,8 @@ if qlookup == "NA":
             counter= 0
             for line in FL:
                 if counter==0 :
-                    if line.startswith('#'):
+		    
+                    if line.startswith('##'):
                         pass
                     else:
                         counter +=1
@@ -209,7 +211,10 @@ if qlookup == "NA":
                     ### now get the info from ediva annotatio and annovar annotation
                     edivaannotationtoprint = ediva.get(key,"NA")
                     annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA")
-                    #print Annovar.keys()
+                    
+		   
+	          
+		 
                     samplewiseinfortoprint = samples.get(key,"NA")
                     write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
                            qual+sep+filter_+sep+
