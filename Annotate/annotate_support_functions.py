@@ -756,6 +756,7 @@ def fill_annovar(FILE,Annovar, geneDef, comparison):
 	gene_idx= 1
 	exf_idx =2
 	AAC_idx =3
+	done  = []
         for line in FILE_pointer:
             if (line.startswith("Func")):
 		#fields = line.strip().split(',')
@@ -793,11 +794,15 @@ def fill_annovar(FILE,Annovar, geneDef, comparison):
                     fields[AAC_idx] = 'NA'
                 annToPass = fields[func_idx]+","+fields[gene_idx]+","+fields[exf_idx]+","+fields[AAC_idx]
                 annToPass  =annToPass.replace('"','')
-                if geneDef == comparison:
-                    Annovar[valueTOmatch] = annToPass   # Fill the Annovar Dictionary with values and keys
-                else:
-                    Annovar[valueTOmatch] = Annovar[valueTOmatch]+ "," + annToPass
-	#
+		if valueTOmatch in done:
+		    pass
+		    #print valueTOmatch
+		else:
+		    if geneDef == comparison:
+			Annovar[valueTOmatch] = annToPass   # Fill the Annovar Dictionary with values and keys
+		    else:
+			Annovar[valueTOmatch] = Annovar[valueTOmatch]+ "," + annToPass
+		    done.append(valueTOmatch)
 	#	print "\n "
 	#	print line
 	#    	print valueTOmatch
