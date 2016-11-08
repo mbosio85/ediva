@@ -388,7 +388,7 @@ def edivaPublicOmics_search(chr_,pos):
 
     return out
 #@@ Done
-def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,exac_value= None):
+def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,exac_value= None,clinvar_value=None):
     ''' Processes the database entry, fetching values and output the annotated line'''
     if res is None:
         res = list()
@@ -459,11 +459,21 @@ def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,ex
     else:
 	ediva[k] += ((sep+ "0")*9)
 	
+    ## Clinvar part
+    if clinvar_value != None:
+	#there is a result:
+	for ex_element in clinvar_value:
+	    
+	    ediva[k] += (sep+str(ex_element))
+	
+    else:
+	ediva[k] += ((sep+ "NA")*2)
+	
     ediva[k]+=sep+repeat_region_info
     
     return ediva
 
-def ediva_reselement(ediva,k,res,sep,exac_value=None):
+def ediva_reselement(ediva,k,res,sep,exac_value=None,clinvar_value=None):
     '''Populate the ediva annotation dictionary '''
     if ediva.get(k,False):
 	pass
@@ -484,7 +494,17 @@ def ediva_reselement(ediva,k,res,sep,exac_value=None):
 	else:
 	    for ex_element in exac_value:
 		ediva[k] += (sep+str(ex_element))
-	##aggregate repeat region info after the exac value
+	## Clinvar part
+	if clinvar_value != None:
+	    #there is a result:
+	    for ex_element in clinvar_value:
+		
+		ediva[k] += (sep+str(ex_element))
+	    
+	else:
+	    ediva[k] += ((sep+ "NA")*2)
+		
+	##aggregate repeat region info after the exac value and clinvar
 	ediva[k]+=sep+repeat_region_info	
     return ediva
 
@@ -536,6 +556,8 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
                     ifnull(exac.AF_NFE,'0'),
                     ifnull(exac.AF_OTH,'0'),
                     ifnull(exac.AF_SAS,'0')"""
+    clivar_query=""" SELECT ifnull(clinvar.clinical_significance,'NA'),
+		     ifnull(clinvar.access_number,'NA') """
                     
     repeat_query="""
                     ifnull(simplerep.lengthofrepeat,'NA'),
@@ -570,7 +592,13 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         exac_sql=exac_query + """
         FROM `exac_indel` as exac WHERE exac.indelid= '%s' LIMIT 1;"""%(k)
 
-        
+	clinvar_sql=clivar_query +  """
+            FROM eDiVa_annotation.Table_clinvar as clinvar WHERE clinvar.chr = '%s'
+            AND clinvar.pos = %s AND clinvar.ref = '%s'
+            AND clinvar.alt = '%s'
+            LIMIT 1;"""%(chr_col,pos,ref,alt)
+	    
+	
         ## prepare statement and query#######################
 	#print sql2
 	#raise
@@ -580,9 +608,12 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         sql2 = sql2.replace('\t',' ')
         exac_sql = exac_sql.replace('\n',' ')
         exac_sql = exac_sql.replace('\t',' ')
+        clinvar_sql = clinvar_sql.replace('\n',' ')
+        clinvar_sql = clinvar_sql.replace('\t',' ')
         cur = db.cursor()
         cur2 = db.cursor()
         exac_cur=db.cursor()
+	clinvar_cur=db.cursor()
         cur.execute(sql)
         res = cur.fetchone()
         cur.close()
@@ -591,11 +622,18 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         res2 = cur2.fetchone()
         cur2.close()
         
+	
         #exac query execution
         exac_cur.execute(exac_sql)
         exac_result= exac_cur.fetchone()
         exac_cur.close()
-        ediva  = process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,exac_result)
+	
+	#clinvar query execution
+	clinvar_cur.execute(clinvar_sql)
+	clinvar_result = clinvar_cur.fetchone()
+	clinvar_cur.close()
+	
+        ediva  = process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,exac_result,clinvar_result)
     else:    
         stringent= """ WHERE varinfo.position = %s AND varinfo.Reference = '%s' AND
 	varinfo.Alt = '%s'
@@ -644,9 +682,24 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         exac_cur.execute(exac_sql)
         exac_result= exac_cur.fetchone()
         exac_cur.close()
+	
+	
+	clinvar_sql=clivar_query +  """
+            FROM eDiVa_annotation.Table_clinvar as clinvar WHERE clinvar.chr = '%s'
+            AND clinvar.pos = %s AND clinvar.ref = '%s'
+            AND clinvar.alt = '%s'
+            LIMIT 1;"""%(chr_col,pos,ref,alt)
+        clinvar_sql = clinvar_sql.replace('\n',' ')
+        clinvar_sql = clinvar_sql.replace('\t',' ')
+        clinvar_cur=db.cursor()
+	#print exac_sql
+        clinvar_cur.execute(clinvar_sql)
+        clinvar_result= clinvar_cur.fetchone()
+        clinvar_cur.close()
+	    
         if (len(res) > 1):
             # load ediva hash from database
-            ediva =  ediva_reselement(ediva,k,res,sep,exac_result)
+            ediva =  ediva_reselement(ediva,k,res,sep,exac_result,clinvar_result)
         else:
             #Less stringent search driven only by chr and position
             sql = step1_common_items + snp_1_specific+ step2_common_items +snp_ending +  repeat_query + """
@@ -687,12 +740,12 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
             cur.close()           
             if (len(res) > 1):
                 # load ediva hash from database
-                ediva =  ediva_reselement(ediva,k,res,sep,exac_result)
+                ediva =  ediva_reselement(ediva,k,res,sep,exac_result,clinvar_result)
             else:
                 ## handle missing database annotation entry
                 ediva[k]=missanndb
                 ediva[k]+= ((sep+ "0")*10)# ABB +EXAC
-		ediva[k] += ((sep + "NA")*2) #Tandem repeat
+		ediva[k] += ((sep + "NA")*4) #Clinvar+Tandem repeat
 
     return ediva
 
@@ -900,7 +953,7 @@ def header_defaults():
 		 'VertebratesPhastCons','Score1GERP++','Score2GERP++','SIFTScore',
 		 'polyphen2','MutAss','Condel','Cadd1','Cadd2', 'Eigen_raw','Eigen_Phred','ABB_score',
 		 'ExAC_AF','ExAC_adjusted_AF','ExAC_AFR','ExAC_AMR','ExAC_EAS',
-		 'ExAC_FIN','ExAC_NFE','ExAC_OTH','ExAC_SAS']
+		 'ExAC_FIN','ExAC_NFE','ExAC_OTH','ExAC_SAS','Clinvar Significance','Clinvar ID']
     repeat_fields=[	'SimpleTandemRepeatRegion','SimpleTandemRepeatLength']
     ensembl_annot=['Function(Ensembl)','Gene(Ensembl)','ExonicFunction(Ensembl)','AminoAcidChange(Ensembl)']
     refseq_annot =['Function(Refseq)','Gene(Refseq)','ExonicFunction(Refseq)','AminoAcidChange(Refseq)']
@@ -1142,6 +1195,10 @@ def process_fileline(infile,myline,ref,al,alfr,variants,not_biallelic_variants,s
 		 ## if sample wise information is present in the VCF then process ; otherwise skip
 		 ## also check for none value in genotype mode parameter
 		if (len(myline) > 8) and (gtMode != "none"):
+		    s_key =chr_col+';'+position+';'+token_ref+';'+token_obs
+		    if (samples.get(s_key,False)):
+			samples[s_key]=""
+			
 		    for i in range(9,len(myline)):
 			#(genotype,dpref,dpalt,samAf,GQ) = process_line(myline,i,adindex,gtindex)
 			sample_info = process_line(myline,i,adindex,gtindex,dpindex,gqindex)
@@ -1163,6 +1220,9 @@ def process_fileline(infile,myline,ref,al,alfr,variants,not_biallelic_variants,s
 		not_biallelic_variants[ chr_col+';'+position+';'+ref+';'+al] = chr_col+';'+position+';'+ref+';'+al+';'+alfr+';'+qual+';'+filter_
 	## if sample wise information is present in the VCF then process ; otherwise skip
 	## also check for none value in genotype mode parameter
+		s_key =chr_col+';'+position+';'+ref+';'+al
+		if (samples.get(s_key,False)):
+		    samples[s_key]=""
 	    if len(myline) > 8 and gtMode != "none":
 		for i in range(9,len(myline)):
 		    sample_info = process_line(myline,i,adindex,gtindex,dpindex,gqindex)

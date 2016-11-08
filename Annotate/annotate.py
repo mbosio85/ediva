@@ -210,8 +210,10 @@ if qlookup == "NA":
                     annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
                     ### now get the info from ediva annotatio and annovar annotation
                     edivaannotationtoprint = ediva.get(key,"NA")
-                    annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA")
-                    
+                    if type_var != 'all':
+                        annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA")
+                    else:
+                        annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*11+"NA")
 		   
 	          
 		 
@@ -282,8 +284,11 @@ if qlookup == "NA":
                     
                     ### now get the info from ediva annotatio and annovar annotation
                     edivaannotationtoprint = ediva.get(key,missing_entry).replace(sep,maf_separator)
-                    annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA").replace(sep,maf_separator)
-                    #print edivaannotationtoprint
+                    if type_var != 'all':
+                        annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA").replace(sep,maf_separator)
+                    else:
+                        annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*11+"NA").replace(sep,maf_separator)
+                                        #print edivaannotationtoprint
                     #edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA").replace(sep,maf_separator)
                     write_str=(line.strip() + maf_separator + edivaannotationtoprint +maf_separator +annovarannotationtoprint)
                     write_str.replace('\n','')

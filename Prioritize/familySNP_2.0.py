@@ -239,26 +239,28 @@ def dominant(sampledata, family,names):
     all_samples = dict()
     samples = sampledata#.split(';')
     check_samples = dict()
-    
+
     for samp in family.keys():
          check_samples[samp] = 0
     
     judgement = 0
     sample_annot_size = len(sampledata)/len(names)
     total_affected =0
+    #print 'start'
     for i in range(0,sample_annot_size*len(names),sample_annot_size):
         
         sam = samples[i]
+        
         features    = samples[i:i+sample_annot_size]#sam.split(':')
         name        = names[i/sample_annot_size]
-        total_affected =+ int(family[name])
+        total_affected += int(family[name])
+        
         # check if sample is found in pedigree
         try:
             family[name]
         except:
             # if not found, go on to next sample
-            print family
-            
+            print family            
             continue
         
         if len(features)>=3:
@@ -288,11 +290,20 @@ def dominant(sampledata, family,names):
         else: #'./.' or weirdos
             if family[name] =='0':  judgement = 0
             else:                   judgement = 0
-                
+        #print zygosity
+        #print family[name]
+        #print name
+        
         judgement *= evaluate_genotype_quality(zygosity,refcoverage,altcoverage,'dominant_inherited')
         ## escape element
         if judgement==0:
             break
+    
+    #print len(samples)
+    #print total_affected
+    #print sample_annot_size
+    #print family
+    #print samples
     if total_affected ==1: judgement = 0 #because it's a denovo
     for vals in check_samples.values():
        if vals == 0:
@@ -501,6 +512,8 @@ def check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,jud
         print ('Freq error 1k %s EVS %s ExAC %s')%(MAF1k,MAFevs,MAFexac)
         MAF    = 0
     tandem = line[index_str]
+    if line[index_qual]=='.':
+       line[index_qual] = '10'
     #Exclusion list check    
     if len(genes2exclude & genenames) > 0:
         line.append('NOT_' + args.inheritance)
@@ -586,7 +599,17 @@ def evaluate_genotype_quality(zygosity,refcoverage,altcoverage,inheritance):
     if refcoverage == '.' or refcoverage == '' or altcoverage==',' or altcoverage== '':
         return 1
     # if we don't have information about coverage we trust the genotyping.
-    ref =int(refcoverage)
+    
+    try:
+        ref =int(refcoverage)
+
+    except:
+        
+        print refcoverage
+        print zygosity
+        print altcoverage
+        print inheritance
+        raise
     alt =int(altcoverage)
     
     ### inheritnace based:
@@ -604,39 +627,39 @@ def evaluate_genotype_quality(zygosity,refcoverage,altcoverage,inheritance):
 
     elif inheritance == 'dominant_denovo':
         if zygosity == '0/0':
-            if ref+alt >=8 and alt <=1 : return 1
+            if ref+alt >=8 and alt <=1 : return 1 # 8,1
             else: return 0
         elif zygosity == '0/1':
-            if alt >=5 and float(alt)/(ref+alt)>= 0.2: return 1
+            if alt >=3 and float(alt)/(ref+alt)>= 0.2: return 1 # 5, 0.2
             else :  return 0
         elif zygosity == '1/1':
-            if alt >=5 and float(alt)/(ref+alt)> 0.9: return 1
+            if alt >=3 and float(alt)/(ref+alt)> 0.6: return 1 # 5, 0.9
             else: return 0
         else :
             return 1
     
     elif inheritance == 'dominant_inherited':
         if zygosity == '0/0':
-            if ref+alt >=8 and alt <=1 : return 1
+            if ref+alt >=3 and alt <=2 : return 1 #8 ,1
             else: return 0
         elif zygosity == '0/1':
-            if alt >=5 and float(alt)/(ref+alt)>= 0.2: return 1
+            if alt >=5 and float(alt)/(ref+alt)>= 0.2: return 1 # 5 0.2
             else :  return 0
         elif zygosity == '1/1':
-            if alt >=5 and float(alt)/(ref+alt)> 0.9: return 1
+            if alt >=5 and float(alt)/(ref+alt)> 0.3: return 1 # 5 0.9
             else: return 0
         else :
             return 1
     
     elif inheritance == 'compound':
         if zygosity == '0/0':
-            if ref+alt >=8 and alt <=1 : return 1
+            if ref+alt >=8 and alt <=1 : return 1  # 8, 1
             else: return 0
         elif zygosity == '0/1':
-            if ref+alt >=6 and ref >= 2 and alt >= 2: return 1
+            if ref+alt >=6 and ref >= 2 and alt >= 2: return 1 # 6 2,2
             else :  return 0
         elif zygosity == '1/1':
-            if alt >=5 and float(alt)/(ref+alt)> 0.9: return 1
+            if alt >=5 and float(alt)/(ref+alt)> 0.9: return 1 # 5,0.9
             else: return 0
         else :
             return 1
@@ -644,10 +667,10 @@ def evaluate_genotype_quality(zygosity,refcoverage,altcoverage,inheritance):
     elif inheritance == 'compound_denovo':
         #0/1 need for denovo stringency
         if zygosity == '0/0':
-            if ref+alt >=8 and alt <=1 : return 1
+            if ref+alt >=8 and alt <=1 : return 1  # 8, 1
             else: return 0
         elif zygosity == '0/1':
-            if alt >=5 and float(alt)/(ref+alt)>= 0.20: return 1
+            if alt >=2 and float(alt)/(ref+alt)>= 0.20: return 1 #2 and 0.20
             else :  return 0
         elif zygosity == '1/1':
             if alt >=5 and float(alt)/(ref+alt)> 0.9: return 1
@@ -795,7 +818,7 @@ if __name__=='__main__':
     for i in range(index_sample,index_sample+sample_annot_size*len(family.keys()),sample_annot_size):
         names.append(header[i])
 
-    #print header[index_sample]
+    print header[index_sample]
     
     ############
     # both the output file headers should be consistent
@@ -822,11 +845,9 @@ if __name__=='__main__':
             new_gene   = re.sub('\(.*?\)','',line[index_gene])
             new_gene_set = set(new_gene.split(';'))
             initializer = 1
-        
        
         # read sample names and according zygosity NOW IT's a LIST
         sampledata = line[index_sample:index_sample+sample_annot_size*len(family.keys())]
-        
 
         if len(sampledata)==0:
             print line
@@ -858,7 +879,7 @@ if __name__=='__main__':
         # look for familial dominant variants. (being tolerant for missing values)
         ###
         elif args.inheritance == 'dominant_inherited':
-            MAF_threshold=0.05
+            MAF_threshold=0.01#05
             judgement = dominant(sampledata, family,names)
             check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered,known)
         ###
@@ -947,7 +968,7 @@ if __name__=='__main__':
                 old_gene_set = new_gene_set
                 pass
             
-            MAF_threshold=0.03
+            MAF_threshold=0.02
             judgement = compound(sampledata, family,names)
             check_thresholds(args,line,genes2exclude,genenames,indexes,MAF_threshold,judgement,out,outfiltered,known,compound_gene_storage)
                

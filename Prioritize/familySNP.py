@@ -156,6 +156,7 @@ def main (args):
     index_segdup      = identifycolumns(header, 'SegMentDup')
     index_gene        = identifycolumns(header, 'Gene(Refseq)')
     index_str         = identifycolumns(header, 'SimpleTandemRepeatLength')
+    index_CADD        = identifycolumns(header, 'Cadd2')
     #print index_sample
     sample_annot_size = 6 # sampleid - DP - REF - ALT - AF - GQ
     print family.keys()
@@ -218,6 +219,10 @@ def main (args):
         except:
             print ('Freq error 1k %s EVS %s ExAC %s')%(MAF1k,MAFevs,MAFexac)
             MAF    = 0
+        try :
+            CADD = float(line[index_CADD])
+        except:
+            CADD  = 0 
         
         # read sample names and according zygosity NOW IT's a LIST
         sampledata = line[index_sample:index_sample+sample_annot_size*len(family.keys())]
@@ -262,6 +267,14 @@ def main (args):
             elif judgement == 1 and not tandem == 'NA':
                 line.append('denovo')
                 line.append('tandem')
+                out.writerow(line)
+                continue
+            
+            # Exclude non damaging CADD variants            
+            elif judgement == 1 and CADD<=19 and CADD>0 :
+                line.append('dominant')
+                line.append('cadd')
+                line.append(known)
                 out.writerow(line)
                 continue
             
@@ -341,8 +354,16 @@ def main (args):
                 line.append(known)
                 out.writerow(line)
                 continue
+             #Exclude non damaging CADD variants            
+            elif judgement == 1 and CADD<=20 and CADD>0 :
+                line.append('dominant')
+                line.append('cadd')
+                line.append(known)
+                out.writerow(line)
+                continue
             
-            elif judgement == 1 and MAF <= 0.05:
+            
+            elif judgement == 1 and MAF <= 0.01:#0.05
                 if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
                     if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
                         if (line[index_segdup] == '0'):
@@ -370,7 +391,7 @@ def main (args):
                 continue
             
             # fits inheritance, but is too frequent in the population
-            elif judgement == 1 and MAF > 0.05:
+            elif judgement == 1 and MAF > 0.01:#0.05
                 line.append('dominant')
                 line.append('filtered')
                 line.append(known)
@@ -611,8 +632,17 @@ def main (args):
                 line.append('tandem')
                 line.append(known)
                 out.writerow(line)
-            
-            elif judgement == 1 and MAF <= 0.03:
+           
+            ## Exclude non damaging CADD variants            
+            #elif judgement == 1 and CADD<=19 and CADD>0 :
+            #    line.append('dominant')
+            #    line.append('cadd')
+            #    line.append(known)
+            #    out.writerow(line)
+            #    continue
+           
+           
+            elif judgement == 1 and MAF <= 0.02:#0.03
                 if (line[index_function] == 'exonic' or line[index_function] == 'exonic;splicing' or line[index_function] == 'splicing'):
                     if (line[index_varfunction] != 'synonymous SNV' and line[index_varfunction] != 'unknown' and line[index_varfunction] != 'UNKNOWN'):
                         if (line[index_segdup] == '0'):
@@ -621,23 +651,23 @@ def main (args):
                             
                         else:
                             line.append(args.inheritance)
-                            line.append('filtered')#
+                            line.append('filteredsd')#
                             line.append(known)
                             out.writerow(line)
                     else:
                         line.append(args.inheritance)
-                        line.append('filtered')#
+                        line.append('filteredvf')#
                         line.append(known)
                         out.writerow(line)
                 else:
                     line.append(args.inheritance)
-                    line.append('filtered')#
+                    line.append('filteredex')#
                     line.append(known)
                     out.writerow(line)
                 
             
             # fits inheritance, but is too frequent in the population
-            elif judgement == 1 and MAF > 0.03:
+            elif judgement == 1 and MAF > 0.02:#0.03
                 line.append('compound')
                 line.append('filtered')#
                 line.append(known)
@@ -671,7 +701,7 @@ def main (args):
                         extension.append('pass')
                         pass_ = 1
                     else:
-                        extension.append('filtered')                
+                        extension.append('filteredjg')                
                     for row in compound_gene_storage:
                         genecolumn2   = re.sub('\(.*?\)','',row[index_gene])
                         genenames2 = set(genecolumn2.split(';'))
@@ -1039,7 +1069,7 @@ def compoundizer(variantlist, family, index_sample,names):
     judgement = 0
     
     # check line by line, if this variant could support a compound het
-    
+
     for variantline in variantlist:
         
         # produce a list with all the sample data
@@ -1054,6 +1084,7 @@ def compoundizer(variantlist, family, index_sample,names):
         #    judgement = 0
         #    break
         #
+
         for i in range(0,sample_annot_size*len(names),sample_annot_size):
             sam = sampledata[i]
             features    = sampledata[i:i+sample_annot_size]#sam.split(':')
@@ -1069,7 +1100,7 @@ def compoundizer(variantlist, family, index_sample,names):
                 continue
             
             zygosities[name] = zygosity
-        
+
         # check the entered values for possible compound supporters
         # denovo
         if zygosities[name1]   == '0/0' and zygosities[name2] == '0/0':
@@ -1101,20 +1132,23 @@ def compoundizer(variantlist, family, index_sample,names):
             ticker_dict[name1].append(0)
             ticker_dict[name2].append(1)
             pass
-        
-        pass
+        else:
+            pass
     
     #sub_pp.pprint(ticker_dict)
     
     # check if there are enough supporters
     name1_sum = sum(ticker_dict[name1])
     name2_sum = sum(ticker_dict[name2])
+
     
     if (name1_sum + name2_sum) >= 2 and name1_sum >= 1 and name2_sum >= 1:
         judgement = 1
     else:
         judgement = 0
-    
+        
+
+        
     return(judgement)
 
 def denovo(sampledata, family,names):
@@ -1168,8 +1202,11 @@ def denovo(sampledata, family,names):
             continue
         
         # hom ref, not affected - good
-        elif zygosity == '0/0' and family[name] == '0':
-            judgement = 1
+        elif zygosity == '0/0' and family[name] == '0' :
+            if int(altcoverage)<3 : 
+                judgement = 1
+            else :
+                judgement =0
             continue
         
         # heterozygous in non-affected - bad
@@ -1194,9 +1231,9 @@ def denovo(sampledata, family,names):
         elif zygosity == './.' and family[name] == '0':
             
             # if vcf file was not supplemented by pileup data
-            # accept variants which could not be called in the parents
+            # reject it variants which could not be called in the parents
             if refcoverage == '.' or altcoverage == '.' or refcoverage == '' or altcoverage == '':
-                judgement = 1
+                judgement = 0
                 continue
             
             # which chance has the current read distribution to miss out on an alt read
@@ -1240,9 +1277,9 @@ def denovo(sampledata, family,names):
         elif zygosity == './.' and family[name] == '1':
             
             # except if vcf file was not supplemented by pileup data
-            # accept variants which could not be called in the parents
+            # reject variants which could not be called in the parents
             if refcoverage == '.' or altcoverage == '.':
-                judgement = 1
+                judgement = 0
                 continue
             
             # do not be that grateful, if there is coverage data
@@ -1719,5 +1756,8 @@ def xlinked(sampledata, family,names):
             break
 
     return(judgement)
+
+
+
 
 main(args)
