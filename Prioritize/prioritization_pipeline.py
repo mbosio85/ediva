@@ -386,6 +386,12 @@ text= """
     %s $EDIVA/Prioritize/rankSNP.py --infile $OUTF/combined.variants.supplement.sorted.annotated.csv --outfile $OUTF/combined.variants.supplement.ranked.csv
     
     """%(python_path)
+    
+text ="""
+    # rank the variants given
+    Rscript $EDIVA/Prioritize/wrapper_call.R $EDIVA/Prioritize/ediva_score.rds $OUTF/combined.variants.supplement.sorted.annotated.csv  $OUTF/combined.variants.supplement.ranked.csv
+
+    """
 script_content += text
 p_element = pipeline_element.pipeline_element(env_var+text,"Ranking in all family members")
 p_element.set_error("Error in Ranking execution Please refer to SGE job error file")

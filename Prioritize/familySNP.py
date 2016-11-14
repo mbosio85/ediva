@@ -133,7 +133,7 @@ def main (args):
     alldata = list(csv.reader(args.infile))
     
     header = alldata.pop(0)
-    #header =[x.replace('#','',1) for x in header]
+    header =[x.replace('#','',1) for x in header]
     #print header
     #raise
     out         = csv.writer(args.outfile)
@@ -204,8 +204,8 @@ def main (args):
         
         # read minor allele frequencies
         try:
-            MAF1k      = line[index_MAF1k]
-            MAFevs     = line[index_MAFevs]
+            MAF1k      = line[index_MAF1k].replace('NA','0')
+            MAFevs     = line[index_MAFevs].replace('NA','0')
             if 'NA' == line[index_MAF_exac]:
                 MAFexac ='0'
             else:
