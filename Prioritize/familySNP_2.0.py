@@ -698,10 +698,12 @@ if __name__=='__main__':
     import csv
     import pprint
     import re
+    import cPickle as pickle
     from scipy.stats import poisson
     import os
     import MySQLdb
     import shutil
+    import sys
     
     
     try:
@@ -731,7 +733,7 @@ if __name__=='__main__':
     """)
     parser.add_argument('--familytype', choices=['trio', 'family'], dest='familytype', required=True, help="choose if the data you provide is a trio or a larger family")
     parser.add_argument('--geneexclusion',  type=argparse.FileType('r'), dest='geneexclusion', required=False, help='[Analysis of DNA sequence variants detected by high-throughput sequencing; DOI: 10.1002/humu.22035]. [required]')
-    parser.add_argument('--white_list',type=str,dest='white_list',required=False,help='--white_list \t a .txt file with the list of genes known to be relevant for the disease\n')
+    parser.add_argument('--HPO_list','--white_list',type=str,dest='white_list',default=None,required=False,help='--HPO_list \t a .txt file with the list of HPO terms describing the disease. It will be used to flag all genes related to the HPO terms. It works with Refseq and UCSC naming.\n')
     parser.add_argument('--csvfile', dest='csvfile', required=False, help='csv file with username and user email address. [optional]')
     
     
@@ -742,26 +744,32 @@ if __name__=='__main__':
     # read the gene exclusion list
     # an empty set will not filter out anything, if gene exclusion list is not provided
     genes2exclude = set()
-    genes_known   = set()
     if args.geneexclusion:
         for gene in args.geneexclusion:
             gene = gene.rstrip()
             genes2exclude.add(gene)
-
     if args.white_list == None:
         args.white_list = 'None'
+        related_genes=set()
     else:
-        pass
-    if os.path.isfile(args.white_list):
-        
-        with open(args.white_list,'r') as w:
-            for line in w:
-                line = line.rstrip('\n')
-                if line in genes2exclude:
-                    genes2exclude.remove(line)
-                    print 'Removing %s from black list'%line
-                    genes_known.add(line)
-
+        related_genes=set()
+        if os.path.isfile(args.white_list):
+            script_dir = os.path.dirname(sys.argv[0])
+            with open(args.white_list,'r') as w:
+                HPO_dict  = pickle.load(open(script_dir +'/HPO_gene_assiciation.p','rb'))
+                related_genes = list()
+                for line in w:
+                    HPO_term = line.rstrip('\n')
+                    try:
+                        related_genes.extend(HPO_dict[HPO_term])
+                    except:
+                        print '%s not found in database'%(HPO_term)
+        else:
+            print 'The specified HPO list %s is not a valid file'%(args.white_list)
+            print 'eDiVA will proceed as without any HPO list'
+                
+        genes2exclude = set(genes2exclude) - set(related_genes)
+        related_genes= set(related_genes)
         
     # read family relationships
     family = dict()
@@ -826,7 +834,7 @@ if __name__=='__main__':
     
     header.append('inheritance')
     header.append('filter')
-    header.append('known')
+    header.append('Related to HPO')
     #header.extend(['OMIM_name','OMIM_ID','clinical_significance', 'disease_name', 'clinical_review',' access_number'])
     outfiltered.writerow(header)
     
@@ -862,7 +870,7 @@ if __name__=='__main__':
         genecolumn   = re.sub('\(.*?\)','',line[index_gene])
         genenames = set(genecolumn.split(';'))
         
-        if len(genes_known & genenames) >0:
+        if len(related_genes & genenames) >0:
             known= 'yes'
         else:
             known = 'no'
@@ -953,7 +961,7 @@ if __name__=='__main__':
                         genecolumn2   = re.sub('\(.*?\)','',row[index_gene])
                         genenames2 = set(genecolumn2.split(';'))
                         
-                        if len(genes_known & genenames2) >0:
+                        if len(related_genes & genenames2) >0:
                             known= 'yes'
                         else:
                             known = 'no'
@@ -997,7 +1005,7 @@ if __name__=='__main__':
                         genecolumn2   = re.sub('\(.*?\)','',row[index_gene])
                         genenames2 = set(genecolumn2.split(';'))
                         
-                        if len(genes_known & genenames2) >0:
+                        if len(related_genes & genenames2) >0:
                             known= 'yes'
                         else:
                             known = 'no'
