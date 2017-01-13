@@ -389,7 +389,7 @@ def edivaPublicOmics_search(chr_,pos):
 
     return out
 #@@ Done
-def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,exac_value= None,clinvar_value=None):
+def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,exac_value= None,clinvar_value=None,discovEHR_value=None):
     ''' Processes the database entry, fetching values and output the annotated line'''
     if res is None:
         res = list()
@@ -444,6 +444,7 @@ def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,ex
             ediva[k] =   (missanndbindel)
         # take care of missing positional values
         ediva[k] +=(sep+missanndb_coordinate)
+        
     ##extract the repeat region value and id because they go after exac
     temp=ediva[k].split(sep)
     repeat_region_info = sep.join(temp[-2:])
@@ -454,27 +455,30 @@ def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,ex
     if exac_value != None:
         #there is a result:
         for ex_element in exac_value:
-
             ediva[k] += (sep+str(ex_element))
-
     else:
         ediva[k] += ((sep+ "0")*9)
-
+        
+    #discovEHR part 
+    if discovEHR_value != None:
+        #there is a result:
+        for ex_element in discovEHR_value:
+            ediva[k] += (sep+str(ex_element))
+    else:
+        ediva[k] += ((sep+ "0")*1)
+        
     ## Clinvar part
     if clinvar_value != None:
         #there is a result:
         for ex_element in clinvar_value:
-
             ediva[k] += (sep+str(ex_element))
-
     else:
         ediva[k] += ((sep+ "NA")*2)
-
+        
     ediva[k]+=sep+repeat_region_info
-
     return ediva
 
-def ediva_reselement(ediva,k,res,sep,exac_value=None,clinvar_value=None):
+def ediva_reselement(ediva,k,res,sep,exac_value=None,clinvar_value=None,discovEHR_value=None):
     '''Populate the ediva annotation dictionary '''
     if ediva.get(k,False):
         pass
@@ -495,19 +499,33 @@ def ediva_reselement(ediva,k,res,sep,exac_value=None,clinvar_value=None):
         else:
             for ex_element in exac_value:
                 ediva[k] += (sep+str(ex_element))
+                
+        ## discovEHR part
+        if discovEHR_value != None:
+            #there is a result:
+            for ex_element in discovEHR_value:
+                ediva[k] += (sep+str(ex_element))
+        else:
+            ediva[k] += ((sep+ "0")*1)
+            
         ## Clinvar part
         if clinvar_value != None:
             #there is a result:
             for ex_element in clinvar_value:
-
                 ediva[k] += (sep+str(ex_element))
-
         else:
             ediva[k] += ((sep+ "NA")*2)
-
-        ##aggregate repeat region info after the exac value and clinvar
+            
+        ##aggregate repeat region info after the exac value, clinvar and discovEHR
         ediva[k]+=sep+repeat_region_info
     return ediva
+
+def query_launch(sql,db):
+    sql = sql.replace('\n',' ').replace('\t',' ')
+    cur = db.cursor()
+    cur.execute(sql)
+    res = cur.fetchone()
+    return res
 
 #@@ Takes care to do the queries for the ediva database for SNP and INDEl
 #@@ IT calls reselement and process_db_entry to fix the format where needed
@@ -557,9 +575,10 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
                     ifnull(exac.AF_NFE,'0'),
                     ifnull(exac.AF_OTH,'0'),
                     ifnull(exac.AF_SAS,'0')"""
+                    
     clivar_query=""" SELECT ifnull(clinvar.clinical_significance,'NA'),
                      ifnull(clinvar.access_number,'NA') """
-
+    discovEHR_query = """SELECT ifnull(discovEHR.AF,'0') """
     repeat_query="""
                     ifnull(simplerep.lengthofrepeat,'NA'),
                     ifnull(simplerep.region,'NA')
@@ -579,7 +598,7 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         sql=step1_common_items + """
         FROM eDiVa_annotation.Table_Chr%s_indel as varinfo WHERE indelid = '%s' LIMIT 1;"""%(chr_col,k)
 
-
+        #General query
         sql2=indel_1_specific + step2_common_items +   repeat_query+ """
         FROM Table_Chr%s as varinfo
         LEFT JOIN eDiVa_public_omics.Table_simpleRepeat AS simplerep ON (
@@ -589,52 +608,63 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
 
         )
         WHERE varinfo.position = '%s' LIMIT 1;"""%(chr_col,pos,pos)
+        
+        #ExAC query
         exac_sql=""
         exac_sql=exac_query + """
         FROM `exac_indel` as exac WHERE exac.indelid= '%s' LIMIT 1;"""%(k)
-
+        
+        #Clinvar query
         clinvar_sql=clivar_query +  """
             FROM eDiVa_annotation.Table_clinvar as clinvar WHERE clinvar.chr = '%s'
             AND clinvar.pos = %s AND clinvar.ref = '%s'
             AND clinvar.alt = '%s'
             LIMIT 1;"""%(chr_col,pos,ref,alt)
-
-
+            
+        #discovEHR query
+        discovEHR_sql = discovEHR_query  + """
+        FROM eDiVa_annotation.discovEHR_indel as discovEHR where discovEHR.indelid = '%s' LIMIT 1;"""%(k)
+        
+        #Launch sql, sql2, exac, clinvar and discovEHR
+        res = query_launch(sql,db)
+        res2= query_launch(sql2,db)
+        exac_result=query_launch(exac_sql,db)
+        clinvar_result=query_launch(clinvar_sql,db)
+        discovEHR_result = query_launch(discovEHR_sql,db)
         ## prepare statement and query#######################
         #print sql2
-        #raise
-        sql = sql.replace('\n',' ')
-        sql2 = sql2.replace('\n',' ')
-        sql = sql.replace('\t',' ')
-        sql2 = sql2.replace('\t',' ')
-        exac_sql = exac_sql.replace('\n',' ')
-        exac_sql = exac_sql.replace('\t',' ')
-        clinvar_sql = clinvar_sql.replace('\n',' ')
-        clinvar_sql = clinvar_sql.replace('\t',' ')
-        cur = db.cursor()
-        cur2 = db.cursor()
-        exac_cur=db.cursor()
-        clinvar_cur=db.cursor()
-        cur.execute(sql)
-        res = cur.fetchone()
-        cur.close()
-        cur2.execute(sql2)
-        #process query result
-        res2 = cur2.fetchone()
-        cur2.close()
+        
+        # #raise
+        # sql = sql.replace('\n',' ').replace('\t',' ')
+        # sql2 = sql2.replace('\n',' ').replace('\t',' ')
+        # exac_sql = exac_sql.replace('\n',' ').replace('\t',' ')
+        # clinvar_sql = clinvar_sql.replace('\n',' ').replace('\t',' ')
+        # discovEHR_sql = discovEHR_sql.replace('\n',' ').replace('\t',' ')
+        # 
+        # cur = db.cursor()
+        # cur2 = db.cursor()
+        # exac_cur=db.cursor()
+        # clinvar_cur=db.cursor()
+        # cur.execute(sql)
+        # res = cur.fetchone()
+        # cur.close()
+        # cur2.execute(sql2)
+        # #process query result
+        # res2 = cur2.fetchone()
+        # cur2.close()
+        # 
+        # 
+        # #exac query execution
+        # exac_cur.execute(exac_sql)
+        # exac_result= exac_cur.fetchone()
+        # exac_cur.close()
+        # 
+        # #clinvar query execution
+        # clinvar_cur.execute(clinvar_sql)
+        # clinvar_result = clinvar_cur.fetchone()
+        # clinvar_cur.close()
 
-
-        #exac query execution
-        exac_cur.execute(exac_sql)
-        exac_result= exac_cur.fetchone()
-        exac_cur.close()
-
-        #clinvar query execution
-        clinvar_cur.execute(clinvar_sql)
-        clinvar_result = clinvar_cur.fetchone()
-        clinvar_cur.close()
-
-        ediva  = process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,exac_result,clinvar_result)
+        ediva  = process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,exac_result,clinvar_result,discovEHR_result)
     else:
         stringent= """ WHERE varinfo.position = %s AND varinfo.Reference = '%s' AND
         varinfo.Alt = '%s'
@@ -657,46 +687,60 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
             varinfo.position = simplerep.pos
         )
         """%(chr_col,pos) + stringent
-        #print sql
+        # #print sql
+        # 
+        # sql = sql.replace('\n',' ')
+        # sql = sql.replace('\t',' ')
+        # cur = db.cursor()
+        # #raise
+        # 
+        # cur.execute(sql)
+        # res = cur.fetchone()
+        #cur.close()
 
-        sql = sql.replace('\n',' ')
-        sql = sql.replace('\t',' ')
-        cur = db.cursor()
-        #raise
-
-        cur.execute(sql)
-        res = cur.fetchone()
+        res = query_launch(sql,db)
         if res is None:
             res = list()
         ## prepare statement and query#######################
-        cur.close()
         exac_sql = exac_sql=exac_query + """
             FROM eDiVa_annotation.exac_snp as exac WHERE exac.chromosome = '%s'
             AND exac.position = %s AND exac.Reference = '%s'
             AND exac.Alt = '%s'
             LIMIT 1;"""%(chr_col,pos,ref,alt)
 
-        exac_sql = exac_sql.replace('\n',' ')
-        exac_sql = exac_sql.replace('\t',' ')
-        exac_cur=db.cursor()
-        #print exac_sql
-        exac_cur.execute(exac_sql)
-        exac_result= exac_cur.fetchone()
-        exac_cur.close()
-
+        # exac_sql = exac_sql.replace('\n',' ')
+        # exac_sql = exac_sql.replace('\t',' ')
+        # exac_cur=db.cursor()
+        # #print exac_sql
+        # exac_cur.execute(exac_sql)
+        # exac_result= exac_cur.fetchone()
+        # exac_cur.close()
+        
 
         clinvar_sql=clivar_query +  """
             FROM eDiVa_annotation.Table_clinvar as clinvar WHERE clinvar.chr = '%s'
             AND clinvar.pos = %s AND clinvar.ref = '%s'
             AND clinvar.alt = '%s'
             LIMIT 1;"""%(chr_col,pos,ref,alt)
-        clinvar_sql = clinvar_sql.replace('\n',' ')
-        clinvar_sql = clinvar_sql.replace('\t',' ')
-        clinvar_cur=db.cursor()
-        #print exac_sql
-        clinvar_cur.execute(clinvar_sql)
-        clinvar_result= clinvar_cur.fetchone()
-        clinvar_cur.close()
+        # clinvar_sql = clinvar_sql.replace('\n',' ')
+        # clinvar_sql = clinvar_sql.replace('\t',' ')
+        # clinvar_cur=db.cursor()
+        # #print exac_sql
+        # clinvar_cur.execute(clinvar_sql)
+        # clinvar_result= clinvar_cur.fetchone()
+        # clinvar_cur.close()
+        
+        discovEHR_sql = discovEHR_query + """
+            FROM eDiVa_annotation.discovEHR_snp as discovEHR WHERE discovEHR.chromosome = '%s'
+            AND discovEHR.position = %s AND discovEHR.Reference = '%s'
+            AND discovEHR.Alt = '%s'
+            LIMIT 1;"""%(chr_col,pos,ref,alt)
+            
+            
+        exac_result=query_launch(exac_sql,db)
+        clinvar_result=query_launch(clinvar_sql,db)
+        discovEHR_result = query_launch(discovEHR_sql,db)
+        
 
         if (len(res) > 1):
             # load ediva hash from database
@@ -720,32 +764,28 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
             varinfo.position = simplerep.pos
         )
         """%(chr_col,pos) + broad
-            #print sql
-        #if (len(res) > 1):
-        #    # load ediva hash from database
-        #    ediva =  ediva_reselement(ediva,k,res,sep,exac_result)
-        #else:
         #    #Less stringent search driven only by chr and position
-        #    sql = sqlbase+broad
-            sql = sql.replace('\n',' ')
-            sql = sql.replace('\t',' ')
-            ## prepare statement and query#######################
-            cur = db.cursor()
-            cur.execute(sql)
+        # #    sql = sqlbase+broad
+        #     sql = sql.replace('\n',' ')
+        #     sql = sql.replace('\t',' ')
+        #     ## prepare statement and query#######################
+        #     cur = db.cursor()
+        #     cur.execute(sql)
+        #     #process query result
+        #     res = cur.fetchone()
+        # cur.close()
+            res = query_launch(sql,db)
 
-            #process query result
-            res = cur.fetchone()
             if res is None:
                 res = list()
             ## prepare statement and query#######################
-            cur.close()
             if (len(res) > 1):
                 # load ediva hash from database
-                ediva =  ediva_reselement(ediva,k,res,sep,exac_result,clinvar_result)
+                ediva =  ediva_reselement(ediva,k,res,sep,exac_result,clinvar_result,discovEHR_result)
             else:
                 ## handle missing database annotation entry
-                ediva[k]=missanndb
-                ediva[k]+= ((sep+ "0")*10)# ABB +EXAC
+                ediva[k] =  missanndb
+                ediva[k] += ((sep+ "0")*10)# ABB +EXAC
                 ediva[k] += ((sep + "NA")*4) #Clinvar+Tandem repeat
 
     return ediva
@@ -954,7 +994,7 @@ def header_defaults():
                  'VertebratesPhastCons','Score1GERP++','Score2GERP++','SIFTScore',
                  'polyphen2','MutAss','Condel','Cadd1','Cadd2', 'Eigen_raw','Eigen_Phred','ABB_score',
                  'ExAC_AF','ExAC_adjusted_AF','ExAC_AFR','ExAC_AMR','ExAC_EAS',
-                 'ExAC_FIN','ExAC_NFE','ExAC_OTH','ExAC_SAS','Clinvar Significance','Clinvar ID']
+                 'ExAC_FIN','ExAC_NFE','ExAC_OTH','ExAC_SAS','DiscovEHR_AF','Clinvar Significance','Clinvar ID']
     repeat_fields=[     'SimpleTandemRepeatRegion','SimpleTandemRepeatLength']
     ensembl_annot=['Function(Ensembl)','Gene(Ensembl)','ExonicFunction(Ensembl)','AminoAcidChange(Ensembl)']
     refseq_annot =['Function(Refseq)','Gene(Refseq)','ExonicFunction(Refseq)','AminoAcidChange(Refseq)']
