@@ -804,10 +804,10 @@ def main (args):
                 clinvar_clinical_review = "."
                 clinvar_access_number = "."
                 for row in cur:
-                    clinvar_clinical_significance +=str(row[0])+" | "
-                    clinvar_disease_name +=str(row[1])+" | "
-                    clinvar_clinical_review +=str(row[2])+" | "
-                    clinvar_access_number +=str(row[3])+" | "
+                    clinvar_clinical_significance +=str(row[0])+"  "
+                    clinvar_disease_name +=str(row[1])+"  "
+                    clinvar_clinical_review +=str(row[2])+"  "
+                    clinvar_access_number +=str(row[3])+"  "
                 added_annotation= [omim_disease,omim_web,clinvar_disease_name,clinvar_access_number,clinvar_clinical_review,clinvar_clinical_significance]
                 added_annotation = [x[1:] if len(x)>1  else x for x in added_annotation]
                 data.extend(added_annotation)

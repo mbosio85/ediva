@@ -785,8 +785,8 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
             else:
                 ## handle missing database annotation entry
                 ediva[k] =  missanndb
-                ediva[k] += ((sep+ "0")*10)# ABB +EXAC
-                ediva[k] += ((sep + "NA")*4) #Clinvar+Tandem repeat
+                ediva[k] += ((sep+ "0")*11)# ABB +EXAC + discovEHR
+                ediva[k] += ((sep + "NA")*4) #Clinvar+Tandem repeat 
 
     return ediva
 

@@ -1078,8 +1078,8 @@ if __name__=='__main__':
                 omim_web="."
                 
                 for row in cur:
-                    omim_disease+=str(row[1])+" | "
-                    omim_web+=str(row[2])+" | "
+                    omim_disease+=str(row[1])+"  "
+                    omim_web+=str(row[2])+"  "
                     
                     
                 sql_clinvar =("SELECT clinical_significance, disease_name, clinical_review, access_number "+
@@ -1094,10 +1094,10 @@ if __name__=='__main__':
                 clinvar_clinical_review = "."
                 clinvar_access_number = "."
                 for row in cur:
-                    clinvar_clinical_significance +=str(row[0])+" | "
-                    clinvar_disease_name +=str(row[1])+" | "
-                    clinvar_clinical_review +=str(row[2])+" | "
-                    clinvar_access_number +=str(row[3])+" | "
+                    clinvar_clinical_significance +=str(row[0])+"  "
+                    clinvar_disease_name +=str(row[1])+"  "
+                    clinvar_clinical_review +=str(row[2])+"  "
+                    clinvar_access_number +=str(row[3])+"  "
                 added_annotation= [omim_disease,omim_web,clinvar_disease_name,clinvar_access_number,clinvar_clinical_review,clinvar_clinical_significance]
                 added_annotation = [x[1:] if len(x)>1  else x for x in added_annotation]
                 data.extend(added_annotation)
