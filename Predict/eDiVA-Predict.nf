@@ -5,6 +5,7 @@ params.READ1 = '/users/so/nrostan/PHD_exome_course_2015/TheExomeCourse/Data/Case
 params.READ2 = '/users/so/nrostan/PHD_exome_course_2015/TheExomeCourse/Data/Case_1_FHHt/CD2224/CD2224.read2.fastq.gz'
 params.OUTF = '/users/so/mbosio/scratch/ediva_nextflow/'
 params.CPU = '2'
+params.AFFECTED = '0'
 
 READ1 = file(params.READ1)
 READ2 = file(params.READ2)
@@ -14,13 +15,14 @@ READ2 = file(params.READ2)
  * Align fastq files
  */
 process alignReads {
-    publishDir params.OUTF
+    publishDir params.OUTF+"/Intermediate_files"
 	
     input:
     file READ1 
     file READ2
     val NAME from params.NAME
     val CPU from params.CPU
+    
 
     output:
     file "${NAME}.noChimeric.bam" into chimeric_ch
@@ -30,11 +32,11 @@ process alignReads {
     $BWA mem -M -t !{CPU} -R \"@RG\\tID:!{NAME}\\tSM:!{NAME}\" $REF !{READ1} !{READ2} | time $SAMTOOLS view -h -b -S -F 0x900 -  > !{NAME}.noChimeric.bam 
     
     ### check for Quality encoding and transform to 33 if 64 encoding is encountered
-    OFFSET=$($SAMTOOLS view !{NAME}.noChimeric.bam  | python $EDIVA/Predict/whichQuality_bam.py)
+    OFFSET=$($SAMTOOLS view !{NAME}.noChimeric.bam  | $PYTHON $EDIVA/Predict/whichQuality_bam.py)
     if [[ $OFFSET == 64 ]];
     then
         echo 'fixing 64 quality encoding'
-        $SAMTOOLS view -h !{NAME}.noChimeric.bam  | python $EDIVA/Predict/bam_rescale_quals.py - | $SAMTOOLS view -bS - > !{NAME}.transformed.bam
+        $SAMTOOLS view -h !{NAME}.noChimeric.bam  | $PYTHON $EDIVA/Predict/bam_rescale_quals.py - | $SAMTOOLS view -bS - > !{NAME}.transformed.bam
         rm !{NAME}.noChimeric.bam
         mv !{NAME}.transformed.bam !{NAME}.noChimeric.bam 
     fi
@@ -46,7 +48,7 @@ process alignReads {
  * Sort Bam file
  */
 process sortBam {
-    publishDir params.OUTF
+    publishDir params.OUTF+"/Intermediate_files"
 	
     input:
     val NAME from params.NAME
@@ -71,7 +73,7 @@ process sortBam {
  *  Local Re-alignment
  */
 process local_realignment {
-    publishDir params.OUTF
+    publishDir params.OUTF+"/Intermediate_files"
         
         input:
         val NAME from params.NAME
@@ -96,7 +98,7 @@ process local_realignment {
  *  Duplicate marking
  */
 process duplicate_marking {
-    publishDir params.OUTF
+    publishDir params.OUTF+"/Intermediate_files"
         
         input:
         val NAME from params.NAME
@@ -308,7 +310,7 @@ process Fuse_variants {
             #FUSEVARIANTS    
             # fuse indel and snp calls into one file
             java -Xmx5g -jar $GATK -T CombineVariants -R $REF --variant snps.enriched.vcf --variant indel.enriched.vcf -o all_variants.vcf -U LENIENT_VCF_PROCESSING
-            STATUS="${?}"
+            STATUS=\"${?}\"
             if [ \"$STATUS\" -gt 0 ];
             then
                 echo Error in fusevariants >&2
@@ -345,23 +347,39 @@ process Fuse_variants {
         shell:
         '''
             ## QUALITY CONTROL
-            /software/so/el6.3/PythonPackages-2.7.6/bin/python $EDIVA/Predict/quality_control.py    -bamfile !{NAME}.realigned.dm.recalibrated.bam   -bedfile $EXOME   --output ./   --samtools $SAMTOOLS   --bedtools $BEDTOOLS   --fastqc $FASTQC   --read1 !{READ1}   --read2 !{READ2}   --gatk  report.snps.enriched.txt
+            $PYTHON    -bamfile !{NAME}.realigned.dm.recalibrated.bam   -bedfile $EXOME   --output ./   --samtools $SAMTOOLS   --bedtools $BEDTOOLS   --fastqc $FASTQC   --read1 !{READ1}   --read2 !{READ2}   --gatk  report.snps.enriched.txt
         '''
  }
 
  
  
  
+ /*
+ * Cleanup
+ */
+
+process Cleanup{
+    publishDir params.OUTF, mode: 'move'
+    input:
+        val NAME from params.NAME
+        val OUTF from params.OUTF
+        val CPU from params.CPU
+        val AFFECTED from params.AFFECTED
+        file qc_rep from gatk_rep
+   output:
+        file "all_variants.vcf" into final_vcf2
+        file "${NAME}.realigned.dm.recalibrated.bam" into realigned_bam_final
+        file "${NAME}.realigned.dm.recalibrated.bai" into realigned_idx_final
+        file "sample_info.txt" into sample_info
+   shell :
+   '''
+   OUTF_FULL_PATH=$(cd $OUTF;pwd)
+    rm -r $OUTF_FULL_PATH/Intermediate_files
+    rm -r  $OUTF_FULL_PATH/Indel_Intersection
+    rm -r $OUTF_FULL_PATH/SNP_Intersection
+   echo \"!{NAME} !{AFFECTED} $(cd \"$(dirname \"$OUTF_FULL_PATH\")\"; pwd)/$(basename \"all_variants.vcf\") $(cd \"$(dirname \"$OUTF_FULL_PATH\")\"; pwd)/$(basename \"$OUTF_FULL_PATH.realigned.dm.recalibrated.bam\")\" |sed -e 's/ /\t/g' > sample_info.txt
+   '''
  
  
-  /*  CLEANUP
-        rm -r $OUTF/intermediate_files/*
-        
-        # clean up
-        rm !{NAME}.sort.bam*
-        rm !{NAME}.bam
-        rm !{NAME}.realigned.bam
-        rm !{NAME}.realigned.bai
-        rm !{NAME}.realigned.dm.bam
-        rm !{NAME}.realigned.dm.bam.bai
-            set -e*/
+ }
+

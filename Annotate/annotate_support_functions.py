@@ -167,7 +167,12 @@ def out_file_generate(infile,qlookup,templocation,forceDel,tempfile,MAF):
     outFileIns      = ''
     filename = infile
     if qlookup == "NA":
-        filename = os.path.basename(infile)[:-4]
+        if filename.endswith('.vcf'):
+                filename = os.path.basename(infile)[:-4]
+        elif filename.endswith('vcf.gz'):
+            filename = os.path.basename(infile)[:-7]
+        else:
+            filename = os.path.basename(infile)
         pathname = os.path.dirname(infile)
         if len(pathname)>1:
             pathname = pathname +'/'
@@ -928,6 +933,9 @@ def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TAB
         annInCmm = perl + ANNOVAR+"/maf2annovar.pl "+infile_vcf+" > "+templocation+"/annInfile"+fileSuffix+"   2> "+infile_vcf+".annovar.log\n"
 
     print "627 MESSAGE :: Running Annovar command \n > %s" %(tabix_cmd+annInCmm+remove_temp_cmd)
+    
+    print tabix_cmd+annInCmm
+    
     subprocess.call(tabix_cmd+annInCmm+remove_temp_cmd,shell=True)
     annFile = templocation+"/annInfile"+fileSuffix+""
 

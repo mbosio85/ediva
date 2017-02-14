@@ -186,7 +186,8 @@ if qlookup == "NA":
                     else:
                         counter +=1
                 else:
-                    fields = line.strip().split('\t')                    
+                    fields = line.strip().split('\t')
+#                    print fields
                     (chr_col,position,ref,alt) = [fields[0],fields[1],fields[3],fields[4]]
                     if chr_col.startswith('chr') or chr_col.startswith('Chr'):chr_col=chr_col[3:]
                     alt= alt.split(',')[0]
