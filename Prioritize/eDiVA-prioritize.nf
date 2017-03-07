@@ -2,12 +2,12 @@
 
 params.ANNOTATED = 'combined.variants.ranked.csv'
 params.OUTF = '/users/so/mbosio/scratch/ediva_nextflow/'
-params.mode = 'standard'
+params.MODE = 'standard'
 params.PEDIGREE='pedigree.tree'
 params.FAMILY_TYPE = 'trio'
 params.HPO_list='/nfs/users2/GD/tools/ediva/Resource/empty_white_list.txt'
 params.EXCLUSIONLIST='/nfs/users2/GD/tools/ediva/Resource/gene_exclusion_list.txt'
-params.inheritance='none'
+params.INHERITANCE='none'
 ANNOTATED_f = file(params.ANNOTATED)
 PED_f = file(params.PEDIGREE)
 EXCLUDED = file(params.EXCLUSIONLIST)
@@ -17,7 +17,7 @@ XLS = file(params.OUTF+"/" +'/variant_prioritization_report.xlsx' )
  * Prioritize ranked
  */
 process prioritize {
-    publishDir params.OUTF+"/" + params.inheritance, mode :'copy'
+    publishDir params.OUTF+"/" + params.INHERITANCE, mode :'copy'
     
     input:
     file ANNOTATED_f
@@ -27,9 +27,9 @@ process prioritize {
      
     file XLS
     
-    val inheritance from params.inheritance
+    val inheritance from params.INHERITANCE
     val type from params.FAMILY_TYPE
-    val mode from params.mode
+    val mode from params.MODE
     
     output:
     file "*${inheritance}*" into prioritzed
