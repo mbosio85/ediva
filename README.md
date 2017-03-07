@@ -1,5 +1,3 @@
-#### Ediva creates pipelines to walk you through variant prediction, prioritization and filtering
-
 
 Exome Disease Variant analysis (eDiVa), is a variant annotation and prioritization pipleine which
 - Integrates multiple reliable information sources to better assess variants deleteriousness
