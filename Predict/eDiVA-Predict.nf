@@ -9,19 +9,19 @@ params.AFFECTED = '0'
 
 READ1 = file(params.READ1)
 READ2 = file(params.READ2)
-
-
+File AA = new File(params.OUTF)
+String OUTF_FULL_PATH = AA.absolutePath
 /*
  * Align fastq files
  */
 process alignReads {
-    publishDir params.OUTF+"/Intermediate_files"
-	
+    //publishDir params.OUTF+"/Intermediate_files"
+	cpus params.CPU
     input:
     file READ1 
     file READ2
     val NAME from params.NAME
-    val CPU from params.CPU
+    //val CPU from params.CPU
     
 
     output:
@@ -29,8 +29,7 @@ process alignReads {
     
     shell:
     '''
-    $BWA mem -M -t !{CPU} -R \"@RG\\tID:!{NAME}\\tSM:!{NAME}\" $REF !{READ1} !{READ2} | time $SAMTOOLS view -h -b -S -F 0x900 -  > !{NAME}.noChimeric.bam 
-    
+    $BWA mem -M -t !{task.cpus} -R \"@RG\\tID:!{NAME}\\tSM:!{NAME}\" $REF !{READ1} !{READ2} | time $SAMTOOLS view -h -b -S -F 0x900 -  > !{NAME}.noChimeric.bam 
     ### check for Quality encoding and transform to 33 if 64 encoding is encountered
     OFFSET=$($SAMTOOLS view !{NAME}.noChimeric.bam  | $PYTHON $EDIVA/Predict/whichQuality_bam.py)
     if [[ $OFFSET == 64 ]];
@@ -48,12 +47,12 @@ process alignReads {
  * Sort Bam file
  */
 process sortBam {
-    publishDir params.OUTF+"/Intermediate_files"
-	
+    //publishDir params.OUTF+"/Intermediate_files"
+	cpus params.CPU
     input:
     val NAME from params.NAME
     val OUTF from params.OUTF
-    val CPU from params.CPU
+    
     file bam from chimeric_ch
 
     output:
@@ -63,8 +62,8 @@ process sortBam {
     shell:
     '''
     echo Sort BAM
-    # NOVOSORT --threads !{CPU} --tmpdir !{OUTF} --forcesort --output !{NAME}.sort.bam -i -m 40G !{NAME}.noChimeric.bam
-    $SAMTOOLS sort -@ !{CPU} -T !{NAME}.tmp_sorting   --reference  $REF  -o !{NAME}.sort.bam  !{NAME}.noChimeric.bam
+    # NOVOSORT --threads !{task.cpus} --tmpdir !{OUTF} --forcesort --output !{NAME}.sort.bam -i -m 40G !{NAME}.noChimeric.bam
+    $SAMTOOLS sort -@  !{task.cpus} -T !{NAME}.tmp_sorting   --reference  $REF  -o !{NAME}.sort.bam  !{NAME}.noChimeric.bam
     $SAMTOOLS index mah.sort.bam 
     '''
 }
@@ -73,12 +72,12 @@ process sortBam {
  *  Local Re-alignment
  */
 process local_realignment {
-    publishDir params.OUTF+"/Intermediate_files"
-        
+    //publishDir params.OUTF+"/Intermediate_files"
+        cpus params.CPU
         input:
         val NAME from params.NAME
         val OUTF from params.OUTF
-        val CPU from params.CPU
+        //val CPU from params.CPU
         file sorted_bam_in from sorted_bam
         file sorted_idx_in from sorted_idx
         
@@ -89,7 +88,7 @@ process local_realignment {
         shell:
         '''
                echo Local Re-alignment
-               java -jar $GATK -nt !{CPU} -T RealignerTargetCreator -R $REF -I !{NAME}.sort.bam -o !{NAME}.intervals -known $DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE # -L $EXOME
+               java -jar $GATK -nt  !{task.cpus} -T RealignerTargetCreator -R $REF -I !{NAME}.sort.bam -o !{NAME}.intervals -known $DBINDEL --minReadsAtLocus 6 --maxIntervalSize 200 --downsampling_type NONE # -L $EXOME
                java -jar $GATK  -T IndelRealigner -R $REF -I !{NAME}.sort.bam -targetIntervals !{NAME}.intervals -o !{NAME}.realigned.bam -known $DBINDEL --maxReadsForRealignment 10000 --consensusDeterminationModel USE_SW --downsampling_type NONE # -L $EXOME
     '''
     }
@@ -98,12 +97,11 @@ process local_realignment {
  *  Duplicate marking
  */
 process duplicate_marking {
-    publishDir params.OUTF+"/Intermediate_files"
-        
+    //publishDir params.OUTF+"/Intermediate_files"
+        cpus params.CPU
         input:
         val NAME from params.NAME
         val OUTF from params.OUTF
-        val CPU from params.CPU
         file realign_bam from realigned_bam
         file realign_idx from realigned_idx
         
@@ -122,23 +120,22 @@ process duplicate_marking {
  *  Base quality recalibration
  */ 
 process bam_recalibrate {
-    publishDir params.OUTF
-        
+    publishDir params.OUTF, mode:'copy'
+        cpus params.CPU
         input:
         val NAME from params.NAME
         val OUTF from params.OUTF
-        val CPU from params.CPU
         file dm_bam_in from dm_bam_out
         file dm_idx_in from dm_idx_out
         
         output:
-        file "${NAME}.realigned.dm.recalibrated.bam" into realigned_bam_out,realigned_bam_out2
-        file "${NAME}.realigned.dm.recalibrated.bai" into realigned_idx_out,realigned_idx_out2
+        file "${NAME}.realigned.dm.recalibrated.bam" into realigned_bam_out,realigned_bam_out2,realigned_bam_out3
+        file "${NAME}.realigned.dm.recalibrated.bai" into realigned_idx_out,realigned_idx_out2,realigned_idx_out3
     
         shell:
         '''
                echo -e " \n #### Base quality recalibration \n "
-               java -jar $GATK -T BaseRecalibrator -nct !{CPU} --default_platform illumina -cov ReadGroupCovariate -cov QualityScoreCovariate -cov CycleCovariate -cov ContextCovariate -R $REF -I !{NAME}.realigned.dm.bam -knownSites $DBSNP --downsampling_type NONE -o !{NAME}.recal_data.grp # -L $EXOME
+               java -jar $GATK -T BaseRecalibrator -nct  !{task.cpus} --default_platform illumina -cov ReadGroupCovariate -cov QualityScoreCovariate -cov CycleCovariate -cov ContextCovariate -R $REF -I !{NAME}.realigned.dm.bam -knownSites $DBSNP --downsampling_type NONE -o !{NAME}.recal_data.grp # -L $EXOME
                java -jar $GATK -T PrintReads -R $REF -I !{NAME}.realigned.dm.bam -BQSR !{NAME}.recal_data.grp -o !{NAME}.realigned.dm.recalibrated.bam # -L $EXOME
         '''
 
@@ -150,12 +147,12 @@ process bam_recalibrate {
  */
 
 process GATK_call {
-    publishDir params.OUTF
-        
+    //publishDir params.OUTF
+    
+        cpus params.CPU
         input:
         val NAME from params.NAME
         val OUTF from params.OUTF
-        val CPU from params.CPU
         file realigned_bam_in from realigned_bam_out
         file realigned_idx_in from realigned_idx_out
         
@@ -179,12 +176,11 @@ process GATK_call {
  * Filter and compare SNP calls from 2 different pipelines
  */
 process GATK_filtering {
-    publishDir params.OUTF+"/SNP_Intersection"
-        
+    //publishDir params.OUTF+"/SNP_Intersection"
+        cpus params.CPU
         input:
         val NAME from params.NAME
         val OUTF from params.OUTF
-        val CPU from params.CPU
         file raw_snps from gatk_raw_snps
         file raw_imdel from gatk_raw_indel2
         
@@ -245,13 +241,12 @@ process GATK_filtering {
  * GATK Indel preparation
  */
 process GATK_filtering_indel {
-    publishDir params.OUTF+"/Indel_Intersection"
-        
-        input:
-        val NAME from params.NAME
-        val OUTF from params.OUTF
-        val CPU from params.CPU
-        file raw_indels from gatk_raw_indel
+//    publishDir params.OUTF+"/Indel_Intersection"
+    cpus params.CPU
+    input:
+    val NAME from params.NAME
+    val OUTF from params.OUTF
+    file raw_indels from gatk_raw_indel
         
         output:
         file "GATK.indel.filtered.cleaned.vcf" into gatk_clean_indel
@@ -293,12 +288,11 @@ process GATK_filtering_indel {
  * Fuse variants
  */
 process Fuse_variants {
-    publishDir params.OUTF
-        
+    publishDir params.OUTF,mode :'copy'
+        cpus params.CPU
         input:
         val NAME from params.NAME
         val OUTF from params.OUTF
-        val CPU from params.CPU
         file merge_indel from indel_enriched
         file merge_snps from snps_enriched
         
@@ -309,7 +303,7 @@ process Fuse_variants {
         '''
             #FUSEVARIANTS    
             # fuse indel and snp calls into one file
-            java -Xmx5g -jar $GATK -T CombineVariants -R $REF --variant snps.enriched.vcf --variant indel.enriched.vcf -o all_variants.vcf -U LENIENT_VCF_PROCESSING
+            java -Xmx5g -jar $GATK -T CombineVariants -R $REF --variant snps.enriched.vcf --variant indel.enriched.vcf -o all_variants.vcf -U LENIENT_VCF_PROCESSING --genotypemergeoption UNIQUIFY
             STATUS=\"${?}\"
             if [ \"$STATUS\" -gt 0 ];
             then
@@ -325,11 +319,10 @@ process Fuse_variants {
 
  process Quality_control{
     publishDir params.OUTF+"/QualityControl"
-        
+        cpus params.CPU
         input:
         val NAME from params.NAME
         val OUTF from params.OUTF
-        val CPU from params.CPU
         file real_bam_qc from realigned_bam_out2
         file real_bai_qc from realigned_idx_out2
         file snp_report from report_enriched_snps
@@ -347,7 +340,7 @@ process Fuse_variants {
         shell:
         '''
             ## QUALITY CONTROL
-            $PYTHON    -bamfile !{NAME}.realigned.dm.recalibrated.bam   -bedfile $EXOME   --output ./   --samtools $SAMTOOLS   --bedtools $BEDTOOLS   --fastqc $FASTQC   --read1 !{READ1}   --read2 !{READ2}   --gatk  report.snps.enriched.txt
+            $PYTHON   $EDIVA/Predict/quality_control.py -bamfile !{NAME}.realigned.dm.recalibrated.bam   -bedfile $EXOME   --output ./   --samtools $SAMTOOLS   --bedtools $BEDTOOLS   --fastqc $FASTQC   --read1 !{READ1}   --read2 !{READ2}   --gatk  report.snps.enriched.txt
         '''
  }
 
@@ -359,25 +352,26 @@ process Fuse_variants {
  */
 
 process Cleanup{
-    publishDir params.OUTF, mode: 'move'
+    publishDir params.OUTF, mode: 'copy'
     input:
         val NAME from params.NAME
         val OUTF from params.OUTF
         val CPU from params.CPU
         val AFFECTED from params.AFFECTED
         file qc_rep from gatk_rep
+        val OUTF_FULL_PATH from OUTF_FULL_PATH
+        //file real_bam_qc from realigned_bam_out3
+       // file real_bai_qc from realigned_idx_out3
+        //file allvar from final_vcf
    output:
-        file "all_variants.vcf" into final_vcf2
-        file "${NAME}.realigned.dm.recalibrated.bam" into realigned_bam_final
-        file "${NAME}.realigned.dm.recalibrated.bai" into realigned_idx_final
+        //file "all_variants.vcf" into final_vcf2
+        //file "${NAME}.realigned.dm.recalibrated.bam" into realigned_bam_final
+        //file "${NAME}.realigned.dm.recalibrated.bai" into realigned_idx_final
         file "sample_info.txt" into sample_info
    shell :
    '''
-   OUTF_FULL_PATH=$(cd $OUTF;pwd)
-    rm -r $OUTF_FULL_PATH/Intermediate_files
-    rm -r  $OUTF_FULL_PATH/Indel_Intersection
-    rm -r $OUTF_FULL_PATH/SNP_Intersection
-   echo \"!{NAME} !{AFFECTED} $(cd \"$(dirname \"$OUTF_FULL_PATH\")\"; pwd)/$(basename \"all_variants.vcf\") $(cd \"$(dirname \"$OUTF_FULL_PATH\")\"; pwd)/$(basename \"$OUTF_FULL_PATH.realigned.dm.recalibrated.bam\")\" |sed -e 's/ /\t/g' > sample_info.txt
+   
+   echo \"!{NAME} !{AFFECTED} !{OUTF_FULL_PATH}\\all_variants.vcf !{OUTF_FULL_PATH}\\!{NAME}.realigned.dm.recalibrated.bam "|sed -e 's/ /\t/g' > sample_info.txt 
    '''
  
  
