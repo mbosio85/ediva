@@ -74,7 +74,7 @@ To do so, you will need to edit the profded nextfow.config file, adding your own
 The most basic setup is to run eDiVA locally, for this you simply need to adapt the paths so they will refer to the installed tools in your machine.
 
 **Here an example of the default nextflow.config file for local execution**
-~~
+```
 process {
   executor='local'
   }
@@ -97,18 +97,18 @@ env {
     FASTQC='/users/GD/tools/FastQC/FastQC-0.11.5/fastqc'
     PYTHON='/software/so/el7.2/Python-2.7.13/bin/bin/python'
 }
-~~
+```
 
 **HPC environment execution configuration **
 If you plan to run eDiVA in an HPC environment, please read NextFlow [documentation](https://www.nextflow.io/docs/latest/process.html) about how to do it 
 
 A simple editing for an SGE environment is to change the process field above with the following:
-~~
+```
     memory '2 GB'
     queue 'long'
     cpus 8
     executor 'sge'
-~~
+```
 
 If you plan to run each job with a different configuration, bear in mind this is possible to do by overriding the executor parameter when calling nextflow scripts.
 
@@ -120,7 +120,7 @@ If you plan to run each job with a different configuration, bear in mind this is
 
 This step describes how to launch eDiVA predict on all new samples coming out of  a sequencing machine.
 
-~~
+```
 nextflow run ~/ediva/edivatools-code/Predict/eDiVA-Predict.nf \
                     --NAME sample_name \
                     --READ1 fastq.read1.gz \
@@ -129,7 +129,7 @@ nextflow run ~/ediva/edivatools-code/Predict/eDiVA-Predict.nf \
                     --CPU 2 \
                     --OUTF output_folder/ \
                     -w work_folder/  
-~~
+```
 
 **Parameters**
 * NAME : Sample name you want to be in the Bam and VCF files
@@ -154,12 +154,12 @@ For each sample you will obtain:
 
 Once all samples from a family are processed and all variants have been called, this step takes care to perform the joint multisample calling of vairant positions, in order to gather all information for all samples.
 
-~~
+```
 nextflow run eDiVA_prepare_for_annotation.nf \
         --OUTF annotation/ \
         --FAMILY_INFO family_config \
         --CPU 2
-~~
+```
 
 **Parameters**
 
@@ -180,12 +180,12 @@ nextflow run eDiVA_prepare_for_annotation.nf \
 
 Once you have produced the combined multisample VCF file, it is time to annotate all variants with eDiVA-Annotate and rank them  with eDiVA-Score
 
-~~
+```
 nextflow run eDiVA-Annotate.nf \
         --OUTF ./ \
         --VCF testname.vcf \
         --CPU 2 
-~~
+```
 
 This routine performs the eDiVA-Annotate part, adding annotations from several information sources for all variants in the VCF, and automatically ranks them with eDiVA-Score script. 
 The two steps are joined because eDiVA-Score requires eDiVA-Annotate input columns to be calculated on the fly.
@@ -204,7 +204,7 @@ There is an available repository of pre-calculated eDiVA-Scores for all exonic v
 This is the final step of the pipeline where variants are filtered and selected, depending on the pedigree information, the disease inheritance profile, and the strictness of the filter:
 
 **Command example**
-~~
+```
 nextflow run eDiVA-predict.nf --OUTF ./\
         --ANNOTATED combined.variants.supplement.ranked.csv \ 
         --MODE standard \
@@ -213,7 +213,7 @@ nextflow run eDiVA-predict.nf --OUTF ./\
         --HPO hpo_list.txt \
         --EXCLUSIONLIST edivapath/Resource/gene_exclusion_list.txt \
         --INHERITANCE choose
-~~
+```
 
 
 **Params**
