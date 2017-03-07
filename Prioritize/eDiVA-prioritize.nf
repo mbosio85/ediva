@@ -27,17 +27,17 @@ process prioritize {
      
     file XLS
     
-    val inheritance from params.INHERITANCE
+    val INHERITANCE from params.INHERITANCE
     val type from params.FAMILY_TYPE
     val mode from params.MODE
     
     output:
-    file "*${inheritance}*" into prioritzed
-    file 'variant_prioritization_report.xlsx' into xls2
+    file "*${INHERITANCE}*" into prioritzed
+    file '../variant_prioritization_report.xlsx' into xls2
     
     
     shell:
-    if (['dominant_inherited','recessive','dominant_denovo','Xlinked','compound'].contains(inheritance)){
+    if (['dominant_inherited','recessive','dominant_denovo','Xlinked','compound'].contains(INHERITANCE)){
         if (['trio','family'].contains(type)){    
 
                 
@@ -45,33 +45,33 @@ process prioritize {
                     if (mode =='standard'){
                         '''
                         # run inheritance inheritance: dominant_inherited        
-                        OUT1=$(echo !{ANNOTATED_f} | sed -e "s/ranked.csv/!{inheritance}.csv/g")
-                        OUT2=$(echo !{ANNOTATED_f} | sed -e "s/ranked.csv/filtered.!{inheritance}.csv/g")
+                        OUT1=$(echo !{ANNOTATED_f} | sed -e "s/ranked.csv/!{INHERITANCE}.csv/g")
+                        OUT2=$(echo !{ANNOTATED_f} | sed -e "s/ranked.csv/filtered.!{INHERITANCE}.csv/g")
                         $PYTHON $EDIVA/Prioritize/familySNP.py --infile !{ANNOTATED_f} \
                                 --outfile $OUT1 \
                                 --filteredoutfile $OUT2  \
                                 --family !{PED_f} \
-                                --inheritance !{inheritance}\
+                                --inheritance !{INHERITANCE}\
                                 --familytype trio \
                                 --geneexclusion !{EXCLUDED} \
                                 --white_list !{HPO}
-                        
+                        cp variant_prioritization_report.xlsx ../variant_prioritization_report.xlsx
                         '''
                     }
                     else{
                                                 '''
                         # run inheritance inheritance: dominant_inherited        
-                        OUT1=$(echo !{ANNOTATED_f} | sed -e "s/ranked.csv/!{inheritance}.csv/g")
-                        OUT2=$(echo !{ANNOTATED_f} | sed -e "s/ranked.csv/filtered.!{inheritance}.csv/g")
+                        OUT1=$(echo !{ANNOTATED_f} | sed -e "s/ranked.csv/!{INHERITANCE}.csv/g")
+                        OUT2=$(echo !{ANNOTATED_f} | sed -e "s/ranked.csv/filtered.!{INHERITANCE}.csv/g")
                         $PYTHON $EDIVA/Prioritize/familySNP_2.0.py --infile !{ANNOTATED_f} \
                                 --outfile $OUT1 \
                                 --filteredoutfile $OUT2  \
                                 --family !{PED_f} \
-                                --inheritance !{inheritance}\
+                                --inheritance !{INHERITANCE}\
                                 --familytype trio \
                                 --geneexclusion !{EXCLUDED} \
                                 --white_list !{HPO}
-                        
+                      cp variant_prioritization_report.xlsx ../variant_prioritization_report.xlsx 
                         '''
                     }
                 }
@@ -85,28 +85,9 @@ process prioritize {
         }
     }
     else{
-        error "Inheritance ${inheritance} is not available in eDiVA-prioritize, please choose one from :dominant_inherited,recessive,dominant_denovo,Xlinked,compound"    
+        error "Inheritance ${INHERITANCE} is not available in eDiVA-prioritize, please choose one from :dominant_inherited,recessive,dominant_denovo,Xlinked,compound"    
     }
 }
          
-         
 
-/*
- * Prioritize ranked
- */
-process move_xlsx {
-    publishDir params.OUTF,mode:'move'
-    
-    input:
-    file excel from xls2
-    
-    output:
-    file 'variant_prioritization_report.xlsx' into xls3
-    
-    
-    shell:
-    '''
-    echo 'moving'
-    '''
-}           
-       
+
