@@ -78,22 +78,19 @@ process {
   }
 
 env {
-    REF='/users/GD/resource/human/hg19/bwa7/hg19.fasta'
-    SHOREREF='/users/GD/resource/human/hg19/shore/hg19.fasta.shore'
+    REF='/users/GD/resource/human/hg19/bwa7/hg19.fasta'   
     DBINDEL='/users/GD/resource/human/hg19/databases/dbSNP/dbsnp_138.hg19.indels.vcf'
     DBSNP='/users/GD/resource/human/hg19/databases/dbSNP/dbsnp_138.hg19.snps.vcf'
     BWA='/users/GD/tools/bwa/bwa-0.7.10/bwa'
-    EDIVA='/users/so/mbosio/ediva/edivatools-code/'
-    GATK='/users/GD/tools/GATK/GenomeAnalysisTK-3.5/GenomeAnalysisTK.jar'
+    EDIVA='/users/tools/ediva/edivatools-code/'
+    GATK='/users/GD/tools/GATK/GenomeAnalysisTK-3.3/GenomeAnalysisTK.jar'
     PICARD='/users/GD/tools/picard/picard-tools-1.119/'
-    SAMTOOLS='/users/GD/tools/samtools/samtools-1.3.1/samtools'
-    NOVOSORT='/users/GD/tools/novocraft/novosort/novosort'
-    BEDTOOLS='/users/GD/tools/bedtools/bedtools-latest/bin/'
-    CLINDEL='/users/GD/tools/clindel/bin/shore'
-    EXOME='/users/GD/resource/human/probesets/merged_kits/allkit.clean.sort.merge.bed'
+    SAMTOOLS='/users/GD/tools/samtools/samtools-1.3.1/samtools'   
+    BEDTOOLS='/users/GD/tools/bedtools/bedtools-latest/bin/' 
+    EXOME='exome_kit.bed'
     BEDTOOLS='/users/GD/tools/bedtools/bedtools-latest/bin/'
     FASTQC='/users/GD/tools/FastQC/FastQC-0.11.5/fastqc'
-    PYTHON='/software/so/el7.2/Python-2.7.13/bin/bin/python'
+    PYTHON='/software/Python2.7/bin/python'
 }
 ```
 
