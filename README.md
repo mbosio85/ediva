@@ -94,6 +94,9 @@ env {
 }
 ```
 
+EXOME parameter is the bed file with the region of the genome covered by your kit. We normally extend the factory specifications by 150bp on each side, then we sort and merge the intervals.
+
+
 **HPC environment execution configuration **
 If you plan to run eDiVA in an HPC environment, please read NextFlow [documentation](https://www.nextflow.io/docs/latest/process.html) about how to do it 
 
