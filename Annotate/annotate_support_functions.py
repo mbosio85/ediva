@@ -11,6 +11,7 @@ import struct
 import hashlib
 import argparse
 from Bio import bgzf
+import cPickle as pickle
 #import y_serial_v060 as y_serial
 
 
@@ -168,7 +169,7 @@ def out_file_generate(infile,qlookup,templocation,forceDel,tempfile,MAF):
     filename = infile
     if qlookup == "NA":
         if filename.endswith('.vcf'):
-                filename = os.path.basename(infile)[:-4]
+            filename = os.path.basename(infile)[:-4]
         elif filename.endswith('vcf.gz'):
             filename = os.path.basename(infile)[:-7]
         else:
@@ -449,7 +450,7 @@ def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,ex
             ediva[k] =   (missanndbindel)
         # take care of missing positional values
         ediva[k] +=(sep+missanndb_coordinate)
-        
+
     ##extract the repeat region value and id because they go after exac
     temp=ediva[k].split(sep)
     repeat_region_info = sep.join(temp[-2:])
@@ -462,16 +463,16 @@ def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,ex
         for ex_element in exac_value:
             ediva[k] += (sep+str(ex_element))
     else:
-        ediva[k] += ((sep+ "0")*9)
-        
-    #discovEHR part 
+        ediva[k] += ((sep+ "0")*8)
+
+    #discovEHR part
     if discovEHR_value != None:
         #there is a result:
         for ex_element in discovEHR_value:
             ediva[k] += (sep+str(ex_element))
     else:
         ediva[k] += ((sep+ "0")*1)
-        
+
     ## Clinvar part
     if clinvar_value != None:
         #there is a result:
@@ -479,7 +480,7 @@ def process_db_entry(res,res2,ediva,k,sep,missanndb_coordinate,missanndbindel,ex
             ediva[k] += (sep+str(ex_element))
     else:
         ediva[k] += ((sep+ "NA")*2)
-        
+
     ediva[k]+=sep+repeat_region_info
     return ediva
 
@@ -498,13 +499,13 @@ def ediva_reselement(ediva,k,res,sep,exac_value=None,clinvar_value=None,discovEH
         repeat_region_info = sep.join(temp[-2:])
         ediva[k]=sep.join(temp[:-2])
         if exac_value==None:
-            ediva[k] += ((sep+ "0")*9)
+            ediva[k] += ((sep+ "0")*8)
         elif exac_value=='indel':
             pass
         else:
             for ex_element in exac_value:
                 ediva[k] += (sep+str(ex_element))
-                
+
         ## discovEHR part
         if discovEHR_value != None:
             #there is a result:
@@ -512,7 +513,7 @@ def ediva_reselement(ediva,k,res,sep,exac_value=None,clinvar_value=None,discovEH
                 ediva[k] += (sep+str(ex_element))
         else:
             ediva[k] += ((sep+ "0")*1)
-            
+
         ## Clinvar part
         if clinvar_value != None:
             #there is a result:
@@ -520,7 +521,7 @@ def ediva_reselement(ediva,k,res,sep,exac_value=None,clinvar_value=None,discovEH
                 ediva[k] += (sep+str(ex_element))
         else:
             ediva[k] += ((sep+ "NA")*2)
-            
+
         ##aggregate repeat region info after the exac value, clinvar and discovEHR
         ediva[k]+=sep+repeat_region_info
     return ediva
@@ -572,7 +573,6 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         ifnull(abb.ABB_score,'0'),"""
 
     exac_query="""  SELECT ifnull(exac.AF,'0'),
-                    ifnull(exac.AF_adj,'0'),
                     ifnull(exac.AF_AFR,'0'),
                     ifnull(exac.AF_AMR,'0'),
                     ifnull(exac.AF_EAS,'0'),
@@ -580,7 +580,7 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
                     ifnull(exac.AF_NFE,'0'),
                     ifnull(exac.AF_OTH,'0'),
                     ifnull(exac.AF_SAS,'0')"""
-                    
+
     clivar_query=""" SELECT ifnull(clinvar.clinical_significance,'NA'),
                      ifnull(clinvar.access_number,'NA') """
     discovEHR_query = """SELECT ifnull(discovEHR.AF,'0') """
@@ -613,23 +613,23 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
 
         )
         WHERE varinfo.position = '%s' LIMIT 1;"""%(chr_col,pos,pos)
-        
+
         #ExAC query
         exac_sql=""
         exac_sql=exac_query + """
         FROM `exac_indel` as exac WHERE exac.indelid= '%s' LIMIT 1;"""%(k)
-        
+
         #Clinvar query
         clinvar_sql=clivar_query +  """
             FROM eDiVa_annotation.Table_clinvar as clinvar WHERE clinvar.chr = '%s'
             AND clinvar.pos = %s AND clinvar.ref = '%s'
             AND clinvar.alt = '%s'
             LIMIT 1;"""%(chr_col,pos,ref,alt)
-            
+
         #discovEHR query
         discovEHR_sql = discovEHR_query  + """
         FROM eDiVa_annotation.discovEHR_indel as discovEHR where discovEHR.indelid = '%s' LIMIT 1;"""%(k)
-        
+
         #Launch sql, sql2, exac, clinvar and discovEHR
         res = query_launch(sql,db)
         res2= query_launch(sql2,db)
@@ -638,14 +638,14 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         discovEHR_result = query_launch(discovEHR_sql,db)
         ## prepare statement and query#######################
         #print sql2
-        
+
         # #raise
         # sql = sql.replace('\n',' ').replace('\t',' ')
         # sql2 = sql2.replace('\n',' ').replace('\t',' ')
         # exac_sql = exac_sql.replace('\n',' ').replace('\t',' ')
         # clinvar_sql = clinvar_sql.replace('\n',' ').replace('\t',' ')
         # discovEHR_sql = discovEHR_sql.replace('\n',' ').replace('\t',' ')
-        # 
+        #
         # cur = db.cursor()
         # cur2 = db.cursor()
         # exac_cur=db.cursor()
@@ -657,13 +657,13 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         # #process query result
         # res2 = cur2.fetchone()
         # cur2.close()
-        # 
-        # 
+        #
+        #
         # #exac query execution
         # exac_cur.execute(exac_sql)
         # exac_result= exac_cur.fetchone()
         # exac_cur.close()
-        # 
+        #
         # #clinvar query execution
         # clinvar_cur.execute(clinvar_sql)
         # clinvar_result = clinvar_cur.fetchone()
@@ -693,12 +693,12 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         )
         """%(chr_col,pos) + stringent
         # #print sql
-        # 
+        #
         # sql = sql.replace('\n',' ')
         # sql = sql.replace('\t',' ')
         # cur = db.cursor()
         # #raise
-        # 
+        #
         # cur.execute(sql)
         # res = cur.fetchone()
         #cur.close()
@@ -720,7 +720,7 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         # exac_cur.execute(exac_sql)
         # exac_result= exac_cur.fetchone()
         # exac_cur.close()
-        
+
 
         clinvar_sql=clivar_query +  """
             FROM eDiVa_annotation.Table_clinvar as clinvar WHERE clinvar.chr = '%s'
@@ -734,18 +734,18 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
         # clinvar_cur.execute(clinvar_sql)
         # clinvar_result= clinvar_cur.fetchone()
         # clinvar_cur.close()
-        
+
         discovEHR_sql = discovEHR_query + """
             FROM eDiVa_annotation.discovEHR_snp as discovEHR WHERE discovEHR.chromosome = '%s'
             AND discovEHR.position = %s AND discovEHR.Reference = '%s'
             AND discovEHR.Alt = '%s'
             LIMIT 1;"""%(chr_col,pos,ref,alt)
-            
-            
+
+
         exac_result=query_launch(exac_sql,db)
         clinvar_result=query_launch(clinvar_sql,db)
         discovEHR_result = query_launch(discovEHR_sql,db)
-        
+
 
         if (len(res) > 1):
             # load ediva hash from database
@@ -791,7 +791,7 @@ def query_db(k,v,ediva,db,sep,missanndb,missanndb_coordinate,missanndbindel):
                 ## handle missing database annotation entry
                 ediva[k] =  missanndb
                 ediva[k] += ((sep+ "0")*11)# ABB +EXAC + discovEHR
-                ediva[k] += ((sep + "NA")*4) #Clinvar+Tandem repeat 
+                ediva[k] += ((sep + "NA")*4) #Clinvar+Tandem repeat
 
     return ediva
 
@@ -933,9 +933,9 @@ def AnnovarAnnotation(infile,templocation,fileSuffix,geneDef,ANNOVAR,Annovar,TAB
         annInCmm = perl + ANNOVAR+"/maf2annovar.pl "+infile_vcf+" > "+templocation+"/annInfile"+fileSuffix+"   2> "+infile_vcf+".annovar.log\n"
 
     print "627 MESSAGE :: Running Annovar command \n > %s" %(tabix_cmd+annInCmm+remove_temp_cmd)
-    
+
     print tabix_cmd+annInCmm
-    
+
     subprocess.call(tabix_cmd+annInCmm+remove_temp_cmd,shell=True)
     annFile = templocation+"/annInfile"+fileSuffix+""
 
@@ -1001,43 +1001,44 @@ def header_defaults():
                  'VertebratesPhyloP','PlacentalMammalPhastCons','PrimatesPhastCons',
                  'VertebratesPhastCons','Score1GERP++','Score2GERP++','SIFTScore',
                  'polyphen2','MutAss','Condel','Cadd1','Cadd2', 'Eigen_raw','Eigen_Phred','ABB_score',
-                 'ExAC_AF','ExAC_adjusted_AF','ExAC_AFR','ExAC_AMR','ExAC_EAS',
+                 'ExAC_AF','ExAC_AFR','ExAC_AMR','ExAC_EAS',
                  'ExAC_FIN','ExAC_NFE','ExAC_OTH','ExAC_SAS','DiscovEHR_AF','Clinvar Significance','Clinvar ID']
     repeat_fields=[     'SimpleTandemRepeatRegion','SimpleTandemRepeatLength']
+    ExAC_fields = ['pLI','pRec']
     ensembl_annot=['Function(Ensembl)','Gene(Ensembl)','ExonicFunction(Ensembl)','AminoAcidChange(Ensembl)']
     refseq_annot =['Function(Refseq)','Gene(Refseq)','ExonicFunction(Refseq)','AminoAcidChange(Refseq)']
     known_annot=['Function(Known)','Gene(Known)','ExonicFunction(Known)','AminoAcidChange(Known)']
     annot=['Function','Gene','ExonicFunction','AminoAcidChange']
-    return (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_head)
+    return (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_head,ExAC_fields)
 ## subroutnine por providing header to the main annotation output file
 def getHeader(onlygenic,geneDef,headers,gtMode):
     stringTOreturn=""
-    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_haed)=header_defaults()
+    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_haed,ExAC_fields)=header_defaults()
     if (onlygenic):
             ## only genic annotation header
             ## check for gene definiton and construct header according to that
             # old removed :samples(sampleid>zygosity>DPRef>DPAlt>AlleleFraction)
         if geneDef == 'ensGene':
-            stringTOreturn = sep.join(head_common+ensembl_annot+ repeat_fields)
+            stringTOreturn = sep.join(head_common+ensembl_annot+ repeat_fields+ ExAC_fields)
         elif geneDef == 'refGene':
-            stringTOreturn = sep.join(head_common+refseq_annot+ repeat_fields)
+            stringTOreturn = sep.join(head_common+refseq_annot+ repeat_fields +ExAC_fields)
         elif geneDef == 'knownGene':
-            stringTOreturn = sep.join(head_common+known_annot+ repeat_fields)
+            stringTOreturn = sep.join(head_common+known_annot+ repeat_fields +ExAC_fields)
         else:
             stringTOreturn = sep.join(head_common+refseq_annot+ensembl_annot+
-                                       known_annot+ repeat_fields)
+                                       known_annot+ repeat_fields +ExAC_fields)
     else:
         if geneDef == 'ensGene':
-            stringTOreturn = sep.join(head_common+ensembl_annot+common_fields+repeat_fields)+sep
+            stringTOreturn = sep.join(head_common+ensembl_annot+common_fields+repeat_fields +ExAC_fields)
 
         elif geneDef == 'refGene':
-            stringTOreturn = sep.join(head_common+refseq_annot+common_fields+repeat_fields)
+            stringTOreturn = sep.join(head_common+refseq_annot+common_fields+repeat_fields+ExAC_fields)
 
         elif geneDef == 'knownGene':
-            stringTOreturn = sep.join(head_common+known_annot+common_fields+repeat_fields)
+            stringTOreturn = sep.join(head_common+known_annot+common_fields+repeat_fields+ExAC_fields)
         else:
             stringTOreturn = sep.join(head_common+refseq_annot+ensembl_annot+
-                                      known_annot+common_fields+repeat_fields)
+                                      known_annot+common_fields+repeat_fields + ExAC_fields)
 
     ## replace newlines with nothing at header line
     stringTOreturn=stringTOreturn.replace(sep,sep+'#')
@@ -1059,7 +1060,7 @@ def getHeader(onlygenic,geneDef,headers,gtMode):
 ## subroutnine por providing header to the inconsistent annotation output file
 def getHeaderIns(headers):
     stringTOreturn=""
-    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_head)=header_defaults()
+    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_head,ExAC_fields)=header_defaults()
 
     stringTOreturn = sep.join(head_common+annot+common_fields+repeat_fields)
     stringTOreturn=stringTOreturn.replace(',',',#')
@@ -1078,7 +1079,7 @@ def getHeaderIns(headers):
 ## subroutnine por providing header to the quick look up mode annotation output file
 def getHeaderQlookup(headers):
     stringTOreturn=""
-    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_head)=header_defaults()
+    (sep,head_common,common_fields,repeat_fields,ensembl_annot,refseq_annot,known_annot,annot,basic_head,ExAC_fields)=header_defaults()
     #stringTOreturn = sep.join(head_common+annot+common_fields+repeat_fields)
     stringTOreturn = sep.join(basic_head+common_fields+repeat_fields)
     ## replace newlines with nothing at header line

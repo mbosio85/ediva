@@ -27,7 +27,7 @@ def predict_win():
     '''
 
     NewWin = tkd.Predict_window(root)
-    
+
     if NewWin.result != None:
         commandline  = """--infolder {0[infolder]} --outfolder {0[outfolder]} --qsubname {0[qsubname]} --config  {0[config]} --max_coverage {0[max_cov]}""".format(NewWin.result)
         commandline  += """ --namestart {0[namestart]} --namelength {0[namelength]} --firstreadextension {0[read1]} --secondreadextension  {0[read2]} --indelcaller {0[indel]}""".format(NewWin.result)
@@ -36,10 +36,10 @@ def predict_win():
             commandline += " --fusevariants "
         commandline +=""" --qoptions " {0[qopts]}" """.format(NewWin.result) #The space before { is key for the command line to work
         if NewWin.result.get('sample_list',False):
-               commandline += " --sample_list "+NewWin.result.get('sample_list',False)
-               
+            commandline += " --sample_list "+NewWin.result.get('sample_list',False)
+
         commandline = python_path + ' ' + predict_script + ' ' + commandline + '&'
-        #print commandline         
+        #print commandline
         subprocess.Popen(commandline,shell=True)
 
 def annotate_win():
@@ -49,7 +49,7 @@ def annotate_win():
     NewWin= tkd.Annotate_window(root)
     if NewWin.result != None:
         commandline = """-i {0[infile]} --variantType {0[vartype]} --sampleGenotypeMode  {0[gtype]} --geneDef {0[gdef]}""".format(NewWin.result)
-        
+
         if NewWin.result['force']==1:
             commandline += " -f "
         if NewWin.result['only_gen']==1:
@@ -66,25 +66,25 @@ def prioritize_win():
     NewWin = tkd.Prioritize_window(root)
     if NewWin.result != None:
         commandline = """--outfolder {0[outfolder]} --qsubname {0[qsubname]} --jobname  {0[jobname]} --familytype {0[familytype]} --geneexclusion {0[gex_file]}""".format(NewWin.result)
-        
+
         if NewWin.result['force']==1:
             commandline += " --force "
         if NewWin.result['multisample']==1:
-            commandline += " --multisample"  
+            commandline += " --multisample"
         for el in NewWin.result['inheritance']:
             commandline += ' --inheritance %s'%el
         if NewWin.result.get('config'):
-            commandline += " --config %s"%NewWin.result["config"] 
+            commandline += " --config %s"%NewWin.result["config"]
         if NewWin.result.get('family'):
             commandline += " --family %s"%NewWin.result["family"]
         if NewWin.result.get('white_list'):
             commandline += " --white_list %s"%NewWin.result["white_list"]
         commandline +=""" --qoptions " {0[qopts]}" """.format(NewWin.result)#The space before { is key for the command line to work
-        commandline = python_path + ' ' + prioritize_script + ' ' + commandline 
+        commandline = python_path + ' ' + prioritize_script + ' ' + commandline
         print commandline
         subprocess.Popen(commandline,shell=True)
-    
-    
+
+
 def Resume_window():
     '''
     Re-launch a qsub or pipe job in case it crashed or to re-launch it
@@ -92,22 +92,22 @@ def Resume_window():
     Less complete for the predict phase (just checks the step state without checking the needed outputs)
     '''
     NewWin = tkd.Resume_window(root)
-    
+
     if NewWin.result != None:
         #print NewWin.result
         commandline =""" {0[filename]} "{0[qopts]}" """.format(NewWin.result) #The space before { is key for the command line to work
         commandline = python_path + ' ' + relaunch_script + ' ' + commandline + '&'
         print commandline
-        
+
         subprocess.Popen(commandline,shell=True)
-        
+
 
 def Kill_window():
     '''
     Browse for a .qsub file which  hosts running jobs and kill them all
     '''
     NewWin = tkd.Kill_window(root)
-    
+
     if NewWin.result != None:
         #print NewWin.result
         commandline =""" {0[filename]}  """.format(NewWin.result) #The space before { is key for the command line to work
@@ -115,7 +115,7 @@ def Kill_window():
         #print commandline
         subprocess.Popen(commandline,shell=True)
         #print commandline
-        
+
 ##############################
 #### MAIN
 ##############################
@@ -174,4 +174,3 @@ ToolTip.ToolTip(Kill, follow_mouse=1, text="Kill multiple jobs depending on a si
 
 
 root.mainloop()
-

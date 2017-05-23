@@ -29,11 +29,11 @@ print('Excel writing')
 if writeXLS == True:
     excel_name = outname
     print outname
-    
+
     xls = xlsxwriter.Workbook(excel_name)
     for tabname in args.tabs:
         dir_name = tabname.split('/')[0]
-        print dir_name        
+        print dir_name
         worksheet = xls.add_worksheet(dir_name)
         row = 0
         tabfile = open(os.path.abspath(tabname),'r')
@@ -45,5 +45,3 @@ if writeXLS == True:
             row += 1
         tabfile.close()
     xls.close()
-    
-    

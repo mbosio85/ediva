@@ -43,7 +43,7 @@ For example:
     Namestart = 4
     Namelength = 4
     Output Subolder = 1234
-        
+
 All samples with the same Subfolder will be grouped.
         """
 prioritize_header="""
@@ -139,7 +139,7 @@ class Dialog(Toplevel):
 
         pass # override
 
-    
+
 class MyDialog(Dialog):
     '''
     Just a test class : to be removed
@@ -148,7 +148,7 @@ class MyDialog(Dialog):
         self.file = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('Input file','*.vcf'), ('All files','*')],title='Choose a subtitle file')
         self.file=abs_path = os.path.abspath(self.file.name)
         #return abs_path
-    
+
     def body(self, master):
         Label(master, text="First:",background=steel).grid(row=0,columnspan=1)
         Label(master, text="Second:",background=steel).grid(row=1,columnspan=2)
@@ -164,18 +164,18 @@ class MyDialog(Dialog):
         for item in ["one", "two", "three", "four"]:
             self.listbox.insert(END, item)
         self.listbox.grid(row=3,column=1)
-        
+
         #Combo box button
         self.box_value = StringVar()
         self.box =ttk.Combobox(master, state='readonly',textvariable=self.box_value,background=steel)
         self.box['values'] = ('X', 'Y', 'Z')
         self.box.current(0)
         self.box.grid(row=3,column=0)
-        
+
         #File selection button
-        self.filename = Button(master,text='Input File',command=self.file_search,width=50)        
+        self.filename = Button(master,text='Input File',command=self.file_search,width=50)
         self.filename.grid(row=4,column=0,columnspan=2)
-        
+
         return self.e1 # initial focus
     def apply(self):
         first = (self.e1.get())
@@ -183,9 +183,9 @@ class MyDialog(Dialog):
         combo = self.box.get()
         fname = self.file
         self.result = first, second,combo,fname
-        
-        
-        
+
+
+
 class Annotate_window(Dialog):
     '''
     Window to gather the needed Annotate.py values : the output is a dictionary with variables to launch the command.
@@ -195,19 +195,19 @@ class Annotate_window(Dialog):
         if self.file != None:
             self.file=abs_path = os.path.abspath(self.file.name)
         #return abs_path
-    
+
     def body(self, master):
         self.configure(background =steel)
         self.resizable(0,0)
         #Title
         Label(master, text="\nAnnotate Options:\n",background=orange,fg=text_color,font=(font_type, txt_dim)).grid(row=0,column=0,columnspan=3,sticky='W'+'E')
-        
-        
+
+
         #File selection button
         self.filename = Button(master,text='Input File',command=self.file_search,width=50,fg=text_color,font=(font_type, txt_dim)
-                ,highlightbackground= steel,background=  steel,activebackground= orange,activeforeground=text_color        )        
+                ,highlightbackground= steel,background=  steel,activebackground= orange,activeforeground=text_color        )
         self.filename.grid(row=1,column=0,columnspan=3)
-        
+
         #Select Variant Type
         Label(master, text="Select the variant type:",background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=2,column=0,columnspan=1,sticky=W+E)
         #Combo box button
@@ -217,7 +217,7 @@ class Annotate_window(Dialog):
         self.var['values'] = ('snp', 'indel', 'all')
         self.var.current(2)
         self.var.grid(row=2,column=1,columnspan=2,sticky=W+E)
-        
+
         #SelectGeneMode ensGene,refGene,knownGene,all
         Label(master, text="Select the Gene Definition type:",background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=3,column=0,columnspan=1,sticky=W)
         #Combo box button
@@ -226,7 +226,7 @@ class Annotate_window(Dialog):
         self.gdef['values'] = ('ensGene','refGene','knownGene','all')
         self.gdef.current(2)
         self.gdef.grid(row=3,column=2,columnspan=2)
-        
+
         #SelectGeneDefinition
         Label(master, text="Select the Genotype Mode:",background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=4,column=0,columnspan=1,sticky=W)
         #Combo box button
@@ -235,19 +235,19 @@ class Annotate_window(Dialog):
         self.gtype['values'] = ('compact','complete')
         self.gtype.current(0)
         self.gtype.grid(row=4,column=2,columnspan=2)
-        
+
         #Force and Multisample tickmarks:
         self.var_f = IntVar()
         self.f = Checkbutton(master, text="Force writing?", variable=self.var_f,background=steel,fg=text_color,selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim),activebackground= orange ,activeforeground=text_color    )
         self.f.grid(row=5,column=0,columnspan=1,sticky=W)
-       
+
         self.var_o = IntVar()
         self.o = Checkbutton(master, text="onlyGenicAnnotation?", variable=self.var_o,background=steel,fg=text_color,selectcolor=steel,
                              highlightthickness=0,font=(font_type, txt_dim),activebackground= orange,activeforeground=text_color     )
-        self.o.grid(row=5,column=2,columnspan=1,sticky=E) 
-        
-        return self.filename # initial focus   
+        self.o.grid(row=5,column=2,columnspan=1,sticky=E)
+
+        return self.filename # initial focus
     def apply(self):
         force       = (self.var_f.get())
         only_gen    = (self.var_o.get())
@@ -256,7 +256,7 @@ class Annotate_window(Dialog):
         gtype       = self.gtype.get()
         infile      = self.file
         self.result = {"force":force,"only_gen":only_gen,"vartype":vartype,"gdef":gdef,"infile":infile,"gtype":gtype}
-        
+
     def validate(self):
         try:
             infile = self.file
@@ -267,7 +267,7 @@ class Annotate_window(Dialog):
         except:
             tkMessageBox.showwarning("Annotate","Please Select one Input File")
         return 0
-    
+
     def buttonbox(self):
         # add standard button box. override if you don't want the
         # standard buttons
@@ -280,7 +280,7 @@ class Annotate_window(Dialog):
         w.pack(side=LEFT, padx=5, pady=5)
         self.bind("<Return>", self.ok)
         self.bind("<Escape>", self.cancel)
-        box.pack()    
+        box.pack()
 class Predict_window(Dialog):
     '''
     Window to gather the needed Annotate.py values : the output is a dictionary with variables to launch the command.
@@ -293,9 +293,9 @@ class Predict_window(Dialog):
             self.filename_string.set(str_default + ' [...%s]'%self.file[-15:])
         else:
             self.file = None
-        
+
         #return abs_path
-        
+
     def infolder_search(self):
         str_default='Input Folder'
         try:
@@ -306,8 +306,8 @@ class Predict_window(Dialog):
                 #self.infolder_string.set('In_dir : %s'%self.infolder)
         except:
             self.infolder=None
-        
-    
+
+
     def outfolder_search(self):
         str_default='Output Folder'
         try:
@@ -319,19 +319,19 @@ class Predict_window(Dialog):
                 self.outfolder=None
         except:
             pass
-    
+
     def plus1(self,var,l):
         var.set(int(var.get())+1)
         l.textvariable = var
         return var.get()
-    
+
     def minus1(self,var,l):
         var.set(max(1,int(var.get())-1))
         l.textvariable = var
         return var.get()
-    
- 
-    
+
+
+
     def body(self, master):
         #Title
         cur_row= 0
@@ -349,30 +349,30 @@ class Predict_window(Dialog):
         self.infolder_ = Button(master,textvariable=self.infolder_string,command=self.infolder_search,width=50,background=steel,fg=text_color,
                                 font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )
         #self.infolder_ = Button(master,text='Input directory',command=self.infolder_search,width=50,background=steel,fg=text_color,
-        #                font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )  
+        #                font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )
         self.infolder_.grid(row=cur_row,column=0,columnspan=3)
         t1 = ToolTip.ToolTip(self.infolder_, follow_mouse=1, text="Select here where the fastq files you want to analyze are located.")
-        
+
         #Outfolder selection button
         cur_row+=1
         self.outfolder_string = StringVar()
         self.outfolder_string.set('Output Folder')
         self.outfolder_ = Button(master,textvariable=self.outfolder_string,command=self.outfolder_search,width=50,
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )        
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )
         self.outfolder_.grid(row=cur_row,column=0,columnspan=3)
         t2 = ToolTip.ToolTip(self.outfolder_, follow_mouse=1, text="Select here where you want the output to be stored.")
-        
+
         #Config file selection button
         cur_row+=1
         self.filename_string = StringVar()
         self.filename_string.set('Config. File')
         self.filename = Button(master,textvariable=self.filename_string,command=self.file_search,width=50,background=steel,fg=text_color,
-                               font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )        
+                               font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )
         self.filename.grid(row=cur_row,column=0,columnspan=3)
         t3 = ToolTip.ToolTip(self.filename, follow_mouse=1, text="Select the global configuration file is stored. It contains the paths to all tools used by eDiVa.")
-        
-        
-        
+
+
+
         #Namestart label and buttons
         cur_row+=1
         self.var = IntVar()
@@ -404,14 +404,14 @@ class Predict_window(Dialog):
 
         t2 = ToolTip.ToolTip(self.nl, follow_mouse=1, text=explain_attempt, wraplength=500)
         cur_row+=2
-        
-        
+
+
         ##Interactive example of name start:namelength
         #self.example = StringVar()
         #self.example_label= Label(master,textvariable= self.example,width=20, background=steel,fg=text_color,font=(font_type, txt_dim))
         #cur_row+=1
-        
-        #CPU label and buttons        
+
+        #CPU label and buttons
         self.cpu = IntVar()
         self.cpu.set(4)
         self.lcpu = Label(master, textvariable = (self.cpu),width=20, background=steel,fg=text_color,font=(font_type, txt_dim))
@@ -438,7 +438,7 @@ class Predict_window(Dialog):
                                  background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= emerald,activeforeground=text_color  )
         self.plus_mem.grid(row=cur_row+1,column=2,sticky='E')
         self.minus_mem.grid(row=cur_row+1,column=2,sticky='W')
-        
+
         #Select Indel Caller
         cur_row+=2
         Label(master, text="Select the Indel caller type:",background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=2,sticky=W)
@@ -449,7 +449,7 @@ class Predict_window(Dialog):
         self.var_indel.current(0)
         self.var_indel.grid(row=cur_row,column=2,sticky=W+E)
         t2 = ToolTip.ToolTip(self.var_indel, follow_mouse=1, text="Choose the INDEL caller type: GATK or Clindel")
-        
+
         #Force tick.
         cur_row+=1
         self.var_f = IntVar()
@@ -471,7 +471,7 @@ class Predict_window(Dialog):
         self.read1.grid(row=cur_row, column=1,columnspan=2,sticky=W+E)
         cur_row+=1
         self.read2.grid(row=cur_row, column=1,columnspan=2,sticky=W+E)
-        
+
         #qsubname and max_coverage
         cur_row+=1
         self.qsub = Entry(master, background=emerald,fg=text_color,font=(font_type, txt_dim-2))
@@ -483,7 +483,7 @@ class Predict_window(Dialog):
         self.qsub.grid(row=cur_row, column=1,columnspan=2,sticky=W+E)
         cur_row+=1
         self.max_cov.grid(row=cur_row, column=1,columnspan=2,sticky=W+E)
-        
+
         return self.infolder_ # initial focus
     def buttonbox(self):
         # add standard button box. override if you don't want the
@@ -498,7 +498,7 @@ class Predict_window(Dialog):
         self.bind("<Return>", self.ok)
         self.bind("<Escape>", self.cancel)
         box.pack()
-        
+
     def ok(self, event=None):
         if not self.validate():
             self.initial_focus.focus_set() # put focus back
@@ -512,7 +512,7 @@ class Predict_window(Dialog):
             return self.result
         else:
             return None
-        
+
     def apply(self):
         NewWin = qSubDetails(self.master)
         cpu_mem_params = ',-pe smp %d,-l virtual_free=%dG,-N %s ,-e %s/, -o %s/'%(self.cpu.get(),self.mem.get(),self.qsub.get(),self.outfolder,self.outfolder)
@@ -532,10 +532,10 @@ class Predict_window(Dialog):
                 "mem"       :self.mem.get(),
                 "cpu"       :self.cpu.get(),
                 "qopts"     :NewWin.result+cpu_mem_params
-                
+
                 }
                         #IDEA: setup master.something with the fields I want and thats it
-            
+
             infolder_ =self.infolder
             read1_    =self.read1.get()
             read2_    = self.read2.get()
@@ -549,8 +549,8 @@ class Predict_window(Dialog):
                 tmp = second_read[i]
                 tmp = tmp[:-len(read2_)]
                 second_read[i] = tmp
-            self.master.sample_list = list(set(first_read) & set(second_read))     
-            
+            self.master.sample_list = list(set(first_read) & set(second_read))
+
             get_samples = Sample_list_window(self.master)
             if get_samples.result != None:
                 self.result['sample_list']  = get_samples.result
@@ -559,10 +559,10 @@ class Predict_window(Dialog):
                 #print self.result
         else :
             self.result = None
-            
 
-        
-      
+
+
+
     def validate(self):
         #validate infolder
         try:
@@ -602,7 +602,7 @@ class Predict_window(Dialog):
         if len(self.read1.get())<1 or len(self.read2.get())<1:
             tkMessageBox.showwarning("Predict","Read extensions must contain text")
             return 0
-        #check qsubname 
+        #check qsubname
         if len(self.qsub.get())<1 :
             tkMessageBox.showwarning("Predict","Qsub must contain text")
         elif self.qsub.get()[0].isdigit():
@@ -618,7 +618,7 @@ class Predict_window(Dialog):
             except:
                 tkMessageBox.showwarning("Predict","Maximum coverage must be an integer")
                 return 0
-        return 1    
+        return 1
 class Prioritize_window(Dialog):
     '''
     Window to gather the needed Annotate.py values : the output is a dictionary with variables to launch the command.
@@ -627,12 +627,12 @@ class Prioritize_window(Dialog):
         var.set(int(var.get())+1)
         l.textvariable = var
         return var.get()
-    
+
     def minus1(self,var,l):
         var.set(max(1,int(var.get())-1))
         l.textvariable = var
         return var.get()
-    
+
     def config_file_search(self):
         str_default='Global configuration file'
         file_ = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('All files','*')],title='Choose the  configuration file')
@@ -643,9 +643,9 @@ class Prioritize_window(Dialog):
             return None
         else:
             pass
-        
+
         #return abs_path
-        
+
     def family_file_search(self):
         str_default = 'Family configuration file'
         file_ = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('All files','*')],title='Choose the  configuration file')
@@ -656,21 +656,21 @@ class Prioritize_window(Dialog):
             return None
         else:
             pass
-        
+
         #return abs_path
-        
-    
+
+
     def outfolder_search(self):
         str_default='Outfolder directory'
         try:
             self.outfolder = tkFileDialog.askdirectory(parent=self)
-                
+
             if self.outfolder != None:
                 self.outfolder=os.path.abspath(self.outfolder)
                 self.outfolder_string.set(str_default + ' [...%s]'%self.outfolder[-15:])
         except:
             pass
-    
+
     def gex_file_search(self):
         str_default='Gene exclusion list file'
         file_ = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('txt files','*.txt')],
@@ -683,7 +683,7 @@ class Prioritize_window(Dialog):
             return None
         else:
             pass
-        
+
     def white_list_search(self):
         str_default='White list file'
         file_ = tkFileDialog.askopenfile(parent=self,mode='rb',filetypes=[('txt files','*.txt')],
@@ -696,8 +696,8 @@ class Prioritize_window(Dialog):
             return None
         else:
             pass
-        
-    
+
+
     def ok(self, event=None):
         if not self.validate():
             self.initial_focus.focus_set() # put focus back
@@ -711,11 +711,11 @@ class Prioritize_window(Dialog):
             return self.result
         else:
             pass
-        
+
     def body(self, master):
         self.configure(background =steel)
         self.resizable(0,0)
-        cur_row =0 
+        cur_row =0
         #Title
         Label(master, text="eDiVa variant prioritization",background=cobalt,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
         cur_row+=1
@@ -723,44 +723,44 @@ class Prioritize_window(Dialog):
         cur_row+=1
         Label(master, text="\n",background=steel,fg=text_color,font=(font_type, txt_dim-6)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
         cur_row+=1
-        
+
         #Config file selection button
         cur_row+=1
         self.config_file = StringVar()
         self.cfg_str = StringVar()
         self.cfg_str.set('Global configuration file')
         self.cfg_button = Button(master,textvariable=self.cfg_str,command=self.config_file_search,width=50,
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=cobalt,activeforeground=text_color  )       
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=cobalt,activeforeground=text_color  )
         self.cfg_button.grid(row=cur_row,column=0,columnspan=3)
         ToolTip.ToolTip(self.cfg_button, follow_mouse=1, text="Select the global configuration file is stored. It contains the paths to all tools used by eDiVa.")
-        
+
         #Config file selection button
         cur_row+=1
         self.family_file = StringVar()
         self.family_str = StringVar()
         self.family_str.set('Family configuration file')
         fam_button = Button(master,textvariable = self.family_str,command= self.family_file_search ,width=50,
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )       
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )
         fam_button.grid(row=cur_row,column=0,columnspan=3)
         ToolTip.ToolTip(fam_button, follow_mouse=1, text="Select the family description file with the vcf location for each sample.")
-       
+
         #Outfolder selection button
         cur_row+=1
         self.outfolder_string = StringVar()
         self.outfolder_string.set('Outfolder directory')
         self.outfolder_ = Button(master,textvariable=self.outfolder_string,command=self.outfolder_search,width=50,
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )        
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )
         self.outfolder_.grid(row=cur_row,column=0,columnspan=3)
         ToolTip.ToolTip(self.outfolder_, follow_mouse=1, text="Define here the output folder.")
 
-        
+
         #Gene_exclusion_list file
         cur_row+=1
         self.gex_file = StringVar()
         self.gex_str = StringVar()
         self.gex_str.set('Gene exclusion list file')
         self.gex_button = Button(master,textvariable=self.gex_str,command=self.gex_file_search,width=50,
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )       
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )
         self.gex_button.grid(row=cur_row,column=0,columnspan=3)
         ToolTip.ToolTip(self.gex_button, follow_mouse=1, text="Select a .txt file with a list of genes which are surely not related with the case. a eDiVa default file is provided.")
 
@@ -770,12 +770,12 @@ class Prioritize_window(Dialog):
         self.white_str = StringVar()
         self.white_str.set('White  list file')
         self.white_button = Button(master,textvariable=self.white_str,command=self.white_list_search,width=50,
-                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )       
+                                 background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )
         self.white_button.grid(row=cur_row,column=0,columnspan=3)
         ToolTip.ToolTip(self.white_button, follow_mouse=1, text="Select a .txt file with a list of genes which are known to be related with the case. This field can be empty")
 
-        
-        
+
+
         cur_row+=1
         Label(master, text="\n",background=steel,fg=text_color,font=(font_type, txt_dim-8)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
         cur_row+=1
@@ -788,7 +788,7 @@ class Prioritize_window(Dialog):
         fam_type['values'] = ('family', 'trio')
         fam_type.current(0)
         fam_type.grid(row=cur_row,column=2,sticky='W')
-        
+
         cur_row+=1
         Label(master, text="\n",background=steel,fg=text_color,font=(font_type, txt_dim-8)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
         cur_row+=1
@@ -808,7 +808,7 @@ class Prioritize_window(Dialog):
         ih3 = Checkbutton(master, text="dominant_denovo", variable=self.var_ih3,background=steel,fg=text_color,selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground=text_color )
         ih3.grid(row=cur_row ,column=2)
-        
+
         cur_row+=1
         self.var_ih4 = IntVar()
         ih4 = Checkbutton(master, text="Xlinked", variable=self.var_ih4,background=steel,fg=text_color,selectcolor=steel
@@ -818,23 +818,23 @@ class Prioritize_window(Dialog):
         ih5 = Checkbutton(master, text="compound", variable=self.var_ih5,background=steel,fg=text_color,selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground=text_color )
         ih5.grid(row=cur_row ,column=1,columnspan=2)
-        
+
         #Force and Multisample tickmarks:
         cur_row+=1
         Label(master, text="---------------------------------------------------",background=steel,fg=text_color).grid(row=cur_row,column=0,columnspan=3)
         self.var_f = IntVar()
-        
+
         cur_row+=1
         self.f = Checkbutton(master, text="Force writing", variable=self.var_f,background=steel,fg=text_color,selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground=text_color )
         self.f.grid(row=cur_row,column=0,columnspan=1,sticky='W')
         ToolTip.ToolTip(self.f, follow_mouse=1, text="Select this to force overwriting in case of some output files are already present.")
 
-        
+
         self.var_o = IntVar()
         self.o = Checkbutton(master, text="Multisample Input", variable=self.var_o,background=steel,fg=text_color,selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim-2),activebackground= cobalt ,activeforeground=text_color )
-        self.o.grid(row=cur_row,column=2,columnspan=1,sticky='E') 
+        self.o.grid(row=cur_row,column=2,columnspan=1,sticky='E')
         ToolTip.ToolTip(self.o , follow_mouse=1, text="Select this if the input vcf files have already been merged in a multisample vcf file.")
 
         #
@@ -845,14 +845,14 @@ class Prioritize_window(Dialog):
         self.qsub.insert(0,'prioritize.sh')
         self.jname= Entry(master, background=cobalt,fg=text_color,font=(font_type, txt_dim-2))
         self.jname.insert(0,'prioritize_job')
-        
+
         cur_row+=1
         Label(master, text="Qsub name:", background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=1,sticky='W')
         self.qsub.grid(row=cur_row, column=2,columnspan=2,sticky='E')
         cur_row+=1
         Label(master, text="Job name:", background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=1,sticky='W')
         self.jname.grid(row=cur_row, column=2,columnspan=2,sticky='E')
-        
+
         #CPU label and buttons
         cur_row+=1
         self.cpu = IntVar()
@@ -881,8 +881,8 @@ class Prioritize_window(Dialog):
                                  background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= cobalt,activeforeground=text_color  )
         self.plus_mem.grid(row=cur_row+1,column=2,sticky='E')
         self.minus_mem.grid(row=cur_row+1,column=2,sticky='W')
-        
-        
+
+
         return self.cfg_button
     def apply(self):
         NewWin = qSubDetails(self.master)
@@ -928,7 +928,7 @@ class Prioritize_window(Dialog):
         except:
             tkMessageBox.showwarning("Prioritize","Please Select one gene exclusion list file")
             return 0
-        #check qsubname 
+        #check qsubname
         if len(self.qsub.get())<1 :
             tkMessageBox.showwarning("Prioritize","Qsub must contain text")
             return 0
@@ -970,7 +970,7 @@ class Prioritize_window(Dialog):
         self.bind("<Return>", self.ok)
         self.bind("<Escape>", self.cancel)
         box.pack()
-        
+
 class qSubDetails(Dialog):
     '''
     Window to gather the needed qsub parameters: the output is a string to be added to the pipeline call
@@ -979,19 +979,19 @@ class qSubDetails(Dialog):
         var.set(int(var.get())+1)
         l.textvariable = var
         return var.get()
-    
+
     def minus1(self,var,l):
         var.set(max(0,int(var.get())-1))
         l.textvariable = var
         return var.get()
-    
-    
+
+
     def body(self, master):
         self.configure(background=steel)
         self.resizable(0,0)
         #Title
         Label(master, text="\nQsub Options:\n",background=UI_blue,fg=text_color,font=(font_type, txt_dim)).grid(row=0,column=0,columnspan=3,sticky='W'+'E')
-        
+
         #Select Queue
         Label(master, text="Select the qsub queue:",background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=2,column=0,columnspan=1,sticky=W+E)
         #Combo box button
@@ -1001,8 +1001,8 @@ class qSubDetails(Dialog):
         self.queue['values'] = ('short-sl65', 'long-sl65', 'mem_256','mem_512','so-el6','xe-el6','cn-el6','fk-el6','pr-el6','rg-el6','tg-el6')
         self.queue.current(1)
         self.queue.grid(row=2,column=1,columnspan=2,sticky=W+E)
-        
-        
+
+
         #Select the Time
         lbl_width = 20
         self.hh = IntVar()
@@ -1017,7 +1017,7 @@ class qSubDetails(Dialog):
                                  background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=UI_blue,activeforeground=text_color  )
         self.plus_hh.grid(row=7,column=0,sticky='E')
         self.minus_hh.grid(row=7,column=0,sticky='W')
-        
+
         self.mm = IntVar()
         self.mm.set(0)
         self.l_mm = Label(master, textvariable = (self.mm),width=lbl_width, background=steel,fg=text_color,font=(font_type, txt_dim))
@@ -1030,7 +1030,7 @@ class qSubDetails(Dialog):
                                  background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=UI_blue,activeforeground=text_color  )
         self.plus_mm.grid(row=7,column=1,sticky='E')
         self.minus_mm.grid(row=7,column=1,sticky='W')
-        
+
         self.ss = IntVar()
         self.ss.set(0)
         self.l_ss = Label(master, textvariable = (self.ss),width=lbl_width, background=steel,fg=text_color,font=(font_type, txt_dim))
@@ -1043,38 +1043,38 @@ class qSubDetails(Dialog):
                                  background=steel,fg=text_color,font=(font_type, txt_dim),activebackground=UI_blue,activeforeground=text_color  )
         self.plus_ss.grid(row=7,column=2,sticky='E')
         self.minus_ss.grid(row=7,column=2,sticky='W')
-        
+
         #Mail Options
         self.var_a= IntVar()
         self.var_a.set(1)
         self.a = Checkbutton(master, text="Abort", variable=self.var_a,background=steel,fg=text_color,selectcolor=steel
                              ,highlightthickness=0,font=(font_type, txt_dim),activebackground= UI_blue ,activeforeground=text_color    )
         self.a.grid(row=5,column=0,columnspan=1,sticky=W)
-       
+
         self.var_b = IntVar()
         self.var_b.set(1)
         self.b = Checkbutton(master, text="Begin", variable=self.var_b,background=steel,fg=text_color,selectcolor=steel,
                              highlightthickness=0,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color     )
-        self.b.grid(row=5,column=1,columnspan=1) 
-        
+        self.b.grid(row=5,column=1,columnspan=1)
+
         self.var_e = IntVar()
         self.var_e.set(1)
         self.e = Checkbutton(master, text="End", variable=self.var_e,background=steel,fg=text_color,selectcolor=steel,
                              highlightthickness=0,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color     )
         self.e.grid(row=5,column=2,columnspan=1,sticky=E)
-        
+
         self.var_custom = IntVar()
         self.var_custom.set(1)
         self.custom = Checkbutton(master, text="Custom Mail annotation", variable=self.var_custom ,background=steel,fg=text_color,selectcolor=steel,
                              highlightthickness=0,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color     )
         self.custom .grid(row=4,column=1,columnspan=1,sticky=E)
-        
+
         self.email = Entry(master, background=UI_blue,fg=text_color,font=(font_type, txt_dim-2))
         self.email.insert(0,'xxx@crg.es')
         Label(master, text="Mail Address:", background=steel,fg=text_color,font=(font_type, txt_dim)).grid(row=8,column=0,columnspan=1,sticky=W)
         self.email.grid(row =8, column=1)
-           
-        return self.queue # initial focus   
+
+        return self.queue # initial focus
     def apply(self):
         qsub        = self.var_value.get()
         a           = self.var_a.get()
@@ -1086,7 +1086,7 @@ class qSubDetails(Dialog):
         ss          = self.ss.get()
         time        = 60*60*hh + 60*mm + ss
         email       = self.email.get()
-        
+
         abe = ""
         if a==1:
             abe+='a'
@@ -1094,7 +1094,7 @@ class qSubDetails(Dialog):
             abe+='b'
         if e==1:
             abe+='e'
-            
+
         self.result = ("-hard,-q %s,-M %s,-l h_rt=%d"%(qsub,email,time))
         if custom ==1:
             self.result+=',-v CUSTOM_EMAIL=yes'
@@ -1102,11 +1102,11 @@ class qSubDetails(Dialog):
             self.result+=',-m %s'%abe
         self.result+=",-b y, -shell y,-cwd"
         #print self.result
-            
-        
+
+
     def validate(self):
         return 1
-    
+
     def buttonbox(self):
         # add standard button box. override if you don't want the
         # standard buttons
@@ -1120,8 +1120,8 @@ class qSubDetails(Dialog):
         self.bind("<Return>", self.ok)
         #self.bind("<Escape>", self.cancel)
         box.pack()
-    
-        
+
+
     def ok(self, event=None):
         if not self.validate():
             self.initial_focus.focus_set() # put focus back
@@ -1131,8 +1131,8 @@ class qSubDetails(Dialog):
         self.apply()
         self.cancel()
         return self.result
-    
-    
+
+
 
 class Sample_list_window(Dialog):
     '''
@@ -1140,24 +1140,24 @@ class Sample_list_window(Dialog):
 
     '''
 
-    
+
     def body(self, master):
         self.configure(background=steel)
         self.resizable(0,0)
         #Title
-        
-        
+
+
         samples = self.master.sample_list
-        
+
         self.queue =Label(master, text="\nSamples to process:\n",background=UI_blue,fg=text_color,font=(font_type, txt_dim)).grid(row=0,column=1,columnspan=3,sticky='W'+'E')
-        
+
         #From list to dictionary:
         self.sample_list = dict()
         for i in samples:
             self.sample_list[i] = 1
         self.var_value = StringVar()
         i = 1
-        #Populate now with the samples checkboxes        
+        #Populate now with the samples checkboxes
         for sample in self.sample_list:
             i+=1
             self.sample_list[sample] = IntVar()
@@ -1166,7 +1166,7 @@ class Sample_list_window(Dialog):
                  highlightthickness=0,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color     )
             l.grid(row=i,columnspan=3,sticky='W')
         return self.queue# initial focus
-    
+
     def apply(self):
         #scan the checkboxes and return the string
         return_string = list()
@@ -1181,10 +1181,10 @@ class Sample_list_window(Dialog):
         if len(return_string)==0:
             self.result=None
             return None
-        
+
     def validate(self):
         return 1
-    
+
     def buttonbox(self):
         # add standard button box. override if you don't want the
         # standard buttons
@@ -1198,8 +1198,8 @@ class Sample_list_window(Dialog):
         self.bind("<Return>", self.ok)
         #self.bind("<Escape>", self.cancel)
         box.pack()
-    
-        
+
+
     def ok(self, event=None):
         if not self.validate():
             self.initial_focus.focus_set() # put focus back
@@ -1209,12 +1209,12 @@ class Sample_list_window(Dialog):
         self.apply()
         self.cancel()
         return self.result
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
 class Resume_window(Dialog):
     '''
     Window to gather the needed Annotate.py values : the output is a dictionary with variables to launch the command.
@@ -1227,35 +1227,35 @@ class Resume_window(Dialog):
             self.filename_string.set(str_default + ' [...%s]'%self.file[-15:])
         else:
             self.file = None
-        
+
         #return abs_path
-        
+
     def plus1(self,var,l):
         var.set(int(var.get())+1)
         l.textvariable = var
         return var.get()
-    
+
     def minus1(self,var,l):
         var.set(max(1,int(var.get())-1))
         l.textvariable = var
-        return var.get()    
-    
+        return var.get()
+
     def body(self, master):
         #Title
         cur_row=0
         self.configure(background =steel)
         self.resizable(0,0)
         Label(master, text="\nRelaunch job:\n",background=UI_blue,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
-        
-        
+
+
         #Config file selection button
         cur_row+=1
         self.filename_string = StringVar()
         self.filename_string.set('Select file to run')
         self.filename = Button(master,textvariable=self.filename_string,command=self.file_search,width=50,background=steel,fg=text_color,
-                               font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )        
+                               font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )
         self.filename.grid(row=cur_row,column=0,columnspan=3)
-    
+
 
         #CPU label and buttons
         cur_row+=1
@@ -1285,10 +1285,10 @@ class Resume_window(Dialog):
                                  background=steel,fg=text_color,font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )
         self.plus_mem.grid(row=cur_row+1,column=2,sticky='E')
         self.minus_mem.grid(row=cur_row+1,column=2,sticky='W')
-        
+
         return self.filename # initial focus
-    
-    
+
+
     def buttonbox(self):
         # add standard button box. override if you don't want the
         # standard buttons
@@ -1302,7 +1302,7 @@ class Resume_window(Dialog):
         self.bind("<Return>", self.ok)
         self.bind("<Escape>", self.cancel)
         box.pack()
-        
+
     def ok(self, event=None):
         if not self.validate():
             self.initial_focus.focus_set() # put focus back
@@ -1316,7 +1316,7 @@ class Resume_window(Dialog):
             return self.result
         else:
             return None
-        
+
     def apply(self):
         NewWin = qSubDetails(self.master)
         cpu_mem_params = ',-pe smp %d,-l virtual_free=%dG '%(self.cpu.get(),self.mem.get())
@@ -1326,13 +1326,13 @@ class Resume_window(Dialog):
                 "cpu"       :self.cpu.get(),
                 "filename"  :self.file,
                 "qopts"     :NewWin.result+cpu_mem_params
-                
+
                 }
             #print self.result
         else :
             self.result = None
-        
-      
+
+
     def validate(self):
         #valiate file
         try:
@@ -1342,13 +1342,13 @@ class Resume_window(Dialog):
         except:
             tkMessageBox.showwarning("Predict","Please Select one Input File")
             return 0
-        return 1    
+        return 1
 
 
-    
+
 class Kill_window(Dialog):
     '''
-    
+
     '''
     def file_search(self):
         str_default='Job to be killed '
@@ -1358,26 +1358,26 @@ class Kill_window(Dialog):
             self.filename_string.set(str_default + ' [...%s]'%self.file[-15:])
         else:
             self.file = None
-        
+
         #return abs_path
-      
+
     def body(self, master):
         #Title
         cur_row=0
         self.configure(background =steel)
         self.resizable(0,0)
         Label(master, text="\nRelaunch job:\n",background=UI_blue,fg=text_color,font=(font_type, txt_dim)).grid(row=cur_row,column=0,columnspan=3,sticky='W'+'E')
-        
+
         #Config file selection button
         cur_row+=1
         self.filename_string = StringVar()
         self.filename_string.set('Select job-queue to stop')
         self.filename = Button(master,textvariable=self.filename_string,command=self.file_search,width=50,background=steel,fg=text_color,
-                               font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )        
+                               font=(font_type, txt_dim),activebackground= UI_blue,activeforeground=text_color  )
         self.filename.grid(row=cur_row,column=0,columnspan=3)
         return self.filename # initial focus
-    
-    
+
+
     def buttonbox(self):
         # add standard button box. override if you don't want the
         # standard buttons
@@ -1391,7 +1391,7 @@ class Kill_window(Dialog):
         self.bind("<Return>", self.ok)
         self.bind("<Escape>", self.cancel)
         box.pack()
-        
+
     def ok(self, event=None):
         if not self.validate():
             self.initial_focus.focus_set() # put focus back
@@ -1405,13 +1405,13 @@ class Kill_window(Dialog):
             return self.result
         else:
             return None
-        
+
     def apply(self):
         self.result = {
             "filename" :self.file
             }
         return None
-      
+
     def validate(self):
         #valiate file
         try:
@@ -1421,4 +1421,4 @@ class Kill_window(Dialog):
         except:
             tkMessageBox.showwarning("Predict","Please Select one Input File")
             return 0
-        return 1    
+        return 1

@@ -10,12 +10,14 @@ import os.path
 import struct
 import hashlib
 start = time.time()
+import cPickle as pickle
+
 ######################################
 #
-#	Task => Annotate variants 
-#	infile => VCF file with complete sample wise genotype information
-#	outfile => text file (csv) with complete annotation with sample wise genotype information
-#	Extra outfile => text file (csv) without genic annotation with sample wise information for variants that are not bi-allelic (e.g tri-allelic) 
+#       Task => Annotate variants
+#       infile => VCF file with complete sample wise genotype information
+#       outfile => text file (csv) with complete annotation with sample wise genotype information
+#       Extra outfile => text file (csv) without genic annotation with sample wise information for variants that are not bi-allelic (e.g tri-allelic)
 #
 #######################################
 
@@ -32,7 +34,7 @@ geneDef         = "refGene" ## gene Definition
 sep             = "," ## separator for annotation outfile currently comma (,) is default
 type_var        = "all" ## type of variants to annotate from input vcf file
 gtMode          = "complete" ## type of variants to annotate from input vcf file
-onlygenic       = False ## variable for only genic annotation 
+onlygenic       = False ## variable for only genic annotation
 forceDel        = False ## varibale for force deleting the output annotation file (if exists)
 qlookup         = "NA" ## varibale for enabling quick lookup mode of the program
 templocation    = "INPATH" ## scratch place for creating the temp files while annotating
@@ -70,7 +72,7 @@ help_           = parser_["help"]
 infile          = os.path.abspath(parser_["infile"])
 geneDef         = parser_["geneDef"]
 type_var        = parser_["type"]
-gtMode          = parser_["gtmode"] 
+gtMode          = parser_["gtmode"]
 onlygenic       = parser_["onlygenic"]
 forceDel        = parser_["forcedel"]
 qlookup         = parser_["qlookup"]
@@ -115,7 +117,7 @@ try:
 
 except IOError:
     sys.exit(1)
-    
+
 ## prepare missing data handler for db annotation
 (missandb,missandb_coordinate,missanndbindel) = annotate_support_functions.preparemissdb(sep) #<<<<<<<<<<< missdb etc values!
 
@@ -168,19 +170,21 @@ else:
 ## join spawned threads
 ## write annotation to file or ender output
 if qlookup == "NA":
-    ## write annotaton in file 
+    ## write annotaton in file
     print "MESSAGE :: Writing annotation to output file %s" % (outFile)
     ## open file handler
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    pLI_dict = pickle.load( open( dir_path + "/" + "pLI_db.pkl", "rb" ) )
     with open(outFile,'w+') as ANN, open(infile) as FL:
         ## write header to output file
         headerOutputFile = annotate_support_functions.getHeader(onlygenic,geneDef,headers,gtMode)
-        
+
         if MAF ==0 :
             ANN.write(headerOutputFile+'\n')
             counter= 0
             for line in FL:
                 if counter==0 :
-		    
+
                     if line.startswith('##'):
                         pass
                     else:
@@ -205,29 +209,33 @@ if qlookup == "NA":
                     elif not_biallelic_variants.get(key,False):
                         (chr_col,position,ref,alt,aftoprint,qual,filter_) = not_biallelic_variants.get(key2,"NA").split(';')
                     else:
-			print 'skipping',
+                        print 'skipping',
                         print ';'.join((chr_col,position,ref,alt))
                         continue
                     annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
                     ### now get the info from ediva annotatio and annovar annotation
                     edivaannotationtoprint = ediva.get(key,"NA")
-                    if type_var != 'all':
+                    if geneDef != 'all':
                         annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA")
+                        gene_name = annovarannotationtoprint.split(',')[1]
                     else:
                         annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*11+"NA")
-		   
-	          
-		 
+                        gene_name = annovarannotationtoprint.split(',')[5]
+                    ### pLI and pRec part
+                    (pLI,pRec) = pLI_dict.get(gene_name,['NA','NA'])
+
                     samplewiseinfortoprint = samples.get(key,"NA")
                     write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
                            qual+sep+filter_+sep+
-                           aftoprint+sep+                   
-                           annovarannotationtoprint+sep+edivaannotationtoprint+sep+samplewiseinfortoprint)
+                           aftoprint+sep+
+                           annovarannotationtoprint+sep+edivaannotationtoprint+sep+
+                           pLI + sep + pRec + sep +
+                           samplewiseinfortoprint)
                           #edivapublicanntoprint+sep+samplewiseinfortoprint)
                     write_str.replace('\n','')
                     ANN.write(write_str+'\n')
             #### write data lines to main output file
-            ##for key, value in variants.items(): 
+            ##for key, value in variants.items():
             ##    (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
             ##    annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
             ##    edivaannotationtoprint = ediva.get(key,"NA")
@@ -239,7 +247,7 @@ if qlookup == "NA":
             ##
             ##    write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
             ##               qual+sep+filter_+sep+
-            ##               aftoprint+sep+                   
+            ##               aftoprint+sep+
             ##               annovarannotationtoprint+sep+edivaannotationtoprint+sep+samplewiseinfortoprint)
             ##              #edivapublicanntoprint+sep+samplewiseinfortoprint)
             ##
@@ -255,7 +263,7 @@ if qlookup == "NA":
                         ANN.write(line)
                     else:
                         counter +=1
-                        
+
                         headerOutputFile=headerOutputFile.split(sep)[7:-1]
                         annovar_head = headerOutputFile[:4]
                         headerOutputFile= headerOutputFile[4:]
@@ -266,7 +274,7 @@ if qlookup == "NA":
                         ANN.write(line.strip()+maf_separator+headerOutputFile+'\n')
                 else:
                     fields = line.strip().split('\t')
-                    
+
                     if fields[11] == fields[10]:
                         (chr_col,position,ref,alt) = [fields[4],fields[5],fields[10],fields[12]]
                     else:
@@ -282,10 +290,10 @@ if qlookup == "NA":
                     else:
                         key=';'.join((chr_col,position,ref,alt))
                     annovarValueToMatch = ';'.join((chr_col,position,ref,alt))
-                    
+
                     ### now get the info from ediva annotatio and annovar annotation
                     edivaannotationtoprint = ediva.get(key,missing_entry).replace(sep,maf_separator)
-                    if type_var != 'all':
+                    if geneDef != 'all':
                         annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*3+"NA").replace(sep,maf_separator)
                     else:
                         annovarannotationtoprint = Annovar.get(annovarValueToMatch,"NA,"*11+"NA").replace(sep,maf_separator)
@@ -299,11 +307,11 @@ if qlookup == "NA":
     #    with open(outFileIns,'w+') as ANNINS:
     #        ## write header for inconsistent file
     #        headerOutputFile = annotate_support_functions.getHeaderIns(headers)
-    #    
+    #
     #        print "MESSAGE :: Writing annotation to output file %s" % (outFileIns)
     #        ANNINS.write(headerOutputFile+'\n')
     #        ## write data lines to main output file
-    #        for key, value in not_biallelic_variants.items(): 
+    #        for key, value in not_biallelic_variants.items():
     #            edivaannotationtoprint,annovarannotationtoprint,samplewiseinfortoprint = ("NA","NA","NA")
     #            edivapublicanntoprint = "NA,NA"
     #            (chr_col,position,ref,alt,aftoprint,qual,filter_) = value.split(';')
@@ -311,7 +319,7 @@ if qlookup == "NA":
     #            samplewiseinfortoprint = samples.get(key,"NA")
     #            #edivapublicanntoprint = edivaStr.get(';'.join((chr_col,position)),"NA,NA")
     #            ## write annotation to fileprint
-    #            
+    #
     #            write_str=(chr_col+sep+position+sep+ref+sep+alt+sep+
     #                       qual+sep+filter_+sep+
     #                       aftoprint+sep+
@@ -328,7 +336,7 @@ if qlookup == "NA":
     ## writing completed
     print "MESSAGE :: Writing annotation completed "
     print "MESSAGE :: Your annotated file is %s " %(outFile)
-    
+
     if MAF ==0:
         print "MESSAGE :: Your sorted annotated file is %s "%(SortedoutFile)
         #print "MESSAGE :: Reported non bi-allelic sites are in %s " %(outFileIns)
@@ -360,7 +368,7 @@ else:
             #tmp.close()
             counter = 0
             headerOutputFile = annotate_support_functions.getHeaderQlookup(headers)
-            
+
             if MAF ==0:
                 var = line.rstrip('\n').split(':')
                 ANN.write(headerOutputFile+'\n')
@@ -389,10 +397,10 @@ else:
                             ANN.write(line.strip()+maf_separator+headerOutputFile+'\n')
                     else:
                         fields = line.strip().split('\t')
-			if fields[11] == fields[10]:
-			    (chr_col,position,ref,alt) = [fields[4],fields[5],fields[10],fields[12]]
-			else:
-			     (chr_col,position,ref,alt) = [fields[4],fields[5],fields[10],fields[11]]
+                        if fields[11] == fields[10]:
+                            (chr_col,position,ref,alt) = [fields[4],fields[5],fields[10],fields[12]]
+                        else:
+                            (chr_col,position,ref,alt) = [fields[4],fields[5],fields[10],fields[11]]
                         if len(ref)+len(alt)>2:
                             ## indel then recover the key
                             hash_ref = hashlib.md5(str(ref).encode())
@@ -449,13 +457,13 @@ else:
             print "Placental mammal phastcons: %s"      % edivavals[13]
             print "Primates phastcons: %s "             % edivavals[14]
             print "Vertebrates phastcons: %s "          % edivavals[15]
-            print "Gerp score1: %s "			        % edivavals[16]
+            print "Gerp score1: %s "                            % edivavals[16]
             print "Gerp score2: %s "                    % edivavals[17]
-            print "Sift: %s "			                % edivavals[18]
+            print "Sift: %s "                                   % edivavals[18]
             print "polyphen2: %s "                      % edivavals[19]
-            print "Mutationassessor: %s "		        % edivavals[20]
+            print "Mutationassessor: %s "                       % edivavals[20]
             print "Condel: %s "                         % edivavals[21]
-            print "Cadd score1: %s "		            % edivavals[22]
+            print "Cadd score1: %s "                        % edivavals[22]
             print "Cadd score2: %s "                    % edivavals[23]
             print "Eigen raw: %s "                      % edivavals[24]
             print "Eigen Phred: %s "                      % edivavals[25]
