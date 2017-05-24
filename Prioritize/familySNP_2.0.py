@@ -811,7 +811,7 @@ if __name__=='__main__':
     index_sample      = min([identifycolumns(header,x) for x in family.keys()    ])#+identifycolumns(header, 'ExAC_SAS') #samples(sampleid>zygosity>DPRef>DPAlt>AF)
     index_MAF1k       = identifycolumns(header, 'Total1000GenomesFrequency')
     index_MAFevs      = identifycolumns(header, 'TotalEVSFrequency')
-    index_MAF_exac    = identifycolumns(header, 'ExAC_adjusted_AF')
+    index_MAF_exac    = identifycolumns(header, 'ExAC_AF')
     index_function    = identifycolumns(header, 'Function(Refseq)')
     index_varfunction = identifycolumns(header, 'ExonicFunction(Refseq)')
     index_segdup      = identifycolumns(header, 'SegMentDup')
