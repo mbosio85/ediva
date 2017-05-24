@@ -73,7 +73,7 @@ def main ():
     alldata_transpose = zip(*alldata)
     
     
-    values2investigate = ['ExAC_adjusted_AF','Total1000GenomesFrequency', 'TotalEVSFrequency', 'SegMentDup', 'Condel', 'VertebratesPhyloP', 'VertebratesPhastCons', 'SIFTScore']
+    values2investigate = ['ExAC_AF','Total1000GenomesFrequency', 'TotalEVSFrequency', 'SegMentDup', 'Condel', 'VertebratesPhyloP', 'VertebratesPhastCons', 'SIFTScore']
     
     # binning, because otherwise subtle differences get too much weight
     binned_values = binning(alldata_transpose, header, 'MAF')
@@ -154,7 +154,7 @@ def binning (alldata, header, parameter):
     if parameter == 'MAF':
         index_1000G  = identifycolumns(header, 'Total1000GenomesFrequency')
         index_EVS    = identifycolumns(header, 'TotalEVSFrequency')
-        index_ExAC   = identifycolumns(header, 'ExAC_adjusted_AF')
+        index_ExAC   = identifycolumns(header, 'ExAC_AF')
         column_1000G = list(alldata[index_1000G])
         column_EVS   = list(alldata[index_EVS])
         column_ExAC   = list(alldata[index_ExAC])
