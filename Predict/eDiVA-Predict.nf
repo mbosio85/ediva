@@ -29,7 +29,7 @@ process alignReads {
     
     shell:
     '''
-    $BWA mem -M -t !{task.cpus} -R \"@RG\\tID:!{NAME}\\tSM:!{NAME}\" $REF !{READ1} !{READ2} | time $SAMTOOLS view -h -b -S -F 0x900 -  > !{NAME}.noChimeric.bam 
+    $BWA mem -M -t !{task.cpus} -R \"@RG\\tID:!{NAME}\\tSM:!{NAME}\" $REF !{READ1} !{READ2} |  $SAMTOOLS view -h -b -S -F 0x900 -  > !{NAME}.noChimeric.bam 
     ### check for Quality encoding and transform to 33 if 64 encoding is encountered
     OFFSET=$($SAMTOOLS view !{NAME}.noChimeric.bam  | $PYTHON $EDIVA/Predict/whichQuality_bam.py)
     if [[ $OFFSET == 64 ]];
@@ -64,7 +64,7 @@ process sortBam {
     echo Sort BAM
     # NOVOSORT --threads !{task.cpus} --tmpdir !{OUTF} --forcesort --output !{NAME}.sort.bam -i -m 40G !{NAME}.noChimeric.bam
     $SAMTOOLS sort -@  !{task.cpus} -T !{NAME}.tmp_sorting   --reference  $REF  -o !{NAME}.sort.bam  !{NAME}.noChimeric.bam
-    $SAMTOOLS index mah.sort.bam 
+    $SAMTOOLS index !{NAME}.sort.bam 
     '''
 }
 
