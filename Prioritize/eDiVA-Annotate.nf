@@ -11,7 +11,7 @@ VCF_f = file(params.VCF)
  * Annnotate VCF
  */
 process annotate {
-    publishDir params.OUTF
+    publishDir params.OUTF, mode: 'copy'
     
     input:
     file VCF_f 
