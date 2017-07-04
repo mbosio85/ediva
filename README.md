@@ -21,7 +21,7 @@ Content from Wiki
 List of external tools 
 
 * [nextflow](https://www.nextflow.io/). 
-* [Samtools](http://samtools.sourceforge.net/) v1.3
+* [Samtools](http://samtools.sourceforge.net/) v1.5
 * Python 2.7
 * [Bedtools](http://bedtools.readthedocs.io/en/latest/) 2.25
 * [Fastqc](http://www.bioinformatics.babraham.ac.uk/projects/fastqc/) 0.11.5
@@ -33,34 +33,20 @@ List of external tools
 * [dbNSP](ftp://ftp.ncbi.nih.gov/snp/organisms/human_9606/VCF/) database split by snp and indels with
     * bcftools view -v snps dbsnp.vcf.gz | bbcftools norm  -m - > snps.vcf
     * bcftools view -v indels dbsnp.vcf.gz | bbcftools norm  -m - > indels.vcf
+* mysql-client
 
 Python packages required:
 
-*  Bio
-*  cPickle
-*  difflib
-*  drmaa
-*  getopt
-*  gzip
-*  hashlib
-*  matplotlib
-*  pyplot
-*  MySQLdb
-*  mysql-connector-python-2.0.4
-*  ntpath
-*  numpyasnp
-*  pysam
-*  readline
-*  scipy
-*  struct
-*  subprocess
-*  tokenize
-*  urllib2
-*  xlrd
-*  xlsxwriter
-*  zlib
-
-
+* numpy 
+* scipy 
+* pysam
+* drmaa
+* xlrd 
+* xlsxwriter
+* MySQL-python
+* mysql-connector==2.1.4 
+* biopython
+* python-tk [with apt-get]
 
 -----
 
