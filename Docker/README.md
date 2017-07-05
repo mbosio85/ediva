@@ -7,6 +7,7 @@ It does require eDiVA-DB to run eDiVA-annotate though.
 
 Build Instruction:
 * Go to eDiVA_code foder:
+* Copy there the GATK jar file 'GenomeAnalysisTK.jar'
 * Run :> docker build -t ediva:code ./
 
 eDiVA-DB : 

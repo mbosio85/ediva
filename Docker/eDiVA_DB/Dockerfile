@@ -35,7 +35,7 @@ RUN /etc/init.d/mysql start && \
         rm -rd /usr/sql 
 #eDiVA_annotation
 # THIS IS GOING TO TAKE A LONG TIME #
-ADD ["eDiVa_annotation.sql.gz","/usr/sql/eDiVa_annotation.sql.gz"]
+COPY ["eDiVa_annotation.sql.gz","/usr/sql/eDiVa_annotation.sql.gz"]
 RUN     echo "THIS IS GOING TO TAKE A LONG TIME LOADING ANNOTATION DATABASE"
         /etc/init.d/mysql start && \
         zcat /usr/sql/eDiVa_annotation.sql.gz mysql -u edivapublic -px86d2k1B -D eDiVa_annotation && \
