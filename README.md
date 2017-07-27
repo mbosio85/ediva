@@ -8,7 +8,7 @@ is a variant annotation and prioritization pipleine which
 
 This project developed anintegrated platform supporting the collection and storage of genome variation, expression, omics and clinical data to provide diagnostics assistance, to elucidate pathogenicity and to identify causal coding gene mutations.
 
-Please check the **Wiki** for all information about installing, requirements and running of the pipeline.
+Please check the **[Wiki](https://github.com/mbosio85/ediva/wiki)** for all information about installing, requirements and running of the pipeline.
 
 <!---
 ----
