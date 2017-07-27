@@ -37,8 +37,13 @@ Build Instruction:
   ```docker run -ti --name populate-db --link ediva:database:mysql.srv -v path_to_Docker/db/:/bin/sql ediva:code /bin/bash -c " zcat /bin/sql/eDiVa_public_omics.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_public_omics" 
   docker rm populate-db ```
 * Second we load the much bigger eDiVA_annotation database:
-  ```  docker run -ti --name populate-db --link ediva:database:mysql.srv -v path_to_Docker/db/:/bin/sql ediva:code /bin/bash -c " zcat /bin/sql/eDiVa_annotation.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_annotation"  
-  ```
+  * Take care to edit the local path to your Docker/db folder
+ ```
+ docker run -ti --name populate-db \
+ --link ediva:database:mysql.srv \
+ -v path_to_Docker/db/:/bin/sql ediva:code /bin/bash \
+ -c " zcat /bin/sql/eDiVa_annotation.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_annotation"  
+```
 
 
 
@@ -50,6 +55,8 @@ Run instructions with nextflow: suggested mode
 * Edit nextflow.config to setup environment and docker capabilities
   * You can use the provided nexflow.config in the Docker folder to activate/modify the parts that are needed
   * It requires to have the container enabled and environment set: PATHS are those FROM THE CONTAINER
+  * Basically you need to edit the fields starting with `-v ` 
+  * And you have to edit the REF and EXOME values in the `env `part 
 ~~~
   java
   process {  executor='local' }
@@ -57,13 +64,16 @@ Run instructions with nextflow: suggested mode
   process.container = 'ediva'
   process.scratch = true
 
-  docker \{
+  docker {
     enabled = true
     temp = '/tmp/'
-    runOptions = '--network host  -p 3306 -v ${YOUR_REF_FILE_FOLDER}:/resources/ref/  -v /users/GD/resource/human/hg19/databases/dbSNP/:/resources/dbsnp/  -v /users/GD/resource/human/probesets/merged_kits/:/resources/exome'
-  \}
+    runOptions = '--network host  -p 3306 \
+    -v ${YOUR_REF_FILE_FOLDER}:/resources/ref/ \
+    -v ${YOUR_DBSNP_FOLDER}:/resources/dbsnp/ \
+    -v ${FOLDER_OF_BED_FILE_FOR_YOUR_ANALYSIS}:/resources/exome'
+  }
 
-  env \{
+  env {
     REF='/resources/ref/hg19.fasta'
     DBINDEL='/resources/dbsnp/dbsnp_138.hg19.indels.vcf'
     DBSNP='/resources/dbsnp/dbsnp_138.hg19.snps.vcf'
@@ -76,7 +86,7 @@ Run instructions with nextflow: suggested mode
     BEDTOOLS='/usr/bin/'
     BWA='/usr/bin/bwa'
     FASTQC='/usr/bin/fastqc/'
-  \}
+  }
 ~~~
 
 ## eDiVA-Predict : 
