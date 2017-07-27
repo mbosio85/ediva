@@ -50,7 +50,7 @@ Run instructions with nextflow: suggested mode
 * Edit nextflow.config to setup environment and docker capabilities
   * You can use the provided nexflow.config in the Docker folder to activate/modify the parts that are needed
   * It requires to have the container enabled and environment set: PATHS are those FROM THE CONTAINER
-  ~~~
+~~~
   java
   process {  executor='local' }
 
@@ -95,19 +95,19 @@ nextflow run eDiVA-Predict.nf \
 
 * First: edit the nexflow.config to mount the samples directories in the docker container file system
   * Add to runOptions: 
-  ~~~
+~~~
    -v /path_to_sample1/:/samples/sample1/
    -v /path_to_sample2/:/samples/sample2/
    -v /path_to_sample3/:/samples/sample3/
-  ~~~
+~~~
 * Second: prepare family info file chaging sample files paths with /samples/sampleX/
   * From a local file for family_config:
-  ~~~
+~~~
     ID status vcf bam
     ID1 1 /path_to_sample1/all_variants.vcf /path_to_sample1/sample1.recalibrated.bam
     ID2 0 /path_to_sample2/all_variants.vcf /path_to_sample1/sample2.recalibrated.bam
     ID3 0 /path_to_sample3/all_variants.vcf /path_to_sample1/sample3.recalibrated.bam
-  ~~~
+~~~
   * Changed for docker:
   ~~~
     ID status vcf bam
