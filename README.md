@@ -1,16 +1,14 @@
 
-Exome Disease Variant analysis (eDiVa), is a variant annotation and prioritization pipleine which
-- Integrates multiple reliable information sources to better assess variants deleteriousness
-- Integrates multiple damage predictors into one single score
-- Helps researchers with an easy-to-use workflow to decide for potentially disease causing genic variants
-- It includes information from human genome and transcriptome sequencing, data from different omics platforms specialized in the analysis of rare and complex diseases
+#Exome Disease Variant analysis (eDiVa), 
+is a variant annotation and prioritization pipleine which
+* Integrates multiple reliable information sources to better assess variants deleteriousness
+* Integrates multiple damage predictors into one single score
+* Helps researchers with an easy-to-use workflow to decide for potentially disease causing genic variants
+* It includes information from human genome and transcriptome sequencing, data from different omics platforms specialized in the analysis of rare and complex diseases
 
 This project developed anintegrated platform supporting the collection and storage of genome variation, expression, omics and clinical data to provide diagnostics assistance, to elucidate pathogenicity and to identify causal coding gene mutations.
 
-Please check the Wiki for all information about installing, requirements and running of the pipeline.
-
-
-
+Please check the **Wiki** for all information about installing, requirements and running of the pipeline.
 
 ----
 Content from Wiki 
