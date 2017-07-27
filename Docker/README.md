@@ -6,7 +6,7 @@ Alone it can run easily for eDiVA-Predict, eDiVA-prepare_for_annotation, and eDi
 It does require eDiVA-DB to run eDiVA-annotate though.
 
 Build Instruction:
-* Go to eDiVA_code foder:
+* Go to eDiVA_code folder:
 * Download GATK 3.3+ [here](https://software.broadinstitute.org/gatk/download/archive) 
 * Copy there the GATK jar file 'GenomeAnalysisTK.jar'
 * Execute:
