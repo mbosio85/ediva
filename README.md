@@ -10,6 +10,7 @@ This project developed anintegrated platform supporting the collection and stora
 
 Please check the **Wiki** for all information about installing, requirements and running of the pipeline.
 
+<!---
 ----
 Content from Wiki 
 ----
@@ -224,3 +225,5 @@ nextflow run eDiVA-predict.nf --OUTF ./\
     *  combined.variants.supplement.filtered.dominant_inherited.csv.xlsx : Excel file with the selected variants, with extra OMIM and Clinvar information where available
 *  variant_prioritization_report.xlsx 
     *  This file is updated with the current information. It is an excel file with one spreadsheet for each inheritance type. In this way you can have all analyses results in one file only
+
+-->
