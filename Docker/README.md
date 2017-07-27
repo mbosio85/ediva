@@ -50,21 +50,20 @@ Run instructions with nextflow: suggested mode
 * Edit nextflow.config to setup environment and docker capabilities
   * You can use the provided nexflow.config in the Docker folder to activate/modify the parts that are needed
   * It requires to have the container enabled and environment set: PATHS are those FROM THE CONTAINER
-  ```
-  process {
-  executor='local'
-  }
+  ~~~
+  java
+  process {  executor='local' }
 
   process.container = 'ediva'
   process.scratch = true
 
-  docker {
+  docker \{
     enabled = true
     temp = '/tmp/'
     runOptions = '--network host  -p 3306 -v ${YOUR_REF_FILE_FOLDER}:/resources/ref/  -v /users/GD/resource/human/hg19/databases/dbSNP/:/resources/dbsnp/  -v /users/GD/resource/human/probesets/merged_kits/:/resources/exome'
-  }
+  \}
 
-  env {
+  env \{
     REF='/resources/ref/hg19.fasta'
     DBINDEL='/resources/dbsnp/dbsnp_138.hg19.indels.vcf'
     DBSNP='/resources/dbsnp/dbsnp_138.hg19.snps.vcf'
@@ -77,11 +76,11 @@ Run instructions with nextflow: suggested mode
     BEDTOOLS='/usr/bin/'
     BWA='/usr/bin/bwa'
     FASTQC='/usr/bin/fastqc/'
-  }
-```
+  \}
+~~~
 
-eDiVA-Predict : 
-
+## eDiVA-Predict : 
+~~~
 nextflow run eDiVA-Predict.nf \
 --NAME sample_name \
 --READ1 /users/so/nrostan/PHD_exome_course_2015/TheExomeCourse/Data/Case_1_FHHt/CD2224/CD2224.read1.fastq.gz \
@@ -90,28 +89,35 @@ nextflow run eDiVA-Predict.nf \
 --OUTF outfolder \
 --CPU 2  -w work_folder \
 -with-docker ediva:code
+~~~
 
-
-eDiVA-Prioritize
+## eDiVA-Prioritize
 
 * First: edit the nexflow.config to mount the samples directories in the docker container file system
   * Add to runOptions: 
-  * -v /path_to_sample1/:/samples/sample1/
-  * -v /path_to_sample2/:/samples/sample2/
-  * -v /path_to_sample3/:/samples/sample3/
+  ~~~
+   -v /path_to_sample1/:/samples/sample1/
+   -v /path_to_sample2/:/samples/sample2/
+   -v /path_to_sample3/:/samples/sample3/
+  ~~~
 * Second: prepare family info file chaging sample files paths with /samples/sampleX/
-  * Local file for family_config:
-    * ID status vcf bam
-    * ID1 1 /path_to_sample1/all_variants.vcf /path_to_sample1/sample1.recalibrated.bam
-    * ID2 0 /path_to_sample2/all_variants.vcf /path_to_sample1/sample2.recalibrated.bam
-    * ID3 0 /path_to_sample3/all_variants.vcf /path_to_sample1/sample3.recalibrated.bam
-  * Changed for docker:
-    * ID status vcf bam
-    * ID1 1 /samples/sample1/all_variants.vcf /samples/sample1/sample1.recalibrated.bam
-    * ID2 0 /samples/sample2/all_variants.vcf /samples/sample2/sample2.recalibrated.bam
-    * ID3 0 /samples/sample3/all_variants.vcf /samples/sample3/sample3.recalibrated.bam
+  * From a local file for family_config:
+  ~~~
+    ID status vcf bam
+    ID1 1 /path_to_sample1/all_variants.vcf /path_to_sample1/sample1.recalibrated.bam
+    ID2 0 /path_to_sample2/all_variants.vcf /path_to_sample1/sample2.recalibrated.bam
+    ID3 0 /path_to_sample3/all_variants.vcf /path_to_sample1/sample3.recalibrated.bam
+  ~~~
+  * Changed for docker:
+  ~~~
+    ID status vcf bam
+    ID1 1 /samples/sample1/all_variants.vcf /samples/sample1/sample1.recalibrated.bam
+    ID2 0 /samples/sample2/all_variants.vcf /samples/sample2/sample2.recalibrated.bam
+    ID3 0 /samples/sample3/all_variants.vcf /samples/sample3/sample3.recalibrated.bam
+  ~~~
 
-
+Run it:
+~~~
 nextflow run eDiVA-prioritize.nf --OUTF ./\
         --ANNOTATED testname.supplement.ranked.csv \
         --MODE standard \
@@ -120,6 +126,7 @@ nextflow run eDiVA-prioritize.nf --OUTF ./\
         --HPO hpo_list.txt \
         --EXCLUSIONLIST edivapath/Resource/gene_exclusion_list.txt \
         --INHERITANCE dominant_inherited -with-docker ediva:code
+~~~
 
 ######
 ##
