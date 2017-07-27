@@ -109,12 +109,12 @@ nextflow run eDiVA-Predict.nf \
     ID3 0 /path_to_sample3/all_variants.vcf /path_to_sample1/sample3.recalibrated.bam
 ~~~
   * Changed for docker:
-  ~~~
+~~~
     ID status vcf bam
     ID1 1 /samples/sample1/all_variants.vcf /samples/sample1/sample1.recalibrated.bam
     ID2 0 /samples/sample2/all_variants.vcf /samples/sample2/sample2.recalibrated.bam
     ID3 0 /samples/sample3/all_variants.vcf /samples/sample3/sample3.recalibrated.bam
-  ~~~
+~~~
 
 Run it:
 ~~~
@@ -128,29 +128,31 @@ nextflow run eDiVA-prioritize.nf --OUTF ./\
         --INHERITANCE dominant_inherited -with-docker ediva:code
 ~~~
 
-######
-##
-##  eDiVA-Annotate  
-##
-######
 
-The annotation part is more complex and require a more elaborations
+##  eDiVA-Annotate  
+
+
+The annotation part is more complex and require a more actions
 
 * To run the annotation we need to have the eDiVA_DB container running :
 * Run:
-  * docker run --detach --name=ediva_db_instance --env="MYSQL_ROOT_PASSWORD=rootpwd" ediva:db
-  * if you want to assign more resources to this container follow Docker instructions
+~~~
+docker run --detach --name=ediva_db_instance --env="MYSQL_ROOT_PASSWORD=rootpwd" ediva:db
+~~~
+  * if you want to assign more resources to this container follow Docker instructions from the official documentation
 * Then we need to edit nextflow.config options for docker, linking the ediva:code container to the ediva_db_instance so it can query the database
-  * Add this line to runOptions '' 
-  * --link ediva_db_instance:mysqlsrv-ediva.linux.crg.es
+  * Add this line to runOptions '' 
+~~~
+  --link ediva_db_instance:mysqlsrv-ediva.linux.crg.es
+~~~
 * Launch the container via nextflow:
  
-
+~~~
 nextflow run eDiVA-Annotate.nf \
         --OUTF ./ \
         --VCF testname.vcf \
         --CPU 2  -w work_folder \
-        -with-docker ediva:code
-
+        -with-docker ediva:code
+~~~
 
 
