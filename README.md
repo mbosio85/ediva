@@ -171,7 +171,7 @@ nextflow run eDiVA-Annotate.nf \
 
 This routine performs the eDiVA-Annotate part, adding annotations from several information sources for all variants in the VCF, and automatically ranks them with eDiVA-Score script. 
 The two steps are joined because eDiVA-Score requires eDiVA-Annotate input columns to be calculated on the fly.
-There is an available repository of pre-calculated eDiVA-Scores for all exonic variants at [???](http://404.htm)
+There is an available repository of pre-calculated eDiVA-Scores for all exonic variants [here](https://public_docs.crg.es/sossowski/MicrobeGenomes/human/eDiVA/eDiVA_score/)
 
 **Output**
 
