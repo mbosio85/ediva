@@ -1,6 +1,6 @@
-## How to use Dockerfiles for eDiVA ##
+# How to use Dockerfiles for eDiVA 
 
-# eDiVA_code : 
+## eDiVA_code : 
 It contains the code needed to run eDiVa.
 Alone it can run easily for eDiVA-Predict, eDiVA-prepare_for_annotation, and eDiVA-prioritize
 It does require eDiVA-DB to run eDiVA-annotate though.
@@ -12,23 +12,23 @@ Build Instruction:
 ```
 docker build -t ediva:code ./
 ```
-# db:
+## db:
 Build instruction
 * go to db folder
 * Execute:
 ```
-* docker volume create --name=db
+docker volume create --name=db
 ```
 * Download the eDiVA_public_omics.sql.gz and eDiVA_annotation.sql.gz
 ```wget ftp_link/eDiVA_DB/*sql.gz```
 * Place them in the Docker/db folder 
 
-# eDiVA-DB : 
+## eDiVA-DB : 
 
 Build Instruction:
 * go to eDiVA_DB folder: 
 * Execute 
-```docker build -t ediva:db ./```
+```docker build -t ediva:db ./ ```
 * Launch the eDiVA_DB image as a running mysql server. We will then populate the database with the information we need.
 * We also mount the created data volume 'db' so it preserves the data even if we shut down the mysql server later on
 ```docker run --detach --name=ediva:database --env="MYSQL_ROOT_PASSWORD=mypassword" -v db:/var/lib/mysql2/  ediva:db```
@@ -37,20 +37,20 @@ Build Instruction:
   ```docker run -ti --name populate-db --link ediva:database:mysql.srv -v path_to_Docker/db/:/bin/sql ediva:code /bin/bash -c " zcat /bin/sql/eDiVa_public_omics.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_public_omics" 
   docker rm populate-db ```
 * Second we load the much bigger eDiVA_annotation database:
-  ```  docker run -ti --name populate-db --link ediva:database:mysql.srv -v path_to_Docker/db/:/bin/sql ediva:code /bin/bash -c " zcat /bin/sql/eDiVa_annotation.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_annotation"  ```
+  ```  docker run -ti --name populate-db --link ediva:database:mysql.srv -v path_to_Docker/db/:/bin/sql ediva:code /bin/bash -c " zcat /bin/sql/eDiVa_annotation.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_annotation"  
+  ```
 
 
 
-######
-##
-## Running containers
-##
-#####
 
-Run instructions with nextflow [suggested mode]
+# Running containers
+
+
+Run instructions with nextflow: suggested mode
 * Edit nextflow.config to setup environment and docker capabilities
   * You can use the provided nexflow.config in the Docker folder to activate/modify the parts that are needed
   * It requires to have the container enabled and environment set: PATHS are those FROM THE CONTAINER
+  ```
   process {
   executor='local'
   }
@@ -78,7 +78,7 @@ Run instructions with nextflow [suggested mode]
     BWA='/usr/bin/bwa'
     FASTQC='/usr/bin/fastqc/'
   }
-
+```
 
 eDiVA-Predict : 
 
