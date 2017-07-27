@@ -57,8 +57,8 @@ Run instructions with nextflow: suggested mode
   * It requires to have the container enabled and environment set: PATHS are those FROM THE CONTAINER
   * Basically you need to edit the fields starting with `-v ` 
   * And you have to edit the REF and EXOME values in the `env `part 
+  * **Example of how prepare the nextflow.config file **
 ~~~
-  java
   process {  executor='local' }
 
   process.container = 'ediva'
@@ -105,7 +105,7 @@ nextflow run eDiVA-Predict.nf \
 ## eDiVA-Prepare for annotation
 When handling a trio case for example we need to prepare a multisample VCF file for annotation by combining the individual VCF files from each sample, produced with eDiVA-Predict.
 * First: edit the nexflow.config to mount the samples directories in the docker container file system
-  * Add to runOptions: 
+  * Add to runOptions in **nextflow.config**: 
 ~~~
    -v /path_to_sample1/:/samples/sample1/
    -v /path_to_sample2/:/samples/sample2/
