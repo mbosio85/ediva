@@ -1,5 +1,5 @@
 
-# Exome Disease Variant analysis (eDiVa), 
+# Exome Disease Variant analysis (eDiVA), 
 is a variant annotation and prioritization pipleine which
 * Integrates multiple reliable information sources to better assess variants deleteriousness
 * Integrates multiple damage predictors into one single score
