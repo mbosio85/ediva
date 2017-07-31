@@ -8,7 +8,7 @@ It does require eDiVA-DB to run eDiVA-annotate though.
 Build Instruction:
 * Go to eDiVA_code folder:
 * Download GATK 3.3+ [here](https://software.broadinstitute.org/gatk/download/archive) 
-* Copy there the GATK jar file 'GenomeAnalysisTK.jar'
+* Copy there the GATK jar file 'GenomeAnalysisTK.jar' **into the eDiVA_code folder**
 * Execute:
 ```
 docker build -t ediva:code ./
