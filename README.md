@@ -8,7 +8,22 @@ is a variant annotation and prioritization pipleine which
 
 This project developed anintegrated platform supporting the collection and storage of genome variation, expression, omics and clinical data to provide diagnostics assistance, to elucidate pathogenicity and to identify causal coding gene mutations.
 
-Please check the **[Wiki](https://github.com/mbosio85/ediva/wiki)** for all information about installing, requirements and running of the pipeline.
+
+## Get eDiVA code 
+You will need to run `git clone https://github.com/mbosio85/ediva.git ` to get eDiVA. 
+No special compilinig is needed, eDiVA can work as a standalone application or using Docker containers.
+
+## Installation & running instruction 
+Please check the **[Wiki](https://github.com/mbosio85/ediva/wiki)** for all information about **requirements** and execution of the pipeline.
+
+## Quick path to eDiVA Docker implementation
+If you are interested directly to the **Docker** implementation, just install [nextflow](https://www.nextflow.io/) and go to the [**Docker Section**](https://github.com/mbosio85/ediva/tree/master/Docker)
+
+
+
+
+
+
 
 <!---
 ----
