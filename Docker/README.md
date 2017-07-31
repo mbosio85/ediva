@@ -57,7 +57,10 @@ docker rm populate-db
  docker run -ti --name populate-db \
  --link ediva_database:mysql.srv \
  -v path_to_Docker/db/:/bin/sql ediva:code /bin/bash \
- -c " zcat /bin/sql/eDiVa_annotation.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_annotation"  
+ -c " zcat /bin/sql/eDiVa_annotation.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_annotation"
+ 
+ docker rm populate-db 
+ 
 ```
 
 
