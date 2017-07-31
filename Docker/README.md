@@ -38,12 +38,12 @@ docker build -t ediva:db ./
 * Launch the eDiVA_DB image as a running mysql server. We will then populate the database with the information we need.
 * We also mount the created data volume 'db' so it preserves the data even if we shut down the mysql server later on
 ```
-docker run --detach --name=ediva:database --env="MYSQL_ROOT_PASSWORD=mypassword" -v db:/var/lib/mysql2/  ediva:db
+docker run --detach --name=ediva_database --env="MYSQL_ROOT_PASSWORD=mypassword" -v db:/var/lib/mysql2/  ediva:db
 ```
 * Next step we launch an interface to the mysql server to populate the database
 * First we load the eDiVA_public database:
 ```
-docker run -ti --name populate-db --link ediva:database:mysql.srv -v path_to_Docker/db/:/bin/sql ediva:code /bin/bash -c " zcat /bin/sql/eDiVa_public_omics.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_public_omics" 
+docker run -ti --name populate-db --link ediva_database:mysql.srv -v path_to_Docker/db/:/bin/sql ediva:code /bin/bash -c " zcat /bin/sql/eDiVa_public_omics.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_public_omics" 
 
 docker rm populate-db 
 ```
@@ -51,7 +51,7 @@ docker rm populate-db
   * Take care to edit the local path to your Docker/db folder
 ```
  docker run -ti --name populate-db \
- --link ediva:database:mysql.srv \
+ --link ediva_database:mysql.srv \
  -v path_to_Docker/db/:/bin/sql ediva:code /bin/bash \
  -c " zcat /bin/sql/eDiVa_annotation.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_annotation"  
 ```
