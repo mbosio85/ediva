@@ -42,7 +42,7 @@ docker run --detach --name=ediva_database --env="MYSQL_ROOT_PASSWORD=mypassword"
 ```
 * Next step we launch an interface to the mysql server to populate the database
 * First we load the eDiVA_public database:
- * **Take care to edit the local path to your Docker/db folder**
+  * **Take care to edit the local path to your Docker/db folder**
 ```
 docker run -ti --name populate-db \ 
 --link ediva_database:mysql.srv \ 
