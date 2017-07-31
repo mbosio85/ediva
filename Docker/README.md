@@ -44,7 +44,8 @@ docker run --detach --name=ediva:database --env="MYSQL_ROOT_PASSWORD=mypassword"
 * First we load the eDiVA_public database:
 ```
 docker run -ti --name populate-db --link ediva:database:mysql.srv -v path_to_Docker/db/:/bin/sql ediva:code /bin/bash -c " zcat /bin/sql/eDiVa_public_omics.sql.gz| mysql -u edivapublic -px86d2k1B -h 10.2.0.1 -D eDiVa_public_omics" 
-  docker rm populate-db 
+
+docker rm populate-db 
 ```
 * Second we load the much bigger eDiVA_annotation database:
   * Take care to edit the local path to your Docker/db folder
