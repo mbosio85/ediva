@@ -166,7 +166,7 @@ if __name__=='__main__':
     import matplotlib.pyplot as plt
     import numpy as np
     
-    import plotly.plotly as py
+    #import plotly.plotly as py
     parser = argparse.ArgumentParser()
     parser.add_argument("-bamfile"  , dest='bamfile',required=True, type=str, help="bamfile")
     parser.add_argument("-bedfile"  , dest='bedfile',required=True, type=str, help="bedfile")
