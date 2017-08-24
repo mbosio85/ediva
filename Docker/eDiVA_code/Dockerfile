@@ -46,7 +46,7 @@ RUN cd /opt && \
     cd samtools-1.5 && \
     ./configure --prefix=/usr/bin && \
     make && \
-    make install && \
+    make prefix=/usr/ install && \
     rm /opt/samtools-1.5.tar.bz2 
     
 # Install Bedtools
