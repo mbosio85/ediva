@@ -328,10 +328,7 @@ process Fuse_variants {
         file snp_report from report_enriched_snps
 
         output:
-        file 'CD2224.read1_fastqc.html' into read1_html 
-        file 'CD2224.read1_fastqc.zip'  into read1_fastqc
-        file 'CD2224.read2_fastqc.html' into read2_html
-        file 'CD2224.read2_fastqc.zip'  into read2_fastqc
+        file "*fastqc.zip"  into reads_fastqc
         file 'coverage.pdf'             into coverage_plot
         file 'flagstat_kit.txt'         into flagstat
         file 'flagstat_report.txt'      into flagstat_rep
