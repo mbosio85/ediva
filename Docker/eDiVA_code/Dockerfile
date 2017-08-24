@@ -66,7 +66,7 @@ RUN cd /opt && \
 
 # Install eDiVA
 RUN cd /opt && \
-    git clone git://git.code.sf.net/p/edivatools/code edivatools-code 
+    git clone https://github.com/mbosio85/ediva.git
 
 # Install Annovar
 RUN cd /opt && \
