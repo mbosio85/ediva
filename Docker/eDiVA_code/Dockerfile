@@ -72,16 +72,16 @@ RUN cd /opt && \
 RUN cd /opt && \
     wget http://www.openbioinformatics.org/annovar/download/0wgxR2rIVP/annovar.latest.tar.gz &&\
     tar xzvf annovar.latest.tar.gz && \
-    cp /opt/edivatools-code/Resource/ediva_summarize_annovar.pl annovar/ && \
-    cp /opt/edivatools-code/Resource/maf2annovar.pl annovar/ && \
-    cp /opt/edivatools-code/Resource/convert2annovar.pl annovar/
+    cp /opt/ediva/Resource/ediva_summarize_annovar.pl annovar/ && \
+    cp /opt/ediva/Resource/maf2annovar.pl annovar/ && \
+    cp /opt/ediva/Resource/convert2annovar.pl annovar/
 #&& \
     
 RUN cd /opt/ && cd annovar && \
     perl annotate_variation.pl -buildver hg19 -downdb -webfrom annovar refGene  hg19  && \
     perl annotate_variation.pl -buildver hg19 -downdb -webfrom annovar ensGene  hg19  && \
     perl annotate_variation.pl -buildver hg19 -downdb -webfrom annovar knownGene  hg19  && \
-    cd /opt/edivatools-code/Annotate && \
+    cd /opt/ediva/Annotate && \
     sed -i 's+/users/GD/tools/eDiVaCommandLine/lib/Annovar+/opt/annovar/+' annotate.py 
     
 # Install GATK
@@ -94,7 +94,7 @@ RUN cd /opt/ && cd annovar && \
 
 ## SETUP environment ##
 
-ENV EDIVA='/opt/edivatools-code/'
+ENV EDIVA='/opt/ediva/'
 ENV PYTHON='/usr/bin/python'
 ENV SAMTOOLS='/usr/local/bin/samtools'
 ENV PICARD='/opt/picard-tools-1.119/'
