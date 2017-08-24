@@ -3,15 +3,15 @@ def run_fastqc(read1, read2,fastqc,output):
     Cmd = fastqc + ' -o ' + output +" "+ read1+ " "+ read2 
     print Cmd
     subprocess.call(Cmd,shell=True)
-    results = [each for each in os.listdir(output) if each.endswith('.html')]
+    results = [each for each in os.listdir(output) if each.endswith('fastqc_data.txt')]
     total_reads=1
 
     for r in results:       
         with open('/'.join([output,r]))as rd:
             for line in rd:
-                if 'Total' in line:
-                    ff = line.split('Total Sequences')
-                    nreads = ff[1].split('</tr>')[0].replace('<td>','').replace('</td>','')
+                if 'Total Sequences' in line:
+                    ff = line.strip().split('\t')
+                    nreads = ff[1]
                     total_reads+=int(nreads)
     print 'Total reads = %d'%total_reads
     return total_reads
