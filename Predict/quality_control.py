@@ -116,9 +116,10 @@ def calc_coverage(bamfile,bedfile,samtools,bedtools,coverage_check,output_fig,ou
     
     ## extract numpy basic stats and build a histogram celebrating it
     
-    import matplotlib.pyplot as plt
     import matplotlib
     matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
     import numpy as np
     x= np.array(DP)
     #print DP    
@@ -165,6 +166,8 @@ if __name__=='__main__':
     import ntpath
     import struct
     import hashlib
+    import matplotlib
+    matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     import numpy as np
     
