@@ -131,3 +131,4 @@ RUN apt-get install -y python-pip python-dev libmysqlclient-dev && \
     #git clone https://github.com/mysql/mysql-connector-python.git && \
     #cd mysql-connector-python && \
     #python ./setup.py build && \
+ENV DISPLAY :0
