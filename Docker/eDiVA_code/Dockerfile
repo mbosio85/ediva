@@ -15,7 +15,7 @@ RUN apt-get update && \
     apt-get install -y default-jdk && \
     apt-get install -y git && \
     apt-get install -y tabix &&\
-    apt-get install -y mysql-client #&&\
+    apt-get install -y mysql-client &&\
     apt-get install  -y fastqc && \
     apt-get -f install
        
