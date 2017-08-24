@@ -4,7 +4,7 @@ def run_fastqc(read1, read2,fastqc,output):
     print Cmd
     subprocess.call(Cmd,shell=True)
     results = [each for each in os.listdir(output) if each.endswith('.html')]
-    total_reads=0
+    total_reads=1
 
     for r in results:       
         with open('/'.join([output,r]))as rd:
