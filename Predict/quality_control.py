@@ -6,7 +6,7 @@ def run_fastqc(read1, read2,fastqc,output):
     results = []
     for dName, sdName, fList in os.walk(output):
          for fileName in fList:
-                if fileName.endswith(fastqc_data.txt):
+                if fileName.endswith('fastqc_data.txt'):
                     results.append(os.path.join(dName, fileName))
     total_reads=1
 
