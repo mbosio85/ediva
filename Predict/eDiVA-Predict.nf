@@ -321,6 +321,8 @@ process Fuse_variants {
     publishDir params.OUTF+"/QualityControl"
         cpus params.CPU
         input:
+	file READ1
+	file READ2
         val NAME from params.NAME
         val OUTF from params.OUTF
         file real_bam_qc from realigned_bam_out2
