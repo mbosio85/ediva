@@ -370,7 +370,7 @@ process Cleanup{
    shell :
    '''
    
-   echo \"!{NAME} !{AFFECTED} !{OUTF_FULL_PATH}\\all_variants.vcf !{OUTF_FULL_PATH}\\!{NAME}.realigned.dm.recalibrated.bam "|sed -e 's/ /\t/g' > sample_info.txt 
+   echo \"!{NAME} !{AFFECTED} !{OUTF_FULL_PATH}/all_variants.vcf !{OUTF_FULL_PATH}/!{NAME}.realigned.dm.recalibrated.bam "|sed -e 's/ /\t/g' > sample_info.txt 
    '''
  
  
