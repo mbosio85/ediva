@@ -367,6 +367,7 @@ process Cleanup{
         //file "${NAME}.realigned.dm.recalibrated.bam" into realigned_bam_final
         //file "${NAME}.realigned.dm.recalibrated.bai" into realigned_idx_final
         file "sample_info.txt" into sample_info
+	file "sample_info_docker.txt" into sample_info_docker
    shell :
    '''
    
