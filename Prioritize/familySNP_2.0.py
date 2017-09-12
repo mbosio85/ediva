@@ -119,8 +119,8 @@ def compoundizer(variantlist, family, index_sample,names):
         # check the entered values for possible compound supporters
         # denovo
         if zygosities[name1]   == '0/0' and zygosities[name2] == '0/0':
-            ticker_dict[name1].append(0.5)
-            ticker_dict[name2].append(0.5)
+            ticker_dict[name1].append(0)
+            ticker_dict[name2].append(0)
             pass
     
         elif zygosities[name1]   == '0/1' and zygosities[name2] == '0/0':
@@ -604,7 +604,7 @@ def evaluate_genotype_quality(zygosity,refcoverage,altcoverage,inheritance):
         ref =int(refcoverage)
 
     except:
-        
+        print 'error' 
         print refcoverage
         print zygosity
         print altcoverage
@@ -704,7 +704,8 @@ if __name__=='__main__':
     import MySQLdb
     import shutil
     import sys
-    
+    from operator import itemgetter
+
     
     try:
         import xlsxwriter
@@ -794,6 +795,8 @@ if __name__=='__main__':
     alldata = list(csv.reader(args.infile))
     
     header = alldata.pop(0)
+    if args.inheritance == 'compound' :
+      alldata = sorted(alldata, key=itemgetter(0,1))
     header =[x.replace('#','',1) for x in header]
     #print header
     #raise

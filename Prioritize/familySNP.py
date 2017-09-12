@@ -8,6 +8,7 @@ import MySQLdb
 import shutil
 import cPickle as pickle
 import sys
+from operator import itemgetter
 
 try:
     import xlsxwriter
@@ -138,11 +139,13 @@ def main (args):
     # VH018	0
     # VH019	0
     ####
-    
+
     # read all data
     alldata = list(csv.reader(args.infile))
-    
+   
     header = alldata.pop(0)
+    if args.inheritance == 'compound' :
+      alldata = sorted(alldata, key=itemgetter(0,1))
     header =[x.replace('#','',1) for x in header]
     #print header
     #raise
@@ -202,7 +205,6 @@ def main (args):
     
     # start reading data
     for line in alldata:
-        
          # init for compound
         if args.inheritance == 'compound' and initializer == 0:
             compound_gene_storage = []
@@ -590,14 +592,21 @@ def main (args):
             # if not old_gene == new_gene:
             # check if the names are the same
             # sometimes gene looks like 'PKHD1L1;PKHD1L1'
+            # print line
+            # print old_gene_set
+            # print new_gene_set
+            # print len(old_gene_set - new_gene_set)
+            # print '2'
             if len(old_gene_set - new_gene_set) > 0:
                 
                 #pp.pprint(['old: ', old_gene, 'new: ',new_gene, 'orig: ', line[index_gene]])
 
                 comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
                 extension = []
+
                 pass_ = 0
-                if len(compound_gene_storage) == 1: extension.extend(['NOT_compound','filtered'])
+                if len(compound_gene_storage) == 1:
+                    extension.extend(['NOT_compound','filtered'])
                 else:
                     extension.append('compound')
                     if comp_judgement==1:
@@ -658,7 +667,6 @@ def main (args):
                         if (line[index_segdup] == '0'):
                             compound_gene_storage.append(line)
                             
-                            
                         else:
                             line.append(args.inheritance)
                             line.append('filteredsd')#
@@ -689,17 +697,15 @@ def main (args):
                 line.append('filtered')
                 line.append(known)
                 out.writerow(line)
-    
+
     else:
         # clean up for last gene
         if args.inheritance == 'compound':
-            
             comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
             genecolumn   = re.sub('\(.*?\)','',line[index_gene])
             genenames = set(genecolumn.split(';'))
-        
-            if len(old_gene_set - new_gene_set) > 0:
-                
+
+            if len(old_gene_set - new_gene_set) >= 0:
                 #pp.pprint(['old: ', old_gene, 'new: ',new_gene, 'orig: ', line[index_gene]])
                 comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
                 extension = []
@@ -1114,8 +1120,8 @@ def compoundizer(variantlist, family, index_sample,names):
         # check the entered values for possible compound supporters
         # denovo
         if zygosities[name1]   == '0/0' and zygosities[name2] == '0/0':
-            ticker_dict[name1].append(0.5)
-            ticker_dict[name2].append(0.5)
+            ticker_dict[name1].append(0)
+            ticker_dict[name2].append(0)
             pass
     
         elif zygosities[name1]   == '0/1' and zygosities[name2] == '0/0':
