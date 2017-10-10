@@ -181,6 +181,8 @@ if qlookup == "NA":
 
         if MAF ==0 :
             ANN.write(headerOutputFile+'\n')
+            header_fields = len(headerOutputFile.split(','))
+            print 'len header_fields : %d'%header_fields
             counter= 0
             for line in FL:
                 if counter==0 :
@@ -233,6 +235,8 @@ if qlookup == "NA":
                            samplewiseinfortoprint)
                           #edivapublicanntoprint+sep+samplewiseinfortoprint)
                     write_str.replace('\n','')
+                    tmpstr = write_str.split(',')[0:header_fields]
+                    write_str=','.join(tmpstr)
                     ANN.write(write_str+'\n')
             #### write data lines to main output file
             ##for key, value in variants.items():
