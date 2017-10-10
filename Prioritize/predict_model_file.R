@@ -27,6 +27,8 @@ predict_me <- function(model_location,file_location,output_name) {
   data_to_predict$MutAss[is.na(data_to_predict$MutAss) ] <- -5
   data_to_predict$ABB_score[is.na(data_to_predict$ABB_score) ] <- 1
   
+  data_to_predict$PlacentalMammalPhastCons<- as.numeric(data_to_predict$PlacentalMammalPhastCons)
+ 
   tmp <- predict(model_to_apply,newdata = na.pass(data_to_predict),type='prob')
   data_to_predict$Predicted <- tmp$`1`
   output_data <- data_to_predict[with(data_to_predict, order(-Predicted)), ]
