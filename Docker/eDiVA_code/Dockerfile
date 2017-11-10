@@ -84,12 +84,7 @@ RUN cd /opt/ && cd annovar && \
     cd /opt/ediva/Annotate && \
     sed -i 's+/users/GD/tools/eDiVaCommandLine/lib/Annovar+/opt/annovar/+' annotate.py 
     
-# Install GATK
-##
-## This file needs to be in Docker context (same folder) or do it from docker  run -ti image_name
- COPY GenomeAnalysisTK.jar  /usr/bin/
-## 
-##
+
 
 
 ## SETUP environment ##
@@ -126,6 +121,13 @@ RUN apt-get install -y python-pip python-dev libmysqlclient-dev && \
     
  RUN   R -e "install.packages('caret', dependencies = TRUE, repos = 'http://cran.us.r-project.org')"
 
+
+# Install GATK
+##
+## This file needs to be in Docker context (same folder) or do it from docker  run -ti image_name
+ COPY GenomeAnalysisTK.jar  /usr/bin/
+## 
+##
 
     #cd /opt &&  \
     #git clone https://github.com/mysql/mysql-connector-python.git && \
