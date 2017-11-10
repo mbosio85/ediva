@@ -24,7 +24,9 @@ RUN  apt-get install -y  software-properties-common python-software-properties
 RUN add-apt-repository ppa:fkrull/deadsnakes && \
     apt-get update && \
     apt-get install -y python2.7  && \
-    apt-get install -y python-tk # &&\
+    apt-get install -y python-tk 
+    
+    # &&\
     #cp -r /usr/bin/python2.7 /usr/bin/python
   
 # install pip
