@@ -7,3 +7,5 @@ if acceptable, a commercial license on case by case basis.
 
 This service is provided by CRG "as is" and CRG does not give or agree to any representation, 
 warranty, undertaking or condition in relation to it, whether express o implied, or otherwise.
+
+"This project is licensed under the terms of the MIT license."
