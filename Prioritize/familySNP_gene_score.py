@@ -433,72 +433,72 @@ def main (args):
         #xls = xlsxwriter.Workbook(tmp_name)
         print inheritance_file
         #shutil.copyfile(tmp_name,inheritance_file)
-        os.system('mv %s %s'%(tmp_name,inheritance_file))
-        xls = xlsxwriter.Workbook(tmp_name)
-        #check if already exist
-        
-        try:
-            print "Updating the existing file with the current inheritance sheet"
-            workbook_rd = xlrd.open_workbook(inheritance_file)
-            worksheets = workbook_rd.sheet_names()
-            for worksheet_name in worksheets:
-                try:
-                    worksheet_rd = workbook_rd.sheet_by_name(worksheet_name)
-                    worksheet_wr = xls.add_worksheet(worksheet_name)
-                    
-                    num_rows = worksheet_rd.nrows - 1
-                    curr_row = -1
-                    while curr_row < num_rows:
-                            curr_row += 1
-                            row_content = worksheet_rd.row(curr_row)
-                            row_content_values = [x.value for x in row_content]
-                            worksheet_wr.write_row(curr_row, 0, row_content_values)
-                            #print row
-             
-                except:
-                    print "There was a problem in processing %s sheet. \nIt may be because the sheet was already there before"%(worksheet_name)
-                    #raise
-            #os.remove(excel_name)
-            #workbook_rd.close()
-        
-        except:
-            
-            pass
-        
-        try:
-            print "Updating the existing file with the already existing sheets"
-            workbook_rd = xlrd.open_workbook(excel_name)
-            worksheets = workbook_rd.sheet_names()
-            for worksheet_name in worksheets:
-                try:
-                    worksheet_rd = workbook_rd.sheet_by_name(worksheet_name)
-                    worksheet_wr = xls.add_worksheet(worksheet_name)
-                    
-                    num_rows = worksheet_rd.nrows - 1
-                    curr_row = -1
-                    while curr_row < num_rows:
-                            curr_row += 1
-                            row_content = worksheet_rd.row(curr_row)
-                            row_content_values = [x.value for x in row_content]
-                            worksheet_wr.write_row(curr_row, 0, row_content_values)
-                            #print row
-                except:
-                    print "There was a problem in processing %s sheet. \nIt may be because the sheet was already there before"%(worksheet_name)
-                    #raise
-            #os.remove(excel_name)
-        
-        except:
-            pass
+    os.system('mv %s %s'%(tmp_name,inheritance_file))
+    xls = xlsxwriter.Workbook(tmp_name)
+    #check if already exist
     
+    try:
+        print "Updating the existing file with the current inheritance sheet"
+        workbook_rd = xlrd.open_workbook(inheritance_file)
+        worksheets = workbook_rd.sheet_names()
+        for worksheet_name in worksheets:
+            try:
+                worksheet_rd = workbook_rd.sheet_by_name(worksheet_name)
+                worksheet_wr = xls.add_worksheet(worksheet_name)
+                
+                num_rows = worksheet_rd.nrows - 1
+                curr_row = -1
+                while curr_row < num_rows:
+                        curr_row += 1
+                        row_content = worksheet_rd.row(curr_row)
+                        row_content_values = [x.value for x in row_content]
+                        worksheet_wr.write_row(curr_row, 0, row_content_values)
+                        #print row
+         
+            except:
+                print "There was a problem in processing %s sheet. \nIt may be because the sheet was already there before"%(worksheet_name)
+                #raise
+        #os.remove(excel_name)
+        #workbook_rd.close()
+    
+    except:
         
-        fh.close()
-        xls.close()
-        #print excel_name
-        #print inheritance_file
-        #print tmp_name
-        cmd='mv %s %s'%(tmp_name,excel_name)
-        os.system(cmd)
-        #os.rename(tmp_name, excel_name)   
+        pass
+    
+    try:
+        print "Updating the existing file with the already existing sheets"
+        workbook_rd = xlrd.open_workbook(excel_name)
+        worksheets = workbook_rd.sheet_names()
+        for worksheet_name in worksheets:
+            try:
+                worksheet_rd = workbook_rd.sheet_by_name(worksheet_name)
+                worksheet_wr = xls.add_worksheet(worksheet_name)
+                
+                num_rows = worksheet_rd.nrows - 1
+                curr_row = -1
+                while curr_row < num_rows:
+                        curr_row += 1
+                        row_content = worksheet_rd.row(curr_row)
+                        row_content_values = [x.value for x in row_content]
+                        worksheet_wr.write_row(curr_row, 0, row_content_values)
+                        #print row
+            except:
+                print "There was a problem in processing %s sheet. \nIt may be because the sheet was already there before"%(worksheet_name)
+                #raise
+        #os.remove(excel_name)
+    
+    except:
+        pass
+
+    
+    fh.close()
+    xls.close()
+    #print excel_name
+    #print inheritance_file
+    #print tmp_name
+    cmd='mv %s %s'%(tmp_name,excel_name)
+    os.system(cmd)
+    #os.rename(tmp_name, excel_name)   
     if args.csvfile != None and os.path.isfile(args.csvfile):
         mailCmd = 'python '+ mailer_path +' -s /home/rrahman/soft/python-mailer/family.html '+ str(args.csvfile) +' Variant Prioritization'
         #print mailCmd
