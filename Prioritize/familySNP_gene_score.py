@@ -342,7 +342,7 @@ def main (args):
         excel_path  =  os.path.dirname(args.outfile.name).split('/')
         excel_path  = '/'.join(excel_path[:-1])
     if excel_path=='':
-        tmp_name = 'tmp.xlsx'
+        #tmp_name = 'tmp.xlsx'
         pass
     else:
         excel_path+='/'
