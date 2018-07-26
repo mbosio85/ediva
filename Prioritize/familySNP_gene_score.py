@@ -10,7 +10,8 @@ import cPickle as pickle
 import sys
 from operator import itemgetter
 import get_HPO_similarity_score as gs
-
+reload(sys)  
+sys.setdefaultencoding('latin-1')
 
 try:
     import xlsxwriter
@@ -270,7 +271,7 @@ def main (args):
                 continue
             
             judgement = xlinked(sampledata, family,names)
-            filter_line(judgement,line,MAF,CADD,tandem,args.inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,args.familytype,index_rank,HPO_query,compound_gene_storage)
+            filter_line(judgement,line,MAF,CADD,tandem,args.inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage,args.familytype)
         ###
         # look for compound heterozygous variants
         ###
@@ -341,22 +342,23 @@ def main (args):
     
         excel_path  =  os.path.dirname(args.outfile.name).split('/')
         excel_path  = '/'.join(excel_path[:-1])
+    
     if excel_path=='':
-        #tmp_name = 'tmp.xlsx'
+        tmp_name = 'tmp.xlsx'
         pass
     else:
         excel_path+='/'
     
         tmp_name = excel_path+'tmp.xlsx'
         excel_name = excel_path+excel_name
-        
+    if writeXLS:    
     
         
         # open xls file for writing
-        print "Printing the Excel file:"
+        print "Printing the Excel file:" + tmp_name
         xls = xlsxwriter.Workbook(tmp_name)
         sheet_name = 'ediva_filtered' + args.inheritance
-        print sheet_name
+        print sheet_name[6:30]
         sheet_name=sheet_name[6:30]
         worksheet = xls.add_worksheet(sheet_name)
         row_xls=0
@@ -376,7 +378,7 @@ def main (args):
         
         
        # read line by line and transform to xls
-        for line in fh:
+        for line in fh:            
             #line.rstrip('\n')
             data = line.strip().split(',')
             if row_xls>0:
@@ -425,12 +427,14 @@ def main (args):
             row_xls += 1
         cur.close()
         db.close()
+    
     try:
          xls.close()
     except:
         print 'error line 700'
+        raise
         pass
-        #xls = xlsxwriter.Workbook(tmp_name)
+        xls = xlsxwriter.Workbook(tmp_name)
         print inheritance_file
         #shutil.copyfile(tmp_name,inheritance_file)
     os.system('mv %s %s'%(tmp_name,inheritance_file))
