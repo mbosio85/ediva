@@ -20,11 +20,8 @@ Build instruction
 ```
 docker volume create --name=db
 ```
-* Download the eDiVA_public_omics.sql.gz and eDiVA_annotation.sql.gz
-```
-wget https://public_docs.crg.es/sossowski/MicrobeGenomes/human/eDiVA/eDiVA_DB/eDiVa_public_omics.sql.gz
-wget https://public_docs.crg.es/sossowski/MicrobeGenomes/human/eDiVA/eDiVA_DB/eDiVa_annotation.sql.gz
-```
+* Contact us to generate eDiVA_public_omics.sql.gz and eDiVA_annotation.sql.gz
+
 * Place them in the Docker/db folder 
 
 ## eDiVA-DB : 
