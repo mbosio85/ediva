@@ -84,7 +84,10 @@ def list_distance(DG,Q,G,Query_distances):
                   print 'calc whole dist'
             else:
                 for k in Query_distances.keys():
+                 try:
                     Query_distances[k] = min([Query_distances[k] , float(distance[k])%offset] )
+                 except:
+                     Query_distances[k] = float(distance[k])%offset
         if Query_distances == 0:
           #can happen when the original list has no updated HPO or wrong values
           return (0,0)
