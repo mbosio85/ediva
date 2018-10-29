@@ -539,8 +539,8 @@ def compound(sampledata, family,names,debug=False):
         #e.g. 40ACVi>0/1>99>0.333;0.167,40ACVm>0/1>99>0.333;0.167,40ACVp>0/2>99>0.333;0.167
         if len(features) > 1 and family.has_key(name):
             zygosity    = features[0]
-            refcoverage = features[2] # could be numeric or .
-            altcoverage = features[3] # could be numeric or .
+            refcoverage = features[2].replace('.','0') # could be numeric or .
+            altcoverage = features[3].replace('.','0') # could be numeric or .
         
             #sub_pp.pprint([refcoverage, altcoverage])
             
@@ -714,8 +714,8 @@ def compoundizer(variantlist, family, index_sample,names):
             #print names
             name        = names[i/sample_annot_size]
             zygosity    = features[0]
-            refcoverage = features[2] # could be numeric or .
-            altcoverage = features[3] # could be numeric or .
+            refcoverage = features[2].replace('.','0') # could be numeric or .
+            altcoverage = features[3].replace('.','0') # could be numeric or .
             # check if, we are looking at the offspring
             
             if not ticker_dict.keys()[0] == name and not ticker_dict.keys()[1] == name:
@@ -803,8 +803,8 @@ def denovo(sampledata, family,names):
         
         if len(features)>=3:
             zygosity    = features[0]
-            refcoverage = features[2] # could be numeric or .
-            altcoverage = features[3] # could be numeric or .
+            refcoverage = features[2].replace('.','0') # could be numeric or .
+            altcoverage = features[3].replace('.','0') # could be numeric or .
         else:
             #stick with genotype and the others are empty
             zygosity    = features[0]
@@ -947,8 +947,8 @@ def dominant(sampledata, family,names):
         
         if len(features)>=3:
             zygosity    = features[0]
-            refcoverage = features[2] # could be numeric or .
-            altcoverage = features[3] # could be numeric or .
+            refcoverage = features[2].replace('.','0') # could be numeric or .
+            altcoverage = features[3].replace('.','0') # could be numeric or .
         else:
             #stick with genotype and the others are empty
             zygosity    = features[0]
@@ -1102,8 +1102,8 @@ def recessive(sampledata, family, familytype,names):
         
         if len(features)>=3:
             zygosity    = features[0]
-            refcoverage = features[2] # could be numeric or .
-            altcoverage = features[3] # could be numeric or .
+            refcoverage = features[2].replace('.','0') # could be numeric or .
+            altcoverage = features[3].replace('.','0') # could be numeric or .
         else:
             #stick with genotype and the others are empty
             zygosity    = features[0]
@@ -1261,8 +1261,8 @@ def xlinked(sampledata, family,names):
         
         if len(features)>=3:
             zygosity    = features[0]
-            refcoverage = features[2] # could be numeric or .
-            altcoverage = features[3] # could be numeric or .
+            refcoverage = features[2].replace('.','0') # could be numeric or .
+            altcoverage = features[3].replace('.','0') # could be numeric or .
             
         else:
             #stick with genotype and the others are empty
