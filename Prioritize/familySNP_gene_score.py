@@ -4,7 +4,7 @@ import pprint
 import re
 from scipy.stats import poisson
 import os
-import MySQLdb
+#import MySQLdb
 import shutil
 import cPickle as pickle
 import sys
@@ -281,9 +281,10 @@ def main (args):
             new_gene_set = set(new_gene.split(';'))
 
             if len(old_gene_set - new_gene_set) > 0:
-                comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-                extension = []
+
                 if  len(names) ==3:
+                    comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
+                    extension = []
                     pass_ = 0
                     for row in compound_gene_storage:
                         rrow = ','.join(row)
@@ -303,7 +304,7 @@ def main (args):
                         row = compound_gene_storage[0]
                         rrow = ','.join(row).replace(',compound_single_sample,PASS','NOT_compound,filtered')
                         out.writerow(rrow.split(','))
-                    else:
+                    elif len(compound_gene_storage) > 1:
                         for row in compound_gene_storage:
                             rrow = ','.join(row)
                             outfiltered.writerow(rrow.split(','))
@@ -345,12 +346,13 @@ def main (args):
                                 rrow=rrow.replace(',compound,PASS',',NOT_compound,filtered')
                         out.writerow(rrow.split(',') )
             elif len(names) == 1:
+                
                 #just check there's more than one and print it
                 if len(compound_gene_storage) == 1:
                     row = compound_gene_storage[0]
                     rrow = ','.join(row).replace(',compound_single_sample,PASS','NOT_compound,filtered')
                     out.writerow(rrow.split(','))
-                else:
+                elif len(compound_gene_storage) > 1:
                     for row in compound_gene_storage:
                         rrow = ','.join(row)
                         outfiltered.writerow(rrow.split(','))
@@ -1502,7 +1504,7 @@ def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_
     if result != 'PASS' : 
         out.writerow(line)
     if result == 'PASS':
-        if inheritance !='compound':
+        if inheritance !='compound' and inheritance != 'compound_single_sample':
             out.writerow(line)
             outfiltered.writerow(line)
         else:
