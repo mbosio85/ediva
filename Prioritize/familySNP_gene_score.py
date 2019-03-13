@@ -4,7 +4,7 @@ import pprint
 import re
 from scipy.stats import poisson
 import os
-#import MySQLdb
+import MySQLdb
 import shutil
 import cPickle as pickle
 import sys
