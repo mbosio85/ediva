@@ -358,8 +358,11 @@ def main (args):
         print "Printing the Excel file:" + tmp_name
         xls = xlsxwriter.Workbook(tmp_name)
         sheet_name = 'ediva_filtered' + args.inheritance
+        print sheet_name
         if (args.inheritance == 'dominant' or args.inheritance == 'dominant_denovo' ) and len(sampledata)/sample_annot_size == 1:
             sheet_name ='ediva_filtereddominant'
+            print len(sampledata)
+            print 'aaa'
         print sheet_name[6:30]
         sheet_name=sheet_name[6:30]
         worksheet = xls.add_worksheet(sheet_name)
