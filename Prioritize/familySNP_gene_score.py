@@ -275,58 +275,88 @@ def main (args):
         ###
         # look for compound heterozygous variants
         ###
-        elif args.inheritance == 'compound':
-           
+        elif args.inheritance == 'compound' :
+            
             new_gene = re.sub('\(.*?\)','',line[index_gene])
             new_gene_set = set(new_gene.split(';'))
 
             if len(old_gene_set - new_gene_set) > 0:
-                comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-                extension = []
-                pass_ = 0
-                for row in compound_gene_storage:
-                    rrow = ','.join(row)
 
-                    if len(compound_gene_storage) == 1:
-                        rrow=rrow.replace(',compound,PASS','NOT_compound,filtered')
-                    else:
-                        if comp_judgement==1:
-                           outfiltered.writerow(rrow.split(','))
-                        else:
+                if  len(names) ==3:
+                    comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
+                    extension = []
+                    pass_ = 0
+                    for row in compound_gene_storage:
+                        rrow = ','.join(row)
+    
+                        if len(compound_gene_storage) == 1:
                             rrow=rrow.replace(',compound,PASS','NOT_compound,filtered')
-                    out.writerow(rrow.split(','))
+                        else:
+                            if comp_judgement==1:
+                               outfiltered.writerow(rrow.split(','))
+                            else:
+                                rrow=rrow.replace(',compound,PASS','NOT_compound,filtered')
+                        out.writerow(rrow.split(','))
+                        
+                elif len(names) == 1:
+                    #just check there's more than one and print it
+                    if len(compound_gene_storage) == 1:
+                        row = compound_gene_storage[0]
+                        rrow = ','.join(row).replace(',compound_single_sample,PASS','NOT_compound,filtered')
+                        out.writerow(rrow.split(','))
+                    elif len(compound_gene_storage) > 1:
+                        for row in compound_gene_storage:
+                            rrow = ','.join(row)
+                            outfiltered.writerow(rrow.split(','))
+                            out.writerow(rrow.split(','))
 
                 # reset values
                 compound_gene_storage = []
                 old_gene     = new_gene
                 old_gene_set = new_gene_set
                        
-
-            judgement = compound(sampledata, family,names)        
-            compound_gene_storage = filter_line(judgement,line,MAF,CADD,tandem,args.inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
+            if len(names) == 3:
+                judgement = compound(sampledata, family,names)
+                compound_gene_storage = filter_line(judgement,line,MAF,CADD,tandem,args.inheritance,index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
+            elif len(names) == 1:
+                #then use the denovo filter strategy
+                judgement = denovo(sampledata, family,names) 
+                compound_gene_storage = filter_line(judgement,line,MAF,CADD,tandem,'compound_single_sample',index_function,index_varfunction,index_segdup,out,outfiltered,genes2exclude,genenames,known,index_rank,HPO_query,compound_gene_storage)
             continue
 
     else:
         # clean up for last gene
         if args.inheritance == 'compound':
-            comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-            genecolumn   = re.sub('\(.*?\)','',line[index_gene])
-            genenames = set(genecolumn.split(';'))
-
-            if len(old_gene_set - new_gene_set) > 0:
+            if  len(names) ==3:
                 comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
-                extension = []
-                pass_ = 0
-                for row in compound_gene_storage:
-                    rrow = ','.join(row)
-                    if len(compound_gene_storage) == 1:
-                        rrow=rrow.replace(',compound,PASS',',NOT_compound,filtered')
-                    else:
-                        if comp_judgement==1:
-                           outfiltered.writerow(rrow.split(','))
-                        else:
+                genecolumn   = re.sub('\(.*?\)','',line[index_gene])
+                genenames = set(genecolumn.split(';'))
+                if len(old_gene_set - new_gene_set) > 0:
+                    comp_judgement = compoundizer(compound_gene_storage, family, index_sample,names)
+                    extension = []
+                    pass_ = 0
+                    for row in compound_gene_storage:
+                        rrow = ','.join(row)
+                        if len(compound_gene_storage) == 1:
                             rrow=rrow.replace(',compound,PASS',',NOT_compound,filtered')
-                    out.writerow(rrow.split(',') )                     
+                        else:
+                            if comp_judgement==1:
+                               outfiltered.writerow(rrow.split(','))
+                            else:
+                                rrow=rrow.replace(',compound,PASS',',NOT_compound,filtered')
+                        out.writerow(rrow.split(',') )
+            elif len(names) == 1:
+                
+                #just check there's more than one and print it
+                if len(compound_gene_storage) == 1:
+                    row = compound_gene_storage[0]
+                    rrow = ','.join(row).replace(',compound_single_sample,PASS','NOT_compound,filtered')
+                    out.writerow(rrow.split(','))
+                elif len(compound_gene_storage) > 1:
+                    for row in compound_gene_storage:
+                        rrow = ','.join(row)
+                        outfiltered.writerow(rrow.split(','))
+                        out.writerow(rrow.split(','))
 
         
      ### write an xls output
@@ -339,7 +369,6 @@ def main (args):
         excel_name = 'variant_prioritization_report.xlsx'#args.filteredfile.name + ".xlsx"
         inheritance_file=args.filteredfile.name + ".xlsx"
         
-    
         excel_path  =  os.path.dirname(args.outfile.name).split('/')
         excel_path  = '/'.join(excel_path[:-1])
     
@@ -352,7 +381,6 @@ def main (args):
         tmp_name = excel_path+'tmp.xlsx'
         excel_name = excel_path+excel_name
     if writeXLS:    
-    
         
         # open xls file for writing
         print "Printing the Excel file:" + tmp_name
@@ -520,6 +548,40 @@ def main (args):
 ###################################################
 # sub routines
 ###################################################
+
+
+def dummy_compound_filter(fname):
+    fname = os.path.abspath(fname)    
+    #read the data
+    df = pd.read_csv(fname, sep=',', header='infer')
+    #sort the data
+    df_sorted = df.sort_values(['Chr','Position'], ascending=[1, 1])
+    
+    a_list = df.tolist()
+    
+    keep = []
+    cur_gene = 'None'
+    with open(fname,'r') as rd , open('xxx.tmp', 'w') as tmp:
+        header = rd.readline()
+        tmp.write(header)
+        for line in a_list:
+            line = [str(x) for x in line]
+            #gene field  = line[8]
+            if line[8].split('(')[0] == cur_gene:
+                #same gene
+                keep.append(','.join(line))
+            else:
+                if len(keep) > 1 :
+                    #write it :
+                    tmp.write('\n'.join(keep) + '\n')
+                #just update it :
+                keep = []
+                keep.append(','.join(line))
+                cur_gene = line[8].split('(')[0]
+                print(line[8].split('(')[0])
+        
+    os.rename('xxx.tmp', fname)
+    return None
 
 def compound(sampledata, family,names,debug=False):
     sub_pp = pprint.PrettyPrinter(indent = 8)
@@ -1396,6 +1458,7 @@ def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_
     conditions['dominant_inherited'] = (0.01,-1)
     conditions['compound'] = (0.02,-1)
     conditions['Xlinked'] = (0.01,-1)
+    conditions['compound_single_sample'] = conditions['dominant_denovo']
 
     (MAF_threshold,CADD_threshold) = conditions[inheritance]
     if not familytype == 'trio' and inheritance=='Xlinked' :
@@ -1444,7 +1507,7 @@ def filter_line(judgement,line,MAF,CADD,tandem,inheritance,index_function,index_
     if result != 'PASS' : 
         out.writerow(line)
     if result == 'PASS':
-        if inheritance !='compound':
+        if inheritance !='compound' and inheritance != 'compound_single_sample':
             out.writerow(line)
             outfiltered.writerow(line)
         else:
